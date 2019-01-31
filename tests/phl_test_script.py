@@ -9,7 +9,8 @@ from shapely.geometry import Point
 import numpy as np
 
 phl_ssm_dir = '/Users/itchy/research/gem/hazard_models/mosaic/PHL/in/'
-phl_eq_data = './data/phl_test/phl_eq_cat.csv'
+#phl_eq_data = './data/phl_test/phl_eq_cat.csv'
+phl_eq_data = './data/phl_test/cat_dec_af_crustal_gr.csv'
 
 bin_gj = './data/phl_test/phl_bins.geojson'
 
@@ -24,15 +25,15 @@ hztest.utils.make_SpacemagBins_from_bin_df(bin_df)
 print('doing eq cat')
 eq_df = pd.read_csv(phl_eq_data)
 eq_df['time'] = eq_df.apply(lambda x: datetime.datetime(
-                                        *np.int_((x.Year, x.Month, x.Day,
-                                                  x.Hour, x.Minute, x.Second))),
+                                        *np.int_((x.year, x.month, x.day,
+                                                  x.hour, x.minute, x.second))),
                             axis=1)
-eq_df['geometry'] = eq_df.apply(lambda x: Point(x.Longitude, x.Latitude), axis=1)
+eq_df['geometry'] = eq_df.apply(lambda x: Point(x.longitude, x.latitude), axis=1)
 eq_df = gpd.GeoDataFrame(eq_df)
 eq_df['Eq'] = eq_df.apply(lambda x: hztest.utils.Earthquake(
-                              mag=x.Mw, latitude=x.Latitude,
-                              longitude=x.Longitude, depth=x.Depth, time=x.time,
-                              source='phl_catalog', event_id=x.Event_ID),
+                              mag=x.magnitude, latitude=x.latitude,
+                              longitude=x.longitude, depth=x.depth, time=x.time,
+                              source=x.Agency, event_id=x.eventID),
                          axis=1)
 
 hztest.utils.add_earthquakes_to_bins(eq_df, bin_df)
@@ -43,7 +44,8 @@ print('    reading and sorting logic tree')
 phlt = hztest.utils.io.process_logic_tree(phl_ssm_dir)
 
 print('    getting ruptures from sources')
-rl = hztest.utils.rupture_list_from_lt_branch(phlt['b1'])
+rl = hztest.utils.rupture_list_from_lt_branch(phlt['b1'], 
+                                        source_types=('simple_fault', 'point'))
 
 print('    binning ruptures')
 rgdf = hztest.utils.rupture_list_to_gdf(rl)

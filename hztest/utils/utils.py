@@ -69,9 +69,10 @@ def add_ruptures_to_bins(rupture_gdf, bin_df):
     rupture_gdf['bin_id'] = join_df['index_right']
 
     for i, row in rupture_gdf.iterrows():
-        spacemag_bin = bin_df.loc[row.bin_id, 'SpacemagBin']
-        nearest_bc = _nearest_bin(row.rupture.mag, spacemag_bin.mag_bin_centers)
-        spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
+        if not np.isnan(row.bin_id): 
+            spacemag_bin = bin_df.loc[row.bin_id, 'SpacemagBin']
+            nearest_bc = _nearest_bin(row.rupture.mag, spacemag_bin.mag_bin_centers)
+            spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
 
 
 def make_earthquake_gdf(earthquake_df):
@@ -92,11 +93,13 @@ def add_earthquakes_to_bins(earthquake_gdf, bin_df):
     earthquake_gdf['bin_id'] = join_df['index_right']
 
     for i, eq in earthquake_gdf.iterrows():
-        spacemag_bin = bin_df.loc[eq.bin_id, 'SpacemagBin']
-        nearest_bc = _nearest_bin(eq.Eq.mag, spacemag_bin.mag_bin_centers)
+        if not np.isnan(eq.bin_id): 
+            spacemag_bin = bin_df.loc[eq.bin_id, 'SpacemagBin']
+            nearest_bc = _nearest_bin(eq.Eq.mag, spacemag_bin.mag_bin_centers)
 
-        spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(eq['Eq'])
-        spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
+            spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(
+                                                                    eq['Eq'])
+            spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
 
 
 
