@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 
+from multiprocessing import Pool
+import os
+
 from shapely.geometry import Point
 
 from .stats import sample_events_in_interval
@@ -39,6 +42,28 @@ def rupture_list_from_lt_branch(branch, source_types=('simple_fault')):
 
     return rupture_list
 
+def _process_rup(rup, source):
+    rup.source = source.source_id
+    return rup
+
+def _process_source(source):
+    return [_process_rup(r, source) for r in source.iter_ruptures()]
+
+def rupture_list_from_lt_branch_parallel(branch, source_types=('simple_fault')):
+    # iterates over the logic dict (one per branch of logic tree),
+    # gets all of the ruptures, adds their source as an attribute,
+
+    rupture_list = []
+    
+    for source_type, sources in branch.items():
+        if source_type in source_types and sources != []:
+            with Pool(os.cpu_count()-1) as pool:
+                rups = pool.map(_process_source, sources)
+                rups = _flatten_list(rups)
+                rupture_list.extend(rups)
+
+    return rupture_list
+
 
 def rupture_list_to_gdf(rupture_list):
     
@@ -68,11 +93,13 @@ def add_ruptures_to_bins(rupture_gdf, bin_df):
 
     rupture_gdf['bin_id'] = join_df['index_right']
 
-    for i, row in rupture_gdf.iterrows():
+    def bin_row(row):
         if not np.isnan(row.bin_id): 
             spacemag_bin = bin_df.loc[row.bin_id, 'SpacemagBin']
             nearest_bc = _nearest_bin(row.rupture.mag, spacemag_bin.mag_bin_centers)
             spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
+
+    _ = rupture_gdf.apply(bin_row, axis=1)
 
 
 def make_earthquake_gdf(earthquake_df):
@@ -100,9 +127,6 @@ def add_earthquakes_to_bins(earthquake_gdf, bin_df):
             spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(
                                                                     eq['Eq'])
             spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
-
-
-
 
 
 def make_SpacemagBins_from_bin_df(bin_df, min_mag=6., max_mag=9.,
@@ -155,9 +179,17 @@ class MagBin():
         self.observed_earthquakes = []
         self.stochastic_earthquakes = []
 
-    def calculate_total_rupture_rate(self, t_yrs=1):
-        self.net_rupture_rate = sum([r.occurrence_rate * t_yrs 
-                                     for r in self.ruptures])
+    def calculate_observed_earthquake_rate(self, t_yrs=1., return_rate=False):
+        self.observed_earthquake_rate = len(self.observed_earthquakes) / t_yrs
+        if return_rate is True:
+            return self.observed_earthquake_rate
+
+    def calculate_total_rupture_rate(self, t_yrs=1, return_rate=False):
+        self.net_rupture_rate = sum([r.occurrence_rate 
+                                     for r in self.ruptures]) * t_yrs
+        if return_rate is True:
+            return self.net_rupture_rate
+                
 
     def sample_ruptures(self, interval_length, t0=0., clean=True):
         eqs = _flatten_list([make_earthquakes(rup, interval_length, t0)
@@ -205,3 +237,60 @@ class SpacemagBin():
             else:
                 self.stochastic_earthquakes[bc].append(
                                                  mag_bin.stochastic_earthquakes)
+
+    def get_rupture_mfd(self, cumulative=False):
+
+        # may not be returned in order in Python < 3.5
+        noncum_mfd = {bc: self.mag_bins[bc].calculate_total_rupture_rate(
+                                                                    return_rate=True)
+                      for bc in self.mag_bin_centers}
+
+        cum_mfd = {}
+        cum_mag = 0.
+        # dict has descending order
+        for cb in self.mag_bin_centers[::-1]:
+            cum_mag += noncum_mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # make new dict with ascending order
+        cum_mfd = {cb: cum_mfd[cb] for cb in self.mag_bin_centers}
+ 
+        self.cum_mfd = cum_mfd
+        self.noncum_mfd = noncum_mfd
+ 
+        if cumulative is False:
+            return noncum_mfd
+        else:
+            return cum_mfd
+
+
+    def get_empirical_mfd(self, t_yrs=1., cumulative=False):
+        """
+        Calculates the MFD of empirical (observed) earthquakes; no fitting.
+        """
+
+        # may not be returned in order in Python < 3.5
+        noncum_mfd = {bc: 
+                self.mag_bins[bc].calculate_observed_earthquake_rate(t_yrs=t_yrs,
+                                                                     return_rate=True)
+                      for bc in self.mag_bin_centers}
+
+        cum_mfd = {}
+        cum_mag = 0.
+        # dict has descending order
+        for cb in self.mag_bin_centers[::-1]:
+            cum_mag += noncum_mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # make new dict with ascending order
+        cum_mfd = {cb: cum_mfd[cb] for cb in self.mag_bin_centers}
+ 
+        self.cum_mfd = cum_mfd
+        self.noncum_mfd = noncum_mfd
+ 
+        if cumulative is False:
+            return noncum_mfd
+        else:
+            return cum_mfd
+
+
