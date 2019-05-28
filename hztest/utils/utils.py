@@ -7,7 +7,7 @@ import os
 
 from shapely.geometry import Point
 
-from .stats import sample_events_in_interval
+from .stats import sample_event_times_in_interval
 
 
 
@@ -150,8 +150,8 @@ class Earthquake():
 
 
 def make_earthquakes(rupture, interval_length, t0=0.):
-    event_times = sample_events_in_interval(rupture.occurrence_rate,
-                                            interval_length, t0)
+    event_times = sample_event_times_in_interval(rupture.occurrence_rate,
+                                                 interval_length, t0)
     try:
         source = rupture.source
     except:

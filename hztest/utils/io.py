@@ -8,7 +8,7 @@ from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
 
 
 
-from .model import read
+from .model import read, _get_source_model
 
 def sort_sources(brd):
     sorted_sources = {}
