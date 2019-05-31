@@ -87,7 +87,7 @@ def make_spatial_bins_df_from_file(bin_fp):
     return bin_df
 
 
-def add_ruptures_to_bins(rupture_gdf, bin_df):
+def add_ruptures_to_bins(rupture_gdf, bin_df, parallel=False):
 
     join_df = gpd.sjoin(rupture_gdf, bin_df, how='left')
 
@@ -98,8 +98,15 @@ def add_ruptures_to_bins(rupture_gdf, bin_df):
             spacemag_bin = bin_df.loc[row.bin_id, 'SpacemagBin']
             nearest_bc = _nearest_bin(row.rupture.mag, spacemag_bin.mag_bin_centers)
             spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
+    if parallel is False:
+        _ = rupture_gdf.apply(bin_row, axis=1)
+        return
 
-    _ = rupture_gdf.apply(bin_row, axis=1)
+    def bin_row_apply(df):
+        _ = df.apply(bin_row, axis=1)
+
+    if parallel is True:
+        raise NotImplementedError
 
 
 def make_earthquake_gdf(earthquake_df):
@@ -107,6 +114,8 @@ def make_earthquake_gdf(earthquake_df):
 
 
 def _nearest_bin(val, bin_centers):
+
+    # need to check for out-of-range events, i.e. those too big/small for bins
     bca = np.array(bin_centers)
 
     return bin_centers[np.argmin(np.abs(val-bca))]
@@ -242,7 +251,7 @@ class SpacemagBin():
 
         # may not be returned in order in Python < 3.5
         noncum_mfd = {bc: self.mag_bins[bc].calculate_total_rupture_rate(
-                                                                    return_rate=True)
+                               return_rate=True)
                       for bc in self.mag_bin_centers}
 
         cum_mfd = {}
@@ -258,6 +267,37 @@ class SpacemagBin():
         self.cum_mfd = cum_mfd
         self.noncum_mfd = noncum_mfd
  
+        if cumulative is False:
+            return noncum_mfd
+        else:
+            return cum_mfd
+
+
+    def get_rupture_sample_mfd(self, interval_length, t0=0., normalize=True,
+                               cumulative=False):
+
+        self.sample_ruptures(interval_length=interval_length, t0=t0)
+
+        if normalize is True:
+            denom = interval_length
+        else:
+            denom = 1
+        noncum_mfd = {bc: len(eqs) / denom
+                      for bc, eqs in self.stochastic_earthquakes.items()}
+
+        cum_mfd = {}
+        cum_mag = 0.
+        # dict has descending order
+        for cb in self.mag_bin_centers[::-1]:
+            cum_mag += noncum_mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # make new dict with ascending order
+        cum_mfd = {cb: cum_mfd[cb] for cb in self.mag_bin_centers}
+
+        self.stochastic_noncum_mfd = noncum_mfd
+        self.stochastic_cum_mfd = cum_mfd
+        
         if cumulative is False:
             return noncum_mfd
         else:
