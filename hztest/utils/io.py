@@ -74,10 +74,10 @@ def sort_sources(brd):
                 
     return sorted_sources
 
-def read_branch_sources(base_dir):
+def read_branch_sources(base_dir, lt_file='ssmLT.xml'):
     #base_dir ='../../../hazard_models/mosaic/{}/in/'.format(acr)
     
-    lt = SourceModelLogicTree(base_dir+'ssmLT.xml', validate=False)
+    lt = SourceModelLogicTree(base_dir+lt_file, validate=False)
     
     d = {}
     for k, v in lt.branches.items():
@@ -90,7 +90,7 @@ def read_branch_sources(base_dir):
     return d
 
 
-def process_logic_tree(base_dir, idl_correction=False, verbose=False):
+def process_source_logic_tree(base_dir, idl_correction=False, verbose=False):
     if verbose:
         print('reading source branches')
     lt = sort_sources(read_branch_sources(base_dir))
