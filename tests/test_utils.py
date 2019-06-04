@@ -33,6 +33,5 @@ class TestPHL1(unittest.TestCase):
         self.assertIsInstance(self.lt['b1']['simple_fault'][0], 
                               SimpleFaultSource)
 
-
 if __name__ == '__main__':
     unittest.main()
