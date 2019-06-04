@@ -231,7 +231,7 @@ class SpacemagBin():
             bc = self.min_mag
             while bc <= self.max_mag:
                 bc += self.bin_width
-                self.mag_bin_centers.append(bc)
+                self.mag_bin_centers.append(np.round(bc, 2))
 
         self.mag_bins = {bc: MagBin(bin_center=bc, bin_width=self.bin_width,
                                     bin_min=bc-self.bin_width/2, 
