@@ -1,24 +1,35 @@
+from multiprocessing import Pool
+import os
+from typing import Sequence, Dict, List
+
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-
-from multiprocessing import Pool
-import os
-
 from shapely.geometry import Point
 
 from .stats import sample_event_times_in_interval
 
 
 
-def _flatten_list(lol):
+def _flatten_list(lol: List[list]) -> list:
     """
-    Flattens a list of lists (lol)
+    Flattens a list of lists (lol).  
+
+    >>> _flatten_list([['l'], ['o', 'l']])
+    ['l', 'o', 'l']
+
     """
     return [item for sublist in lol for item in sublist]
 
 
-def rupture_dict_from_logic_dict(ld, source_types=('simple_fault')):
+def rupture_dict_from_logic_dict(ld: dict, 
+                                 source_types: Sequence[str]=('simple_fault')
+                                 ) -> dict:
+    """
+    Creates a dictionary of ruptures from 
+
+    """
+
     return {br: rupture_list_from_lt_branch(branch, source_types)
             for br, branch in ld.items()}
         
@@ -115,7 +126,6 @@ def make_earthquake_gdf(earthquake_df):
 
 def _nearest_bin(val, bin_centers):
 
-    # need to check for out-of-range events, i.e. those too big/small for bins
     bca = np.array(bin_centers)
 
     return bin_centers[np.argmin(np.abs(val-bca))]
@@ -123,6 +133,7 @@ def _nearest_bin(val, bin_centers):
 
 def add_earthquakes_to_bins(earthquake_gdf, bin_df):
     # observed_earthquakes, not ruptures
+    # need to check for out-of-range events, i.e. those too big/small for bins
 
     join_df = gpd.sjoin(earthquake_gdf, bin_df, how='left')
 

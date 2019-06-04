@@ -1,11 +1,10 @@
 import unittest
-
 import sys; sys.path.append('../')
 
-#from hztest.utils import *
+from openquake.hazardlib.source import SimpleFaultSource
+
 import hztest
 
-from openquake.hazardlib.source import SimpleFaultSource
 
 class TestBasicUtils(unittest.TestCase):
 
