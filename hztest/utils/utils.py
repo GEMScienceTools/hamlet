@@ -157,7 +157,15 @@ def rupture_list_from_lt_branch_parallel(branch: dict,
 
 def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
     """
-    Creates a 
+    Creates a GeoPandas GeoDataFrame from a rupture list.
+
+    :param rupture_list:
+        List of :class:`Rupture`s. 
+
+    :returns:
+        GeoDataFrame, with two columns, 'rupture' which holds the
+        :class:`Rupture` object, and 'geometry` which has the geometry as a
+        Shapely :class:`Point` object.
     """
     
     df = pd.DataFrame(index=range(len(rupture_list)),
@@ -169,10 +177,19 @@ def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame(df)
 
 
-def make_spatial_bins_df_from_file(bin_fp):
+def make_spatial_bins_df_from_file(bin_fp: str)-> gpd.GeoDataFrame:
     """
     Returns a geopandas dataframe from a file containing spatial bins as
     polygons.
+
+    :param bin_fp:
+        File path of a vector GIS file with spatial bins as :class:`Polygon` or
+        :class:`MultiPolygon`. See the GeoPandas documentation for more
+        information.
+        
+    :returns:
+        GeoPandas GeoDataFrame with each row being a polygon. Any attributes of
+        the GIS file are passed as columns.
     """
 
     bin_df = gpd.read_file(bin_fp)
@@ -180,7 +197,35 @@ def make_spatial_bins_df_from_file(bin_fp):
     return bin_df
 
 
-def add_ruptures_to_bins(rupture_gdf, bin_df, parallel=False):
+def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame, 
+                         bin_df: gpd.GeoDataFrame, parallel: bool=False):
+
+    """
+    Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
+    list that is an attribute of each :class:`SpacemagBin` based on location and
+    magnitude. The spatial binning is performed through a left join via
+    GeoPandas, and should use RTree if available for speed. This function
+    modifies both GeoDataFrames in memory and does not return any value.
+
+    :param rupture_gdf:
+        GeoDataFrame of ruptures; this should have two columns, one of them
+        being the `rupture` column with the :class:`Rupture` object, and the
+        other being the `geometry` column, with a GeoPandas/Shapely geometry
+        class.
+
+    :param bin_df:
+        GeoDataFrame of the bins. This should have a `geometry` column with a
+        GeoPandas/Shapely geometry and a `SpacemagBin` column that has a
+        :class:`SpacemagBin` object.
+
+    :param parallel:
+
+        Boolean flag to perform the magnitude binning of the earthquakes in
+        parallel. Currently not implemented.
+
+    :Returns:
+        `None`.
+    """
 
     join_df = gpd.sjoin(rupture_gdf, bin_df, how='left')
 
@@ -189,7 +234,8 @@ def add_ruptures_to_bins(rupture_gdf, bin_df, parallel=False):
     def bin_row(row):
         if not np.isnan(row.bin_id): 
             spacemag_bin = bin_df.loc[row.bin_id, 'SpacemagBin']
-            nearest_bc = _nearest_bin(row.rupture.mag, spacemag_bin.mag_bin_centers)
+            nearest_bc = _nearest_bin(row.rupture.mag, 
+                                      spacemag_bin.mag_bin_centers)
             spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
     if parallel is False:
         _ = rupture_gdf.apply(bin_row, axis=1)
@@ -215,7 +261,6 @@ def _nearest_bin(val, bin_centers):
 
 def add_earthquakes_to_bins(earthquake_gdf, bin_df):
     # observed_earthquakes, not ruptures
-    # need to check for out-of-range events, i.e. those too big/small for bins
 
     join_df = gpd.sjoin(earthquake_gdf, bin_df, how='left')
 
@@ -224,11 +269,17 @@ def add_earthquakes_to_bins(earthquake_gdf, bin_df):
     for i, eq in earthquake_gdf.iterrows():
         if not np.isnan(eq.bin_id): 
             spacemag_bin = bin_df.loc[eq.bin_id, 'SpacemagBin']
-            nearest_bc = _nearest_bin(eq.Eq.mag, spacemag_bin.mag_bin_centers)
 
-            spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(
-                                                                    eq['Eq'])
-            spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
+            if eq.mag < spacemag_bin.min_mag - spacemag_bin.bin_width/2:
+                pass
+            elif eq.mag > spacemag_bin.max_mag + spacemag_bin.bin_width/2:
+                pass
+            else:
+                nearest_bc = _nearest_bin(eq.Eq.mag,
+                                          spacemag_bin.mag_bin_centers)
+                spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(
+                                                                       eq['Eq'])
+                spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
 
 
 def make_SpacemagBins_from_bin_df(bin_df, min_mag=6., max_mag=9.,

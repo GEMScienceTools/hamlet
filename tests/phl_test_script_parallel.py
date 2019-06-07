@@ -8,12 +8,12 @@ import datetime
 import time
 from shapely.geometry import Point
 import numpy as np
-import tqdm
+#import tqdm
 
 
-import dask.dataframe as dd
-import dask.multiprocessing
-dask.config.set(scheduler='processes')
+#import dask.dataframe as dd
+#import dask.multiprocessing
+#dask.config.set(scheduler='processes')
 #from dask.distributed import Client
 #client = Client()
 
@@ -63,7 +63,7 @@ hztest.utils.add_earthquakes_to_bins(eq_df, bin_df)
 
 print('processing sources')
 print('    reading and sorting logic tree')
-phlt = hztest.utils.io.process_logic_tree(phl_ssm_dir)
+phlt = hztest.utils.io.process_source_logic_tree(phl_ssm_dir)
 
 print('    getting ruptures from sources')
 t0 = time.time()
