@@ -9,7 +9,6 @@ variables:
 cache:
   paths:
     - .cache/pip
-    - venv/
 
 stages:
   - test
@@ -17,9 +16,6 @@ stages:
 
 before_script:
   - python -V  # Print out python version for debugging
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
   - git clone --depth=1 https://github.com/gem/oq-engine.git 
   - pip -q install -r oq-engine/requirements-py37-linux64.txt -r oq-engine/requirements-extra-py37-linux64.txt
   - pip -q install -e oq-engine
