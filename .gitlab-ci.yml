@@ -34,7 +34,7 @@ install:
 pages:
   script:
     - pip install sphinx
-    - cd docs ; make html
+    - cd docs ; sphinx-apidoc -o source/ ../hz_test ; make html
     - mv build/html/ ../public/
 
   artifacts:
