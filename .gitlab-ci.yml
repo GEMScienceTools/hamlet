@@ -15,6 +15,7 @@ stages:
   - pages
 
 before_script:
+  - ls
   - python3 -V  # Print out python version for debugging
   - git clone --depth=1 https://github.com/gem/oq-engine.git 
   - pip install -r oq-engine/requirements-py36-linux64.txt
