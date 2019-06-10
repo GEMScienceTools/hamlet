@@ -141,7 +141,7 @@ def rupture_list_from_lt_branch_parallel(branch: dict,
     """
 
     if n_procs is None:
-        n_procs = os.cpu_count() - 1
+        n_procs = max(1, os.cpu_count() - 1)
 
     rupture_list = []
     
