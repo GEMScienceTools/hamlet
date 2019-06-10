@@ -16,7 +16,7 @@ def flatten_list(lol: List[list]) -> list:
     """
     Flattens a list of lists (lol).  
 
-    >>> _flatten_list([['l'], ['o', 'l']])
+    >>> flatten_list([['l'], ['o', 'l']])
     ['l', 'o', 'l']
 
     """
