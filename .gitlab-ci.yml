@@ -11,9 +11,7 @@ cache:
     - .cache/pip
     - venv/
 
-
 stages:
-  - install
   - test
   - pages
 
@@ -22,17 +20,14 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
+  - git clone --depth=1 https://github.com/gem/oq-engine.git 
+  - pip -q install -r oq-engine/requirements-py37-linux64.txt -r oq-engine/requirements-extra-py37-linux64.txt
+  - pip -q install -e oq-engine
+  - pip install geopandas
+  - pip install rtree
+  - pip install -r requirements.txt
+  - pip install -e .
 
-install:
-  stage: install
-  script:
-    - git clone --depth=1 https://github.com/gem/oq-engine.git 
-    - pip -q install -r oq-engine/requirements-py37-linux64.txt -r oq-engine/requirements-extra-py37-linux64.txt
-    - pip -q install -e oq-engine
-    - pip install geopandas
-    - pip install rtree
-    - pip install -r requirements.txt
-    - pip install -e .
 
 test:
   stage: test
