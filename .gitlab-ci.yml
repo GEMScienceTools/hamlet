@@ -1,4 +1,4 @@
-image: alpine:latest
+image: python:3.6
 
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
@@ -15,13 +15,10 @@ stages:
   - pages
 
 before_script:
-  - apk add python3
-  - python -V  # Print out python version for debugging
+  - python3 -V  # Print out python version for debugging
   - git clone --depth=1 https://github.com/gem/oq-engine.git 
-  - pip -q install -r oq-engine/requirements-py37-linux64.txt -r oq-engine/requirements-extra-py37-linux64.txt
+  - pip -q install -r oq-engine/requirements-py36-linux64.txt -r oq-engine/requirements-extra-py36-linux64.txt
   - pip -q install -e oq-engine
-  - pip install geopandas
-  - pip install rtree
   - pip install -r requirements.txt
   - pip install -e .
 
@@ -29,7 +26,7 @@ before_script:
 test:
   stage: test
   script:
-    - python -m unittest discover
+    - python3 -m unittest discover
 
 pages:
   stage: pages
