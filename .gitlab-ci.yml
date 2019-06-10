@@ -27,13 +27,13 @@ before_script:
 test:
   stage: test
   script:
-    - python3 -m unittest discover
+    - cd tests ; python3 -m unittest discover
 
 pages:
   stage: pages
   script:
     - pip install sphinx
-    - cd docs ; sphinx-apidoc -o source/ ../hz_test ; make html
+    - cd docs ; sphinx-apidoc -o source/ ../hztest ; make html
     - mv build/html/ ../public/
 
   artifacts:
