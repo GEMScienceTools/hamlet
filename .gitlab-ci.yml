@@ -1,4 +1,4 @@
-image: python:latest
+image: alpine:latest
 
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
@@ -15,6 +15,7 @@ stages:
   - pages
 
 before_script:
+  - apk add python3
   - python -V  # Print out python version for debugging
   - git clone --depth=1 https://github.com/gem/oq-engine.git 
   - pip -q install -r oq-engine/requirements-py37-linux64.txt -r oq-engine/requirements-extra-py37-linux64.txt

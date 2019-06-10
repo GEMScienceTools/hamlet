@@ -1,2 +1,2 @@
+http://cdn.ftp.openquake.org/wheelhouse/linux/py36/Rtree-0.8.3-cp36-cp36m-manylinux1_x86_64.whl
 geopandas
-rtree
