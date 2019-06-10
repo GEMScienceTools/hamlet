@@ -9,7 +9,7 @@ variables:
 cache:
   paths:
     - .cache/pip
-#    - venv/
+    - venv/
 
 
 stages:
@@ -19,9 +19,9 @@ stages:
 
 before_script:
   - python -V  # Print out python version for debugging
-#  - pip install virtualenv
-#  - virtualenv venv
-#  - source venv/bin/activate
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
 
 install:
   stage: install
