@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
+from openquake.hazardlib.source.rupture import (
+        NonParametricProbabilisticRupture, ParametricProbabilisticRupture)
 
 from .stats import sample_event_times_in_interval
 from .bins import MagBin, SpacemagBin
@@ -180,29 +182,8 @@ def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame(df)
 
 
-def make_spatial_bins_df_from_file(bin_fp: str)-> gpd.GeoDataFrame:
-    """
-    Returns a geopandas dataframe from a file containing spatial bins as
-    polygons.
-
-    :param bin_fp:
-        File path of a vector GIS file with spatial bins as :class:`Polygon` or
-        :class:`MultiPolygon`. See the GeoPandas documentation for more
-        information.
-        
-    :returns:
-        GeoPandas GeoDataFrame with each row being a polygon. Any attributes of
-        the GIS file are passed as columns.
-    """
-
-    bin_df = gpd.read_file(bin_fp)
-
-    return bin_df
-
-
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame, 
                          bin_df: gpd.GeoDataFrame, parallel: bool=False)-> None:
-
     """
     Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
     list that is an attribute of each :class:`SpacemagBin` based on location and
@@ -367,17 +348,6 @@ def make_earthquake_gdf_from_csv(eq_csv: str,
 
 @attr.s
 class Earthquake:
-
-#    def __init__(self, mag=None, latitude=None, longitude=None, depth=None,
-#                 time=None, source=None, event_id=None):
-#        self.mag = mag
-#        self.latitude = latitude
-#        self.longitude = longitude
-#        self.depth = depth
-#        self.time = time
-#        self.source = source
-#        self.event_id = event_id
-    
     magnitude: Optional[float] = None
     longitude: Optional[float] = None
     latitude: Optional[float] = None
@@ -459,25 +429,76 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
                 spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
 
 
-def make_SpacemagBins_from_bin_df(bin_df: gpd.GeoDataFrame, 
-                                  min_mag: Optional[float]=6.,
-                                  max_mag: Optional[float]=9., 
-                                  bin_width: Optional[float]=0.2):
+def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
+                                        min_mag: Optional[float]=6.,
+                                        max_mag: Optional[float]=9., 
+                                        bin_width: Optional[float]=0.2
+                                        ) -> gpd.GeoDataFrame:
+
+    """
+    Creates a GeoPandas GeoDataFrame with :class:`SpacemagBins` that forms the
+    basis of most of the spatial hazard model testing.
+
+    :param bin_filepath:
+        Path to GIS polygon file that contains the spatial bins for analysis.
+
+    :param min_mag:
+        Minimum earthquake magnitude for MFD-based analysis.
+
+    :param max_mag:
+        Maximum earthquake magnitude for MFD-based analysis.
+
+    :param bin_width:
+        Width of earthquake/MFD bins.
+
+    :returns:
+        GeoDataFrame with :class:`SpacemagBin`s as a column.
+    """
+
+    bin_df = gpd.read_file(bin_filepath)
+
     def bin_to_mag(row):
         return SpacemagBin(row.geometry, bin_id=row._name, min_mag=min_mag,
                             max_mag=max_mag)
     bin_df['SpacemagBin'] = bin_df.apply(bin_to_mag, axis=1)
 
+    return bin_df
 
-def sample_earthquakes(rupture, interval_length, t0=0.):
+
+def sample_earthquakes(rupture: Union[ParametricProbabilisticRupture,
+                                      NonParametricProbabilisticRupture], 
+                       interval_length: float, t0: float=0.,
+                       rand_seed: Optional[int]=None) -> List[Earthquake]:
+    """
+    Creates a random sample (in time) of earthquakes from a single rupture.
+    Currently only uniformly random (Poissonian) earthquakes are supported.
+    Other than the event time, the generated earthquakes should be identical.
+
+    :param rupture:
+        Rupture from which the earthquakes will be generated.
+
+    :param interval_length:
+        Length of time over which the earthquakes will be sampled.
+
+    :param t0:
+        Start time of analysis (in years).  No real need to change this.
+
+    :param rand_seed:
+        Seed for random time generation.
+
+    :returns:
+        List of :class:`Earthquake`s.
+    """
+
     event_times = sample_event_times_in_interval(rupture.occurrence_rate,
-                                                 interval_length, t0)
+                                                 interval_length, t0, rand_seed)
     try:
         source = rupture.source
     except:
         source = None
     
-    eqs = [Earthquake(mag=rupture.mag, latitude=rupture.hypocenter.latitude,
+    eqs = [Earthquake(magnitude=rupture.mag, 
+                      latitude=rupture.hypocenter.latitude,
                       longitude=rupture.hypocenter.longitude, 
                       depth=rupture.hypocenter.depth,
                       source=source, time=et)

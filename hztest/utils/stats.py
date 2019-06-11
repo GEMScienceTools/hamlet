@@ -1,8 +1,8 @@
 import numpy as np
 
 def sample_event_times_in_interval(annual_occurrence_rate: float, 
-                              interval_length: float, 
-                              t0: float=0., rand_seed=None):
+                                   interval_length: float, 
+                                   t0: float=0., rand_seed=None):
 
 
     if rand_seed is not None:

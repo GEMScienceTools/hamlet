@@ -35,7 +35,7 @@ class TestPHL1(unittest.TestCase):
         self.rup_list = hztest.utils.rupture_list_from_lt_branch(self.lt['b1'])
         
         self.rup_gdf = hztest.utils.rupture_list_to_gdf(self.rup_list)
-        self.bin_df = hztest.utils.make_spatial_bins_df_from_file(
+        self.bin_df = hztest.utils.make_SpacemagBins_from_bin_gis_file(
                                         self.test_dir+'data/phl_f_bins.geojson')
         #self.eq_df hztest.utils.make_earthquake_gdf
 

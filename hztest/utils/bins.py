@@ -31,7 +31,8 @@ class MagBin():
                 
 
     def sample_ruptures(self, interval_length, t0=0., clean=True):
-        eqs = utils.flatten_list([utils.make_earthquakes(rup, interval_length, t0)
+        eqs = utils.flatten_list([utils.sample_earthquakes(rup, 
+                                            interval_length, t0)
                              for rup in self.ruptures])
         
         if clean is True:
