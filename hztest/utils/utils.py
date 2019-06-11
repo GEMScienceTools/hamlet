@@ -1,7 +1,10 @@
-from multiprocessing import Pool
 import os
-from typing import Sequence, Dict, List, Optional
+import datetime
+from multiprocessing import Pool
+from typing import Sequence, Dict, List, Optional, Union, Tuple
 
+import attr
+import dateutil
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -163,8 +166,8 @@ def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
         List of :class:`Rupture`s. 
 
     :returns:
-        GeoDataFrame, with two columns, 'rupture' which holds the
-        :class:`Rupture` object, and 'geometry` which has the geometry as a
+        GeoDataFrame, with two columns, `rupture` which holds the
+        :class:`Rupture` object, and `geometry` which has the geometry as a
         Shapely :class:`Point` object.
     """
     
@@ -198,7 +201,7 @@ def make_spatial_bins_df_from_file(bin_fp: str)-> gpd.GeoDataFrame:
 
 
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame, 
-                         bin_df: gpd.GeoDataFrame, parallel: bool=False):
+                         bin_df: gpd.GeoDataFrame, parallel: bool=False)-> None:
 
     """
     Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
@@ -237,19 +240,168 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
             nearest_bc = _nearest_bin(row.rupture.mag, 
                                       spacemag_bin.mag_bin_centers)
             spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
+
     if parallel is False:
         _ = rupture_gdf.apply(bin_row, axis=1)
         return
 
-    def bin_row_apply(df):
-        _ = df.apply(bin_row, axis=1)
-
     if parallel is True:
+
+        def bin_row_apply(df):
+            _ = df.apply(bin_row, axis=1)
+
         raise NotImplementedError
 
 
-def make_earthquake_gdf(earthquake_df):
-    pass
+
+
+def _parse_eq_time(eq, time_cols: Union[List[str], Tuple[str], str, None]=None,
+                   )-> datetime.datetime:
+    """
+    Parses time information into a :class:`datetime.datetime` time.
+    """
+    if time_cols is None:
+        # warn
+        return None
+
+    elif isinstance(time_cols, str):
+        time_string = eq[time_cols]
+
+    elif len(time_cols) == 1:
+        time_string = eq[time_cols[0]]
+    
+    else:
+        time_string = str()
+        for i, tc in enumerate(time_cols):
+            if i < 2:
+                time_string += str(eq[tc]) + "-"
+            elif i == 2:
+                time_string += str(eq[tc]) + " "
+            else:
+                time_string += str(eq[tc]) + ":"
+
+        time_string = time_string[:-1]
+
+    return dateutil.parser.parse(time_string)
+
+
+def make_earthquake_gdf_from_csv(eq_csv: str,
+                            x_col: str='longitude',
+                            y_col: str='latitude',
+                            depth: str='depth',
+                            magnitude: str='magnitude',
+                            time: Union[List[str], Tuple[str], str, None]=None,
+                            source: Optional[str]=None,
+                            event_id: Optional[str]=None,
+                            epsg: int=4326,
+                            ) -> gpd.GeoDataFrame:
+    """
+    Reads an earthquake catalog from a CSV file and returns a GeoDataFrame. The
+    required columns are x and y coordinates, depth and magnitude; the time,
+    source (i.e. the agency or catalog source for the earthquake data), and an
+    event_id are optional. The coordinate system, as an EPSG code, is also
+    required; this defaults to 4326 (WGS84) if not given.
+
+    :param eq_csv: file path to CSV
+
+    :param x_col: Name of column with the x coordinate.
+
+    :param y_col: Name of column with the y coordinate.
+
+    :param depth: Name of column with the depth values.
+
+    :param magnitude: Name of column with the magnitude values.
+
+    :param time: Name of column(s) with time values. If multiple values are
+        used, they should be arranged in increasing resolution, i.e. year, then
+        month, then day, then hour, etc. These will be parsed using `dateutil`
+        if possible.  This parsing is brittle and will probably fail with
+        multiple columns; it's better to make a single, unambiguously formatted
+        column first.
+
+    :param source: Optional column specifying the source of that earthquake.
+
+    :param event_id: Optional columns specifying an event_id for the earthquake.
+        It's helpful if it's a unique value, of course, but this isn't required
+        at this step.
+
+    :param epsg: EPSG string specifying the coordinate system. Defaults to 4326
+        or WGS84.
+
+    :returns: GeoDataFrame of earthquakes, converted to EPSG:4326 (WGS84).
+    """
+
+
+    df = pd.read_csv(eq_csv)
+
+    if time is not None:
+        df['datetime'] = df.apply(_parse_eq_time, time_cols=time, axis=1)
+    
+    if source is not None:
+        df.rename({'source': source})
+
+    if magnitude is not None:
+        df.rename({'magnitude': magnitude})
+
+    if event_id is not None:
+        df.rename({'event_id': event_id})
+
+    def parse_geometry(row, x=x_col, y=y_col, z=depth):
+        return Point(row[x], row[y], row[z])
+
+    df['geometry'] = df.apply(parse_geometry, axis=1)
+    df.drop([x_col, y_col], axis=1)
+
+    eq_gdf = gpd.GeoDataFrame(df)
+    eq_gdf.crs = {'init': 'epsg:{}'.format(epsg)}
+
+    if epsg is not 4326:
+        eq_gdf = eq_gdf.to_crs(epsg=4326)
+
+    eq_gdf['longitude'] = [eq['geometry'].xy[0][0] 
+                           for i, eq in eq_gdf.iterrows()]
+    eq_gdf['latitude'] = [eq['geometry'].xy[1][0] 
+                          for i, eq in eq_gdf.iterrows()]
+
+    return eq_gdf
+
+@attr.s
+class Earthquake:
+
+#    def __init__(self, mag=None, latitude=None, longitude=None, depth=None,
+#                 time=None, source=None, event_id=None):
+#        self.mag = mag
+#        self.latitude = latitude
+#        self.longitude = longitude
+#        self.depth = depth
+#        self.time = time
+#        self.source = source
+#        self.event_id = event_id
+    
+    magnitude: Optional[float] = None
+    longitude: Optional[float] = None
+    latitude: Optional[float] = None
+    depth: Optional[float] = None
+    time: Optional[datetime.datetime] = None
+    source: Optional[str] = None
+    event_id: Optional[Union[float, str, int]] = None
+
+
+def _make_earthquake_from_row(row):
+
+    eq_args = ['magnitude', 'longitude', 'latitude', 'depth', 'time', 'source',
+               'event_id']
+
+    eq_d = {}
+
+    for arg in eq_args:
+        try:
+            eq_d[arg] = row[arg]
+        except KeyError:
+            eq_d[arg] = None
+
+    return Earthquake(**eq_d)
+
 
 
 def _nearest_bin(val, bin_centers):
@@ -259,8 +411,33 @@ def _nearest_bin(val, bin_centers):
     return bin_centers[np.argmin(np.abs(val-bca))]
 
 
-def add_earthquakes_to_bins(earthquake_gdf, bin_df):
-    # observed_earthquakes, not ruptures
+def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
+                            bin_df: gpd.GeoDataFrame) -> None:
+    """
+    Takes a GeoPandas GeoDataFrame of observed earthquakes (i.e., an
+    instrumental earthquake catalog) and adds them to the ruptures
+    list that is an attribute of each :class:`SpacemagBin` based on location and
+    magnitude. The spatial binning is performed through a left join via
+    GeoPandas, and should use RTree if available for speed. This function
+    modifies both GeoDataFrames in memory and does not return any value.
+
+    :param rupture_gdf:
+        GeoDataFrame of ruptures; this should have two columns, one of them
+        being the `rupture` column with the :class:`Rupture` object, and the
+        other being the `geometry` column, with a GeoPandas/Shapely geometry
+        class.
+
+    :param bin_df:
+        GeoDataFrame of the bins. This should have a `geometry` column with a
+        GeoPandas/Shapely geometry and a `SpacemagBin` column that has a
+        :class:`SpacemagBin` object.
+
+    :Returns:
+        `None`.
+    """
+
+    earthquake_gdf['Eq'] = earthquake_gdf.apply(_make_earthquake_from_row, 
+                                                axis=1)
 
     join_df = gpd.sjoin(earthquake_gdf, bin_df, how='left')
 
@@ -282,27 +459,17 @@ def add_earthquakes_to_bins(earthquake_gdf, bin_df):
                 spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
 
 
-def make_SpacemagBins_from_bin_df(bin_df, min_mag=6., max_mag=9.,
-                                  bin_width=0.1,):
+def make_SpacemagBins_from_bin_df(bin_df: gpd.GeoDataFrame, 
+                                  min_mag: Optional[float]=6.,
+                                  max_mag: Optional[float]=9., 
+                                  bin_width: Optional[float]=0.2):
     def bin_to_mag(row):
         return SpacemagBin(row.geometry, bin_id=row._name, min_mag=min_mag,
                             max_mag=max_mag)
     bin_df['SpacemagBin'] = bin_df.apply(bin_to_mag, axis=1)
 
 
-class Earthquake():
-    def __init__(self, mag=None, latitude=None, longitude=None, depth=None,
-                 time=None, source=None, event_id=None):
-        self.mag = mag
-        self.latitude = latitude
-        self.longitude = longitude
-        self.depth = depth
-        self.time = time
-        self.source = source
-        self.event_id = event_id
-
-
-def make_earthquakes(rupture, interval_length, t0=0.):
+def sample_earthquakes(rupture, interval_length, t0=0.):
     event_times = sample_event_times_in_interval(rupture.occurrence_rate,
                                                  interval_length, t0)
     try:
@@ -316,7 +483,3 @@ def make_earthquakes(rupture, interval_length, t0=0.):
                       source=source, time=et)
                       for et in event_times]
     return eqs
-
-
-
-

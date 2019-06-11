@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from . import utils
@@ -39,7 +41,7 @@ class MagBin():
 
 
 class SpacemagBin():
-    def __init__(self, poly, min_mag=None, max_mag=None, bin_width=0.1, 
+    def __init__(self, poly, min_mag=None, max_mag=None, bin_width=0.2, 
                  bin_id=None, mag_bin_centers=None):
 
         self.poly = poly

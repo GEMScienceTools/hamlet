@@ -4,6 +4,19 @@ import numpy as np
 
 from hztest.utils import SpacemagBin
 
+
+# min, max limits
+
+
+#def check_obs_vs_model_eq_mag_limits(bin: SpacemagBin):
+
+    #try:
+        #bin_mfd = bin.noncum_mfd()
+    #except AttributeError:
+        #bin_mfd = bin.get_rupture_mfd()
+
+    ##model_min = min({k: v in bin_mfd.items() if v })
+
 def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
     """
     Makes a dictionary of frequencies of observing different numbers of
