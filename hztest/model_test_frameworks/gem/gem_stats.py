@@ -5,8 +5,9 @@ import numpy as np
 from hztest.utils.stats import poisson_likelihood
 
 
-def calc_mag_bin_empirical_likelihood(bin_rate: Dict[int, float], n_eqs: int, 
-                                      not_modeled_val: float=1e-5) -> float:
+def calc_mag_bin_empirical_likelihood(bin_rate: Dict[int, float],
+                                      n_eqs: int,
+                                      not_modeled_val: float = 1e-5) -> float:
     """
     Calculation of the likelihood of observing a certain number of earthquakes
     in a magnitude bin based on an empirical distribution of earthquake
@@ -43,10 +44,11 @@ def calc_mag_bin_empirical_likelihood(bin_rate: Dict[int, float], n_eqs: int,
         return bin_rate[n_eqs]
     except KeyError:
         return not_modeled_val
-    
 
-def calc_mag_bin_poisson_likelihood(bin_rate: float, n_eqs: int,
-                                     not_modeled_val: float=1e-5) -> float:
+
+def calc_mag_bin_poisson_likelihood(bin_rate: float,
+                                    n_eqs: int,
+                                    not_modeled_val: float = 1e-5) -> float:
     """
     Calculation of the likelihood of observing a certain number of earthquakes
     using a poisson calculation.
@@ -77,8 +79,10 @@ def calc_mag_bin_poisson_likelihood(bin_rate: float, n_eqs: int,
 
     return poisson_likelihood(bin_rate, n_eqs, not_modeled_val)
 
-def calc_mag_bin_likelihood(bin_rate: Union[dict, float], n_eqs: int, 
-                            not_modeled_val: float=1e-5,
+
+def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
+                            n_eqs: int,
+                            not_modeled_val: float = 1e-5,
                             likelihood_method='empirical') -> float:
     """
     Shell function to calculate the likelihood of a magnitude bin given the
@@ -123,12 +127,14 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float], n_eqs: int,
 
     elif likelihood_method == 'poisson':
         return calc_mag_bin_poisson_likelihood(bin_rate, n_eqs,
-                                                not_modeled_val)
+                                               not_modeled_val)
 
 
-def calc_mfd_log_likelihood_independent(obs_eqs: dict, mfd: dict,
-                                        not_modeled_val: float=1e-5,
-                                        likelihood_method='empirical') -> float:
+def calc_mfd_log_likelihood_independent(obs_eqs: dict,
+                                        mfd: dict,
+                                        not_modeled_val: float = 1e-5,
+                                        likelihood_method='empirical'
+                                        ) -> float:
     """
     Calculation of the log-likelihood of observing earthquakes of a range of
     sizes in a spatial bin (containing many magnitude bins).
@@ -136,8 +142,10 @@ def calc_mfd_log_likelihood_independent(obs_eqs: dict, mfd: dict,
     """
     n_bins: int = len(obs_eqs.keys())
 
-    bin_likes = [calc_mag_bin_likelihood(mfd[bin_center], len(eqs),
-                                         not_modeled_val, likelihood_method)
-                 for bin_center, eqs in obs_eqs.items()]
+    bin_likes = [
+        calc_mag_bin_likelihood(mfd[bin_center], len(eqs), not_modeled_val,
+                                likelihood_method)
+        for bin_center, eqs in obs_eqs.items()
+    ]
 
     return np.exp(np.sum(np.log(bin_likes)) / n_bins)

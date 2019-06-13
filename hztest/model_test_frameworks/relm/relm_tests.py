@@ -1,17 +1,12 @@
 import numpy as np
 
 
-
 def L_test():
-    # 
+    #
     raise NotImplementedError
 
 
-
-
 relm_test_dict = {'L_test': L_test}
-
-
 '''
 RELM workflow
 
@@ -28,4 +23,3 @@ RELM workflow
 
 
 '''
-

@@ -12,8 +12,8 @@ from openquake.hazardlib.mfd import TruncatedGRMFD, EvenlyDiscretizedMFD
 from openquake.hazardlib.sourceconverter import SourceConverter
 from openquake.hazardlib.nrml import to_python
 from openquake.hazardlib.geo.geodetic import distance, azimuth
-from openquake.hazardlib.source import (AreaSource,
-                                        SimpleFaultSource, ComplexFaultSource,
+from openquake.hazardlib.source import (AreaSource, SimpleFaultSource,
+                                        ComplexFaultSource,
                                         CharacteristicFaultSource,
                                         NonParametricSeismicSource)
 
@@ -27,9 +27,10 @@ def getcoo(lon, lat):
     return xp, yp
 
 
-def _get_source_model(source_file, investigation_time=1., 
+def _get_source_model(source_file,
+                      investigation_time=1.,
                       rupture_mesh_spacing=10.0,
-                      complex_fault_mesh_spacing=10.0, 
+                      complex_fault_mesh_spacing=10.0,
                       width_of_mfd_bin=0.1,
                       area_source_discretization=20.,
                       **kwargs):
@@ -52,10 +53,9 @@ def _get_source_model(source_file, investigation_time=1.,
         A list of :class:`~openquake.hazardlib.sourceconverter.SourceGroup`
         instances
     """
-    conv = SourceConverter(investigation_time, rupture_mesh_spacing, 
-                           complex_fault_mesh_spacing,
-                           width_of_mfd_bin, area_source_discretization,
-                           **kwargs)
+    conv = SourceConverter(investigation_time, rupture_mesh_spacing,
+                           complex_fault_mesh_spacing, width_of_mfd_bin,
+                           area_source_discretization, **kwargs)
     srcs = to_python(source_file, conv)
     return srcs.src_groups
 
@@ -137,12 +137,13 @@ def _get_model_info(srcl):
         else:
             trt_srcs[trt] = set([typ])
 
-    return {'trt_mmax': trt_mmax,
-            'trt_mmin': trt_mmin,
-            'trt_srcs': trt_srcs,
-            'srcs_mmax': srcs_mmax,
-            'srcs_mmin': srcs_mmin,
-            }
+    return {
+        'trt_mmax': trt_mmax,
+        'trt_mmin': trt_mmin,
+        'trt_srcs': trt_srcs,
+        'srcs_mmax': srcs_mmax,
+        'srcs_mmin': srcs_mmin,
+    }
 
 
 def storeNew(filename, model, info=None):
@@ -167,8 +168,9 @@ def storeNew(filename, model, info=None):
     l_other = []
     l_points = []
     for src in model:
-        if isinstance(src, (AreaSource, SimpleFaultSource, ComplexFaultSource,
-                      CharacteristicFaultSource, NonParametricSeismicSource)):
+        if isinstance(src,
+                      (AreaSource, SimpleFaultSource, ComplexFaultSource,
+                       CharacteristicFaultSource, NonParametricSeismicSource)):
             l_other.append(src)
         else:
 
@@ -226,8 +228,9 @@ def store(filename, model, info=None):
     l_other = []
     l_points = []
     for src in model:
-        if isinstance(src, (AreaSource, SimpleFaultSource, ComplexFaultSource,
-                      CharacteristicFaultSource, NonParametricSeismicSource)):
+        if isinstance(src,
+                      (AreaSource, SimpleFaultSource, ComplexFaultSource,
+                       CharacteristicFaultSource, NonParametricSeismicSource)):
             l_other.append(src)
         else:
 
@@ -240,15 +243,12 @@ def store(filename, model, info=None):
                 l_points.append(src)
                 # calculate distances
                 dst = distance(l_points[0].location.longitude,
-                               l_points[0].location.latitude,
-                               0.,
-                               src.location.longitude,
-                               src.location.latitude,
+                               l_points[0].location.latitude, 0.,
+                               src.location.longitude, src.location.latitude,
                                0.)
                 azi = azimuth(l_points[0].location.longitude,
                               l_points[0].location.latitude,
-                              src.location.longitude,
-                              src.location.latitude)
+                              src.location.longitude, src.location.latitude)
                 x = numpy.cos(numpy.radians(azi)) * dst
                 y = numpy.sin(numpy.radians(azi)) * dst
                 # update the spatial index
