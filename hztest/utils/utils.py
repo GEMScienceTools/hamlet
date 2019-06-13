@@ -15,6 +15,15 @@ from openquake.hazardlib.source.rupture import (
 from .stats import sample_event_times_in_interval
 from .bins import MagBin, SpacemagBin
 
+_n_procs = max(1, os.cpu_count() - 1)
+
+def _parallelize(data, func, cores: int=_n_procs, partitions: int=_n_procs):
+    data_split = np.array_split(data, partitions)
+    pool = Pool(cores)
+    result = pd.concat(pool.map(func, data_split))
+    pool.close()
+    pool.join()
+    return result
 
 
 def flatten_list(lol: List[list]) -> list:
@@ -146,7 +155,7 @@ def rupture_list_from_lt_branch_parallel(branch: dict,
     """
 
     if n_procs is None:
-        n_procs = max(1, os.cpu_count() - 1)
+        n_procs = _n_procs
 
     rupture_list = []
     
@@ -179,7 +188,9 @@ def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
     df['geometry'] = df.apply(lambda z: Point(z.rupture.hypocenter.longitude, 
                                               z.rupture.hypocenter.latitude),
                               axis=1)
-    return gpd.GeoDataFrame(df)
+    rupture_gdf = gpd.GeoDataFrame(df)
+    rupture_gdf.crs = {'init': 'epsg:4326'}
+    return rupture_gdf
 
 
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame, 
@@ -227,13 +238,9 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         return
 
     if parallel is True:
-
         def bin_row_apply(df):
             _ = df.apply(bin_row, axis=1)
-
         raise NotImplementedError
-
-
 
 
 def _parse_eq_time(eq, time_cols: Union[List[str], Tuple[str], str, None]=None,
@@ -346,7 +353,7 @@ def make_earthquake_gdf_from_csv(eq_csv: str,
 
     return eq_gdf
 
-@attr.s
+@attr.s(auto_attribs=True)
 class Earthquake:
     magnitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -375,9 +382,7 @@ def _make_earthquake_from_row(row):
 
 
 def _nearest_bin(val, bin_centers):
-
     bca = np.array(bin_centers)
-
     return bin_centers[np.argmin(np.abs(val-bca))]
 
 
@@ -463,6 +468,17 @@ def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
     bin_df['SpacemagBin'] = bin_df.apply(bin_to_mag, axis=1)
 
     return bin_df
+
+
+def get_source_bins(bin_gdf):
+    source_list = []
+    for i, row in bin_gdf.iterrows():
+        cum_mfd = row.SpacemagBin.get_rupture_mfd(cumulative=True)
+        if sum(cum_mfd.values()) > 0:
+            source_list.append(i)
+
+    source_bin_gdf = bin_gdf.loc[source_list]
+    return source_bin_gdf
 
 
 def sample_earthquakes(rupture: Union[ParametricProbabilisticRupture,

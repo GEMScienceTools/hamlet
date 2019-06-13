@@ -5,17 +5,6 @@ import numpy as np
 from hztest.utils import SpacemagBin
 
 
-# min, max limits
-
-
-#def check_obs_vs_model_eq_mag_limits(bin: SpacemagBin):
-
-    #try:
-        #bin_mfd = bin.noncum_mfd()
-    #except AttributeError:
-        #bin_mfd = bin.get_rupture_mfd()
-
-    ##model_min = min({k: v in bin_mfd.items() if v })
 
 def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
     """
@@ -41,7 +30,7 @@ def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
 
 
 def get_stochastic_mfd_counts(spacemag_bin: SpacemagBin, 
-                              bin_centers: Sequence[float],
+                              #bin_centers: Sequence[float],
                               n_iters: int,
                               interval_length: float) -> Dict[float, List[int]]:
     """
@@ -69,7 +58,8 @@ def get_stochastic_mfd_counts(spacemag_bin: SpacemagBin,
         number of occurrences (counts) of that magnitude for each iteration.
     """
     
-    mfd_counts: Dict[float, list] = {bc: [] for bc in bin_centers}
+    mfd_counts: Dict[float, list] = {bc: [] 
+                                     for bc in spacemag_bin.mag_bin_centers}
 
     for i in range(n_iters):
         for bc, n_eqs in spacemag_bin.get_rupture_sample_mfd(interval_length,
@@ -80,7 +70,8 @@ def get_stochastic_mfd_counts(spacemag_bin: SpacemagBin,
 
 
 def get_stochastic_mfd(spacemag_bin: SpacemagBin, 
-        bin_centers: Sequence[float], n_iters: int,
+        #bin_centers: Sequence[float], 
+        n_iters: int,
         interval_length: float) -> Dict[float, Dict[float, float]]:
     """
     Builds an empirical, incremental magnitude-frequency distribution by
@@ -103,7 +94,7 @@ def get_stochastic_mfd(spacemag_bin: SpacemagBin,
     :returns: Dictionary with keys of earthquake magnitudes and values of a list
         of number of occurrences (counts) of that magnitude for each iteration.
     """
-    mfd_counts = get_stochastic_mfd_counts(spacemag_bin, bin_centers, n_iters,
+    mfd_counts = get_stochastic_mfd_counts(spacemag_bin, n_iters,
                                            interval_length)
 
     mfd_freq_counts = {}

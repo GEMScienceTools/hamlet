@@ -142,8 +142,8 @@ class SpacemagBin():
 
         # may not be returned in order in Python < 3.5
         noncum_mfd = {bc: 
-                self.mag_bins[bc].calculate_observed_earthquake_rate(t_yrs=t_yrs,
-                                                                     return_rate=True)
+            self.mag_bins[bc].calculate_observed_earthquake_rate(t_yrs=t_yrs,
+                                                               return_rate=True)
                       for bc in self.mag_bin_centers}
 
         cum_mfd = {}

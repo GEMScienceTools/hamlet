@@ -23,15 +23,15 @@ def sample_event_times_in_interval(annual_occurrence_rate: float,
     return event_times
 
 
-def binomial_likelihood(rate: float, num_events: int,
+def poisson_likelihood(rate: float, num_events: int,
                         not_modeled_val: float=0.) -> float:
     if rate == 0:
-        pass
+        return poisson_likelihood_zero_rate(num_events, not_modeled_val)
     else:
         return rate / np.math.factorial(num_events) * np.exp(rate)
 
 
-def binomial_likelihood_zero_rate(num_events: int, 
+def poisson_likelihood_zero_rate(num_events: int, 
                                   not_modeled_val: float=0.) -> float:
     if num_events == 0:
         return 1.
@@ -40,5 +40,5 @@ def binomial_likelihood_zero_rate(num_events: int,
     else:
         raise ValueError("num_events should be zero or a positive integer.")
 
-def binomial_log_likelihood():
+def poisson_log_likelihood():
     raise NotImplementedError

@@ -90,10 +90,11 @@ def read_branch_sources(base_dir, lt_file='ssmLT.xml'):
     return d
 
 
-def process_source_logic_tree(base_dir, idl_correction=False, verbose=False):
+def process_source_logic_tree(base_dir: str, lt_file: str='ssmLT.xml',
+                              verbose: bool=False):
     if verbose:
         print('reading source branches')
-    lt = sort_sources(read_branch_sources(base_dir))
+    lt = sort_sources(read_branch_sources(base_dir, lt_file=lt_file))
 
     if verbose:
         print(lt.keys())

@@ -1,10 +1,10 @@
 import numpy as np
-from hztest.utils.stats import binomial_likelihood, binomial_log_likelihood
+from hztest.utils.stats import poisson_likelihood, poisson_log_likelihood
 
 def bin_observance_likelihood(num_events: int, bin_rate: float) -> float:
     not_modeled_val = 0. # hardcoded in the RELM tests
 
-    return binomial_likelihood(bin_rate, num_events, not_modeled_val)
+    return poisson_likelihood(bin_rate, num_events, not_modeled_val)
 
 
 def bin_observance_log_likelihood(num_events: int, bin_rate: float) -> float:

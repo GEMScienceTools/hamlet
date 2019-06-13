@@ -11,8 +11,8 @@ cache:
     - .cache/pip
 
 stages:
-  - test
   - pages
+  - test
 
 before_script:
   - ls
