@@ -1,18 +1,17 @@
+import os
+
 import unittest
 #import sys; sys.path.append('../')
+
 
 from openquake.hazardlib.source import SimpleFaultSource
 from openquake.hazardlib.source.rupture import ParametricProbabilisticRupture
 
 import hztest
 
-def run_test(test_func):
-    def wrap_test(test_instance, run=False):
-        if run is True:
-            test_func(test_instance)
-        elif run is False:
-            pass
-    return wrap_test
+BASE_PATH = os.path.dirname(__file__)
+test_data_dir = os.path.join(BASE_PATH, 'data', 'source_models', 'sm1')
+
 
 class TestBasicUtils(unittest.TestCase):
 
@@ -27,7 +26,13 @@ class TestPHL1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         print('setting up')
-        self.test_dir = './data/source_models/sm1/'
+
+        print(BASE_PATH)
+
+        self.test_dir = test_data_dir + "/"
+
+        print('test_dir', self.test_dir)
+
         self.lt = hztest.utils.io.process_source_logic_tree(self.test_dir)
 
         self.rup_dict = hztest.utils.rupture_dict_from_logic_tree_dict(self.lt)
@@ -38,9 +43,6 @@ class TestPHL1(unittest.TestCase):
         self.bin_df = hztest.utils.make_SpacemagBins_from_bin_gis_file(
                                         self.test_dir+'data/phl_f_bins.geojson')
         #self.eq_df hztest.utils.make_earthquake_gdf
-
-        #breakpoint()
-
         
     def test_process_source_logic_tree(self):
         test_lt = {'b1': {'area': [],

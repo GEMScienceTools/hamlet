@@ -6,6 +6,7 @@ from geopandas import GeoDataFrame
 #from hztest.core.core import make_bin_gdf
 
 from hztest.utils import get_source_bins
+from ..sanity.sanity_checks import max_check
 from .gem_test_functions import get_stochastic_mfd
 from .gem_stats import calc_mfd_log_likelihood_independent
 
@@ -72,4 +73,5 @@ class MFDLikelihoodTest():
 
 
 
-gem_test_dict = {'likelihood': mfd_likelihood_test}
+gem_test_dict = {'likelihood': mfd_likelihood_test,
+                 'sanity': max_check}

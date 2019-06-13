@@ -1,3 +1,5 @@
+import os
+
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
                                         CharacteristicFaultSource,
@@ -77,7 +79,7 @@ def sort_sources(brd):
 def read_branch_sources(base_dir, lt_file='ssmLT.xml'):
     #base_dir ='../../../hazard_models/mosaic/{}/in/'.format(acr)
     
-    lt = SourceModelLogicTree(base_dir+lt_file, validate=False)
+    lt = SourceModelLogicTree(os.path.join(base_dir, lt_file), validate=False)
     
     d = {}
     for k, v in lt.branches.items():

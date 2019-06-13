@@ -53,8 +53,10 @@ class SpacemagBin():
         self.mag_bin_centers = mag_bin_centers
 
         self.make_mag_bins()
-        self.observed_earthquakes = {bc: [] for bc in self.mag_bin_centers}
         self.stochastic_earthquakes = {bc: [] for bc in self.mag_bin_centers}
+        
+        # not sure if this is necessary or a unused duplication of mag_bins
+        #self.observed_earthquakes = {bc: [] for bc in self.mag_bin_centers}
 
     def make_mag_bins(self):
         if self.mag_bin_centers is None:
@@ -80,10 +82,11 @@ class SpacemagBin():
 
     def get_rupture_mfd(self, cumulative=False):
 
+
         # may not be returned in order in Python < 3.5
         noncum_mfd = {bc: self.mag_bins[bc].calculate_total_rupture_rate(
-                               return_rate=True)
-                      for bc in self.mag_bin_centers}
+                            return_rate=True)
+                    for bc in self.mag_bin_centers}
 
         cum_mfd = {}
         cum_mag = 0.
@@ -99,9 +102,9 @@ class SpacemagBin():
         self.noncum_mfd = noncum_mfd
  
         if cumulative is False:
-            return noncum_mfd
+            return self.noncum_mfd
         else:
-            return cum_mfd
+            return self.cum_mfd
 
 
     def get_rupture_sample_mfd(self, interval_length, t0=0., normalize=True,
@@ -130,9 +133,9 @@ class SpacemagBin():
         self.stochastic_cum_mfd = cum_mfd
         
         if cumulative is False:
-            return noncum_mfd
+            return self.stochastic_noncum_mfd
         else:
-            return cum_mfd
+            return self.stochastic_cum_mfd
 
 
     def get_empirical_mfd(self, t_yrs=1., cumulative=False):
@@ -140,10 +143,10 @@ class SpacemagBin():
         Calculates the MFD of empirical (observed) earthquakes; no fitting.
         """
 
-        # may not be returned in order in Python < 3.5
+       # may not be returned in order in Python < 3.5
         noncum_mfd = {bc: 
-            self.mag_bins[bc].calculate_observed_earthquake_rate(t_yrs=t_yrs,
-                                                               return_rate=True)
+            self.mag_bins[bc].calculate_observed_earthquake_rate(
+                                              t_yrs=t_yrs, return_rate=True)
                       for bc in self.mag_bin_centers}
 
         cum_mfd = {}
@@ -155,11 +158,11 @@ class SpacemagBin():
 
         # make new dict with ascending order
         cum_mfd = {cb: cum_mfd[cb] for cb in self.mag_bin_centers}
- 
-        self.cum_mfd = cum_mfd
-        self.noncum_mfd = noncum_mfd
+
+        self.obs_cum_mfd = cum_mfd
+        self.obs_noncum_mfd = noncum_mfd
  
         if cumulative is False:
-            return noncum_mfd
+            return self.obs_noncum_mfd
         else:
-            return cum_mfd
+            return self.obs_cum_mfd

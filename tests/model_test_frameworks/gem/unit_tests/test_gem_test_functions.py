@@ -34,8 +34,8 @@ class TestMFDConstruction(unittest.TestCase):
     def test_get_stochastic_mfd_counts(self):
         np.random.seed(69)
         stoch_mfd_counts = gtu.get_stochastic_mfd_counts(self.spacemag_bin_1, 
-            bin_centers=self.spacemag_bin_1.mag_bin_centers,
-            n_iters=10, interval_length=100)
+                                                         n_iters=10,
+                                                         interval_length=100)
 
         stoch_mfd_counts_ = {6.0: [0, 1, 2, 1, 0, 1, 1, 2, 0, 2],
                              6.1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -56,8 +56,7 @@ class TestMFDConstruction(unittest.TestCase):
         np.random.seed(69)
 
         stoch_mfd = gtu.get_stochastic_mfd(self.spacemag_bin_1, 
-            bin_centers=self.spacemag_bin_1.mag_bin_centers,
-            n_iters=10, interval_length=100)
+                                           n_iters=10, interval_length=100)
 
         stoch_mfd_ = {6.0: {0: 0.3, 1: 0.4, 2: 0.3},
                       6.1: {0: 1.0},
