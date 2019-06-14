@@ -7,7 +7,7 @@ import yaml
 import numpy as np
 from geopandas import GeoDataFrame
 
-from hztest.utils.io import process_source_logic_tree
+from hztest.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
 from hztest.utils import (make_SpacemagBins_from_bin_gis_file,
                           rupture_dict_from_logic_tree_dict,
                           rupture_list_to_gdf, add_ruptures_to_bins,
@@ -152,6 +152,9 @@ def load_inputs(cfg: dict):
 
     eq_gdf = load_obs_eq_catalog(cfg)
 
+    logging.info('adding earthquakes to bins')
+    add_earthquakes_to_bins(eq_gdf, bin_gdf)
+
     return bin_gdf, eq_gdf
 
 
@@ -185,6 +188,9 @@ output processing
 def write_outputs(cfg, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
 
     logging.info('writing outputs')
+
+    if 'plots' in cfg['output'].keys():
+        write_mfd_plots_to_gdf(bin_gdf, **cfg['output']['plots']['kwargs'])
 
     if 'bin_gdf' in cfg['output'].keys():
         bin_gdf.drop('SpacemagBin',

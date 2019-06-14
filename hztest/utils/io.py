@@ -1,4 +1,9 @@
 import os
+import io
+from typing import Optional, Union
+
+import matplotlib.pyplot as plt
+from geopandas import GeoDataFrame
 
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
@@ -7,6 +12,7 @@ from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
                                         PointSource, MultiPointSource,
                                         SimpleFaultSource)
 
+from .bins import SpacemagBin
 from .model import read, _get_source_model
 
 
@@ -105,3 +111,60 @@ def process_source_logic_tree(base_dir: str,
         print(lt.keys())
 
     return lt
+
+
+def make_mfd_plot(sbin: SpacemagBin,
+                  model: bool = True,
+                  model_format: str = 'C0-',
+                  model_label: str = 'model',
+                  observed: bool = False,
+                  observed_time: float = 1.,
+                  observed_format: str = 'C1o-.',
+                  observed_label: str = 'observed',
+                  return_fig: bool = True,
+                  return_string: bool = False,
+                  save_fig: Union[bool, str] = False,
+                  **kwargs):
+    """
+    :param save_fig:
+        Either the filename to save to, or 
+    """
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, yscale='log')
+
+    if model is True:
+        mod_mfd = sbin.get_rupture_mfd(cumulative=True)
+        ax.plot(list(mod_mfd.keys()),
+                list(mod_mfd.values()),
+                model_format,
+                label=model_label)
+
+    if observed is True:
+        obs_mfd = sbin.get_empirical_mfd(cumulative=True, t_yrs=observed_time)
+        ax.plot(list(obs_mfd.keys()),
+                list(obs_mfd.values()),
+                observed_format,
+                label=observed_label)
+
+    ax.legend(loc='upper right')
+    ax.set_ylabel('Annual frequency of exceedance')
+    ax.set_xlabel('Magnitude')
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format='svg')
+        #fig_svg = fig_str.getvalue()
+        fig_svg = '<svg' + fig_str.getvalue().split('<svg')[1]
+        return fig_svg
+
+
+def write_mfd_plots_to_gdf(bin_gdf: GeoDataFrame, **kwargs):
+    plot_series = bin_gdf['SpacemagBin'].apply(make_mfd_plot, **kwargs)
+    bin_gdf['mfd_plots'] = plot_series

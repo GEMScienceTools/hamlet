@@ -39,5 +39,12 @@ input:
 output:
     bin_gdf:
         file: ./gem_sm1_likelihood_bins.geojson
+    plots: 
+        kwargs:
+            model: True
+            observed: True
+            observed_time: 40.
+            return_fig: False
+            return_string: True
 
 

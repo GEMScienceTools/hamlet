@@ -65,9 +65,7 @@ class SpacemagBin():
 
         self.make_mag_bins()
         self.stochastic_earthquakes = {bc: [] for bc in self.mag_bin_centers}
-
-        # not sure if this is necessary or a unused duplication of mag_bins
-        #self.observed_earthquakes = {bc: [] for bc in self.mag_bin_centers}
+        self.observed_earthquakes = {bc: [] for bc in self.mag_bin_centers}
 
     def make_mag_bins(self):
         if self.mag_bin_centers is None:

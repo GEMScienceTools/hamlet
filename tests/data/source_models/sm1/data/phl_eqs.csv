@@ -1,5 +1,5 @@
 eventID,Agency,year,month,day,hour,minute,second,timeError,longitude,latitude,SemiMajor90,SemiMinor90,ErrorStrike,depth,depthError,magnitude,sigmaMagnitude,magnitudeType
-10000057,GUTE,1907,4,18,23,52,24,,123,13.5,,,,35,,7.4,0.2,0.2
+10000057,GUTE,1907,4,18,23,52,24,,122.930,13.461,,,,35,,7.4,0.2,0.2
 10003286,ISC-GEM,1937,9,22,3,11,7.73,,123.841,12.391,8.5,148.2,8,15,,6.26,0.25,0.25
 10004228,ISC-GEM,1940,10,20,10,55,54.22,,122.952,13.622,21.9,178.9,17.6,15,,5.87,0.2,0.2
 10004511,ISC-GEM,1941,11,5,17,38,49.03,,123.518,12.808,6.2,75.7,10.6,15,,6.85,0.39,0.39

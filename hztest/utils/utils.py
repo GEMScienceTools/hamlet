@@ -444,12 +444,13 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
         if not np.isnan(eq.bin_id):
             spacemag_bin = bin_df.loc[eq.bin_id, 'SpacemagBin']
 
-            if eq.mag < spacemag_bin.min_mag - spacemag_bin.bin_width / 2:
+            if eq.magnitude < spacemag_bin.min_mag - spacemag_bin.bin_width / 2:
                 pass
-            elif eq.mag > spacemag_bin.max_mag + spacemag_bin.bin_width / 2:
+            elif eq.magnitude > (spacemag_bin.max_mag +
+                                 spacemag_bin.bin_width / 2):
                 pass
             else:
-                nearest_bc = _nearest_bin(eq.Eq.mag,
+                nearest_bc = _nearest_bin(eq.Eq.magnitude,
                                           spacemag_bin.mag_bin_centers)
                 spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(
                     eq['Eq'])
