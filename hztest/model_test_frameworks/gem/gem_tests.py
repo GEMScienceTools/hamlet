@@ -7,7 +7,7 @@ from geopandas import GeoDataFrame
 
 from hztest.utils import get_source_bins
 from ..sanity.sanity_checks import max_check
-from .gem_test_functions import get_stochastic_mfd
+from .gem_test_functions import get_stochastic_mfd, get_stochastic_mfds_parallel
 from .gem_stats import calc_mfd_log_likelihood_independent
 
 
@@ -37,10 +37,18 @@ def mfd_empirical_likelihood_test(
     source_bin_gdf = get_source_bins(bin_gdf)
 
     logging.info('calculating empirical MFDs for source bins')
-    source_bin_mfds = source_bin_gdf['SpacemagBin'].apply(
-        get_stochastic_mfd,
-        n_iters=test_config['n_iters'],
-        interval_length=test_config['investigation_time'])
+    
+    if cfg['config']['parallel'] is False:
+        source_bin_mfds = source_bin_gdf['SpacemagBin'].apply(
+            get_stochastic_mfd,
+            n_iters=test_config['n_iters'],
+            interval_length=test_config['investigation_time'])
+    else:
+        source_bin_mfds = get_stochastic_mfds_parallel(
+            source_bin_gdf['SpacemagBin'], n_iters=test_config['n_iters'],
+                interval_length=test_config['investigation_time'])
+
+
 
     def calc_row_log_like(row, mfd_df=source_bin_mfds):
         obs_eqs = row.SpacemagBin.observed_earthquakes

@@ -1,8 +1,9 @@
 from typing import Sequence, Dict, List
 
 import numpy as np
+from geopandas import GeoSeries
 
-from hztest.utils import SpacemagBin
+from hztest.utils import SpacemagBin, parallelize
 
 
 def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
@@ -108,3 +109,11 @@ def get_stochastic_mfd(
         mfd_freq_counts[bc] = get_mfd_freq_counts(eq_counts)
 
     return mfd_freq_counts
+
+
+def _source_bin_mfd_apply(GeoSeries, **kwargs):
+    return GeoSeries.apply(get_stochastic_mfd, **kwargs)
+
+
+def get_stochastic_mfds_parallel(GeoSeries, **kwargs):
+    return parallelize(GeoSeries, _source_bin_mfd_apply, **kwargs)

@@ -1,5 +1,6 @@
 import os
 import datetime
+from functools import partial
 from multiprocessing import Pool
 from typing import Sequence, Dict, List, Optional, Union, Tuple
 
@@ -18,11 +19,12 @@ from .bins import MagBin, SpacemagBin
 _n_procs = max(1, os.cpu_count() - 1)
 
 
-def _parallelize(data, func, cores: int = _n_procs,
-                 partitions: int = _n_procs):
+def parallelize(data, func, cores: int = _n_procs,
+                 partitions: int = _n_procs,
+                 **kwargs):
     data_split = np.array_split(data, partitions)
     pool = Pool(cores)
-    result = pd.concat(pool.map(func, data_split))
+    result = pd.concat(pool.map(partial(func, **kwargs), data_split))
     pool.close()
     pool.join()
     return result
