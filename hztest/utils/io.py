@@ -130,8 +130,9 @@ def make_mfd_plot(sbin: SpacemagBin,
         Either the filename to save to, or 
     """
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(5,4))
     ax = fig.add_subplot(111, yscale='log')
+    plt.title('Magnitude-Frequency Distribution')
 
     if model is True:
         mod_mfd = sbin.get_rupture_mfd(cumulative=True)
@@ -160,6 +161,7 @@ def make_mfd_plot(sbin: SpacemagBin,
     elif return_string is True:
         fig_str = io.StringIO()
         fig.savefig(fig_str, format='svg')
+        plt.close(fig)
         #fig_svg = fig_str.getvalue()
         fig_svg = '<svg' + fig_str.getvalue().split('<svg')[1]
         return fig_svg
