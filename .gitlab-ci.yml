@@ -27,7 +27,8 @@ before_script:
 test:
   stage: test
   script:
-    - cd tests ; python3 -m unittest discover
+    - pip install pytest
+    - py.test
 
 pages:
   stage: pages
