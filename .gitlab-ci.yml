@@ -28,7 +28,7 @@ test:
   stage: test
   script:
     - pip install pytest
-    - py.test hztest tests
+    - py.test hztest tests -W ignore::UserWarning
 
 pages:
   stage: pages
