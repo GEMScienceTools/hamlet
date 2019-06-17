@@ -28,8 +28,6 @@ class TestPHL1(unittest.TestCase):
 
         self.test_dir = test_data_dir + "/"
 
-        print('test_dir', self.test_dir)
-
         self.lt = hztest.utils.io.process_source_logic_tree(self.test_dir)
 
         self.rup_dict = hztest.utils.rupture_dict_from_logic_tree_dict(self.lt)
@@ -39,7 +37,8 @@ class TestPHL1(unittest.TestCase):
         self.rup_gdf = hztest.utils.rupture_list_to_gdf(self.rup_list)
         self.bin_df = hztest.utils.make_SpacemagBins_from_bin_gis_file(
             self.test_dir + 'data/phl_f_bins.geojson')
-        #self.eq_df hztest.utils.make_earthquake_gdf
+        #self.eq_df = hztest.utils.make_earthquake_gdf_from_csv(
+        #    self.test_dir + 'data/phl_eqs.csv')
 
     def test_process_source_logic_tree(self):
         test_lt = {
@@ -87,9 +86,33 @@ class TestPHL1(unittest.TestCase):
     def test_make_spatial_bins_from_file(self):
         self.assertEqual(self.bin_df.loc[0].geometry.area, 0.07185377067626442)
 
-    @unittest.skip('not implemented')
     def test_add_ruptures_to_bins(self):
-        pass
+        self.bin_df = hztest.utils.make_SpacemagBins_from_bin_gis_file(
+            self.test_dir + 'data/phl_f_bins.geojson')
+        self.eq_df = hztest.utils.make_earthquake_gdf_from_csv(
+            self.test_dir + 'data/phl_eqs.csv')
+
+        hztest.utils.add_ruptures_to_bins(self.rup_gdf,
+                                          self.bin_df,
+                                          parallel=False)
+        num_rups_first_bin = len(
+            self.bin_df.SpacemagBin.loc[0].mag_bins[6.2].ruptures)
+
+        self.assertEqual(num_rups_first_bin, 209)
+
+    def test_add_ruptures_to_bins_parallel(self):
+        self.bin_df = hztest.utils.make_SpacemagBins_from_bin_gis_file(
+            self.test_dir + 'data/phl_f_bins.geojson')
+        self.eq_df = hztest.utils.make_earthquake_gdf_from_csv(
+            self.test_dir + 'data/phl_eqs.csv')
+
+        hztest.utils.add_ruptures_to_bins(self.rup_gdf,
+                                          self.bin_df,
+                                          parallel=True)
+        num_rups_first_bin = len(
+            self.bin_df.SpacemagBin.loc[0].mag_bins[6.2].ruptures)
+
+        self.assertEqual(num_rups_first_bin, 209)
 
     @unittest.skip('not implemented')
     def test_make_earthquake_gdf(self):

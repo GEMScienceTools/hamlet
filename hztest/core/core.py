@@ -148,7 +148,9 @@ def load_inputs(cfg: dict):
     rupture_gdf = load_ruptures_from_ssm(cfg)
 
     logging.info('adding ruptures to bins')
-    add_ruptures_to_bins(rupture_gdf, bin_gdf)
+    add_ruptures_to_bins(rupture_gdf,
+                         bin_gdf,
+                         parallel=cfg['config']['parallel'])
 
     eq_gdf = load_obs_eq_catalog(cfg)
 

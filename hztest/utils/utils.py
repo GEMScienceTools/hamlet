@@ -19,9 +19,11 @@ from .bins import MagBin, SpacemagBin
 _n_procs = max(1, os.cpu_count() - 1)
 
 
-def parallelize(data, func, cores: int = _n_procs,
-                 partitions: int = _n_procs,
-                 **kwargs):
+def parallelize(data,
+                func,
+                cores: int = _n_procs,
+                partitions: int = _n_procs,
+                **kwargs):
     data_split = np.array_split(data, partitions)
     pool = Pool(cores)
     result = pd.concat(pool.map(partial(func, **kwargs), data_split))
@@ -204,13 +206,14 @@ def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
                                               .rupture.hypocenter.latitude),
                               axis=1)
     rupture_gdf = gpd.GeoDataFrame(df)
-    rupture_gdf.crs = {'init': 'epsg:4326'}
+    rupture_gdf.crs = {'init': 'epsg:4326', 'no_defs': True}
     return rupture_gdf
 
 
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
                          bin_df: gpd.GeoDataFrame,
-                         parallel: bool = False) -> None:
+                         parallel: bool = False,
+                         n_procs: Optional[int] = None) -> None:
     """
     Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
     list that is an attribute of each :class:`SpacemagBin` based on location and
@@ -242,23 +245,49 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
 
     rupture_gdf['bin_id'] = join_df['index_right']
 
-    def bin_row(row):
-        if not np.isnan(row.bin_id):
-            spacemag_bin = bin_df.loc[row.bin_id, 'SpacemagBin']
-            nearest_bc = _nearest_bin(row.rupture.mag,
-                                      spacemag_bin.mag_bin_centers)
-            spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
-
     if parallel is False:
-        _ = rupture_gdf.apply(bin_row, axis=1)
+        _ = rupture_gdf.apply(_bin_row, bdf=bin_df['SpacemagBin'], axis=1)
         return
 
     if parallel is True:
 
-        def bin_row_apply(df):
-            _ = df.apply(bin_row, axis=1)
+        if n_procs is None:
+            n_procs = _n_procs
 
-        raise NotImplementedError
+        if n_procs == 1:
+            _ = rupture_gdf.apply(_bin_row, bdf=bin_df['SpacemagBin'], axis=1)
+        else:
+            bin_idx_splits = np.array_split(bin_df.index, n_procs)
+            bin_groups = [
+                bin_df.loc[bi, 'SpacemagBin'] for bi in bin_idx_splits
+            ]
+
+            rup_groups = [
+                rupture_gdf[rupture_gdf['bin_id'].isin(bi)]
+                for bi in bin_idx_splits
+            ]
+
+            bin_rup_zip = zip(bin_groups, rup_groups)
+
+        pool = Pool(n_procs)
+        pool_result = pool.map(_bin_row_apply, bin_rup_zip)
+
+        bin_df['SpacemagBin'] = pd.concat(pool_result)
+
+
+def _bin_row(row, bdf=None):
+    if not np.isnan(row.bin_id):
+        spacemag_bin = bdf.loc[row.bin_id]
+        nearest_bc = _nearest_bin(row.rupture.mag,
+                                  spacemag_bin.mag_bin_centers)
+        spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
+
+
+def _bin_row_apply(bin_rup):
+    bin_gdf = bin_rup[0]
+    rup_gdf = bin_rup[1]
+    _ = rup_gdf.apply(_bin_row, bdf=bin_gdf, axis=1)
+    return bin_gdf
 
 
 def _parse_eq_time(
