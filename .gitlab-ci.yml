@@ -28,7 +28,7 @@ test:
   stage: test
   script:
     - pip install pytest
-    - py.test
+    - py.test hztest tests
 
 pages:
   stage: pages
