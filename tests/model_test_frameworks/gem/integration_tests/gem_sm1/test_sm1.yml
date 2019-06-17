@@ -8,7 +8,7 @@ config:
           default_likelihood: 1.
           not_modeled_val: 0.00001
     parallel: True
-    rand_seed: blarg
+    rand_seed: 69
 
 input:
     bins:

@@ -1,6 +1,9 @@
 import os
 import logging
 
+import matplotlib
+matplotlib.use('svg')
+
 from hztest.core.core import run_tests, read_yaml_config
 
 logging.basicConfig(level=logging.INFO)
