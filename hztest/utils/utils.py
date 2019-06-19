@@ -1,4 +1,5 @@
 import os
+import logging
 import datetime
 from functools import partial
 from multiprocessing import Pool
@@ -22,11 +23,11 @@ _n_procs = max(1, os.cpu_count() - 1)
 def parallelize(data,
                 func,
                 cores: int = _n_procs,
-                partitions: int = _n_procs,
+                partitions: int = _n_procs * 10,
                 **kwargs):
     data_split = np.array_split(data, partitions)
     pool = Pool(cores)
-    result = pd.concat(pool.map(partial(func, **kwargs), data_split))
+    result = pd.concat(pool.imap(partial(func, **kwargs), data_split))
     pool.close()
     pool.join()
     return result
@@ -241,10 +242,12 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         `None`.
     """
 
+    logging.info('    spatially joining ruptures and bins')
     join_df = gpd.sjoin(rupture_gdf, bin_df, how='left')
 
     rupture_gdf['bin_id'] = join_df['index_right']
 
+    logging.info('    adding ruptures to bins')
     if parallel is False:
         _ = rupture_gdf.apply(_bin_row, bdf=bin_df['SpacemagBin'], axis=1)
         return
@@ -257,22 +260,25 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         if n_procs == 1:
             _ = rupture_gdf.apply(_bin_row, bdf=bin_df['SpacemagBin'], axis=1)
         else:
-            bin_idx_splits = np.array_split(bin_df.index, n_procs)
-            bin_groups = [
+            bin_idx_splits = np.array_split(bin_df.index, n_procs * 10)
+            bin_groups = (
                 bin_df.loc[bi, 'SpacemagBin'] for bi in bin_idx_splits
-            ]
+            )
 
-            rup_groups = [
+            rup_groups = (
                 rupture_gdf[rupture_gdf['bin_id'].isin(bi)]
                 for bi in bin_idx_splits
-            ]
+            )
 
             bin_rup_zip = zip(bin_groups, rup_groups)
 
         pool = Pool(n_procs)
-        pool_result = pool.map(_bin_row_apply, bin_rup_zip)
+        pool_result = pool.imap(_bin_row_apply, bin_rup_zip)
 
         bin_df['SpacemagBin'] = pd.concat(pool_result)
+
+        pool.close()
+        pool.join()
 
 
 def _bin_row(row, bdf=None):

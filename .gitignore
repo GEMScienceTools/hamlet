@@ -107,3 +107,4 @@ venv.bak/
 .vscode/
 notebooks/
 .DS_Store
+gem_sm1_likelihood_bins.geojson
