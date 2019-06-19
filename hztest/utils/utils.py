@@ -14,8 +14,9 @@ from shapely.geometry import Point
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture, ParametricProbabilisticRupture)
 
-from .stats import sample_event_times_in_interval
+from .simple_rupture import SimpleRupture
 from .bins import MagBin, SpacemagBin
+from .stats import sample_event_times_in_interval
 
 _n_procs = max(1, os.cpu_count() - 1)
 
@@ -47,6 +48,7 @@ def flatten_list(lol: List[list]) -> list:
 def rupture_dict_from_logic_tree_dict(
         logic_tree_dict: dict,
         source_types: Sequence[str] = ('simple_fault'),
+        simple_ruptures: bool = True,
         parallel: bool = True,
         n_procs: Optional[int] = None) -> dict:
     """
@@ -84,19 +86,21 @@ def rupture_dict_from_logic_tree_dict(
     if parallel is True:
         return {
             br: rupture_list_from_lt_branch_parallel(branch,
-                                                     source_types,
-                                                     n_procs=n_procs)
+                    source_types, simple_ruptures=simple_ruptures, 
+                    n_procs=n_procs)
             for br, branch in logic_tree_dict.items()
         }
     else:
         return {
-            br: rupture_list_from_lt_branch(branch, source_types)
+            br: rupture_list_from_lt_branch(branch, source_types,
+                                            simple_ruptures=simple_ruptures)
             for br, branch in logic_tree_dict.items()
         }
 
 
 def rupture_list_from_lt_branch(branch: dict,
-                                source_types: Sequence[str] = ('simple_fault')
+                                source_types: Sequence[str] = ('simple_fault'),
+                                simple_ruptures: bool = True,
                                 ) -> list:
     """
     Creates a list of ruptures from all of the sources within a single logic
@@ -118,14 +122,11 @@ def rupture_list_from_lt_branch(branch: dict,
 
     rupture_list = []
 
-    def process_rup(rup, source):
-        rup.source = source.source_id
-        return rup
-
     for source_type, sources in branch.items():
         if source_type in source_types and sources != []:
             rups = [
-                process_rup(r, source) for source in sources
+                _process_rup(r, source, simple_ruptures=simple_ruptures)
+                    for source in sources
                 for r in source.iter_ruptures()
             ]
 
@@ -134,18 +135,25 @@ def rupture_list_from_lt_branch(branch: dict,
     return rupture_list
 
 
-def _process_rup(rup, source):
-    rup.source = source.source_id
+def _process_rup(rup, source, simple_ruptures=True):
+
+    if simple_ruptures is False:
+        rup.source = source.source_id
+    else:
+        rup = SimpleRupture(rup.rake, rup.mag, rup.hypocenter,
+                            rup.occurrence_rate, source.source_id)
     return rup
 
 
-def _process_source(source):
-    return [_process_rup(r, source) for r in source.iter_ruptures()]
+def _process_source(source, simple_ruptures=True):
+    return [_process_rup(r, source, simple_ruptures=simple_ruptures)
+            for r in source.iter_ruptures()]
 
 
 def rupture_list_from_lt_branch_parallel(
         branch: dict,
         source_types: Sequence[str] = ('simple_fault'),
+        simple_ruptures: bool = True,
         n_procs: Optional[int] = None) -> list:
     """
     Creates a list of ruptures from all of the sources within a single logic
@@ -179,7 +187,9 @@ def rupture_list_from_lt_branch_parallel(
     for source_type, sources in branch.items():
         if source_type in source_types and sources != []:
             with Pool(n_procs) as pool:
-                rups = pool.map(_process_source, sources)
+                rups = pool.map(partial(_process_source,
+                                        simple_ruptures=simple_ruptures),
+                                sources)
                 rups = flatten_list(rups)
                 rupture_list.extend(rups)
 
@@ -381,13 +391,13 @@ def make_earthquake_gdf_from_csv(
         df['datetime'] = df.apply(_parse_eq_time, time_cols=time, axis=1)
 
     if source is not None:
-        df.rename({'source': source})
+        df.rename({source: 'source'}, axis=1, inplace=True)
 
     if magnitude is not None:
-        df.rename({'magnitude': magnitude})
+        df.rename({magnitude: 'magnitude'}, axis=1, inplace=True)
 
     if event_id is not None:
-        df.rename({'event_id': event_id})
+        df.rename({event_id: 'event_id'}, axis=1, inplace=True)
 
     def parse_geometry(row, x=x_col, y=y_col, z=depth):
         return Point(row[x], row[y], row[z])
