@@ -12,7 +12,7 @@ BASE_PATH = os.path.dirname(__file__)
 #test_data_dir = os.path.join(BASE_PATH, 'tests', 'model_test_framworks', 'gem',
 #                             'integration_tests', 'gem_sm1')
 
-test_file = os.path.join(BASE_PATH, 'test_sm1.yml')
+test_file = os.path.join(BASE_PATH, 'test_sm1_poisson.yml')
 
 
 def test_read_cfg():

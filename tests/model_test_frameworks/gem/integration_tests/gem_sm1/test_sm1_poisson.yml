@@ -1,0 +1,55 @@
+config:
+    model_framework: gem
+    tests:
+        likelihood:
+          likelihood_method: poisson
+          investigation_time: 40.
+          default_likelihood: 1.
+          not_modeled_val: 0.00001
+        model_mfd:
+            outfile: ./sm1_mfds.csv
+            investigation_time: 40.
+        max_mag_check:
+            append_check: True
+            warn: True
+    parallel: False
+    rand_seed: 69
+
+input:
+    bins:
+        bin_gis_file: ../../../../data/source_models/sm1/data/phl_f_bins.geojson
+        mfd_bin_max: 8.5
+        mfd_bin_min: 6.0
+        mfd_bin_width: 0.2
+    ssm:
+        ssm_dir: ../../../../data/source_models/sm1/
+        ssm_lt_file: ssmLT.xml
+        branch: b1
+        source_types:
+            - simple_fault
+    
+    seis_catalog: 
+        seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
+        columns:
+            time:
+                - year
+                - month
+                - day
+                - hour
+                - minute
+                - second
+            source: Agency
+            event_id: eventID
+
+output:
+    bin_gdf:
+        file: ./gem_sm1_poisson_likelihood_bins.geojson
+    plots: 
+        kwargs:
+            model: True
+            observed: True
+            observed_time: 40.
+            return_fig: False
+            return_string: True
+
+

@@ -275,14 +275,11 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
             _ = rupture_gdf.apply(_bin_row, bdf=bin_df['SpacemagBin'], axis=1)
         else:
             bin_idx_splits = np.array_split(bin_df.index, n_procs * 10)
-            bin_groups = (
-                bin_df.loc[bi, 'SpacemagBin'] for bi in bin_idx_splits
-            )
+            bin_groups = (bin_df.loc[bi, 'SpacemagBin']
+                          for bi in bin_idx_splits)
 
-            rup_groups = (
-                rupture_gdf[rupture_gdf['bin_id'].isin(bi)]
-                for bi in bin_idx_splits
-            )
+            rup_groups = (rupture_gdf[rupture_gdf['bin_id'].isin(bi)]
+                          for bi in bin_idx_splits)
 
             bin_rup_zip = zip(bin_groups, rup_groups)
 
@@ -546,7 +543,17 @@ def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
     return bin_df
 
 
-def get_source_bins(bin_gdf):
+def get_source_bins(bin_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """
+    Returns a subset of all of the spatial bins, where each bin actually
+    contains earthquake sources.
+
+    :param bin_gdf:
+        GeoDataFrame of bins
+
+    :returns:
+        GeoDataFrame of bins with sources
+    """
     source_list = []
     for i, row in bin_gdf.iterrows():
         cum_mfd = row.SpacemagBin.get_rupture_mfd(cumulative=True)
