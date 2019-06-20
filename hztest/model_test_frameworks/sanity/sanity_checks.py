@@ -15,7 +15,7 @@ def max_check(bin_gdf: GeoDataFrame,
               append_check: bool = False,
               warn: bool = False) -> None:
 
-    max_check_col: GeoSeries = bin_gdf.apply(check_bin_max)
+    max_check_col: GeoSeries = bin_gdf.SpacemagBin.apply(check_bin_max)
 
     if warn is True:
         for i, mxc in max_check_col.iteritems():

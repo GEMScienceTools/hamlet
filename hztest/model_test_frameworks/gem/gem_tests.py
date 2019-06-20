@@ -1,6 +1,8 @@
 import logging
 from typing import Optional
 
+import numpy as np
+import pandas as pd
 from geopandas import GeoDataFrame
 
 #from hztest.core.core import make_bin_gdf
@@ -25,6 +27,10 @@ def mfd_likelihood_test(cfg,
             'likelihood_method'] == 'empirical':
         return mfd_empirical_likelihood_test(cfg, bin_gdf, obs_seis_catalog,
                                              validate)
+    elif cfg['config']['tests']['likelihood'][
+            'likelihood_method'] == 'poisson':
+        return mfd_poisson_likelihood_test(cfg, bin_gdf, obs_seis_catalog,
+                                           validate)
 
 
 def mfd_empirical_likelihood_test(
@@ -37,7 +43,7 @@ def mfd_empirical_likelihood_test(
     source_bin_gdf = get_source_bins(bin_gdf)
 
     logging.info('calculating empirical MFDs for source bins')
-    
+
     if cfg['config']['parallel'] is False:
         source_bin_mfds = source_bin_gdf['SpacemagBin'].apply(
             get_stochastic_mfd,
@@ -45,10 +51,9 @@ def mfd_empirical_likelihood_test(
             interval_length=test_config['investigation_time'])
     else:
         source_bin_mfds = get_stochastic_mfds_parallel(
-            source_bin_gdf['SpacemagBin'], n_iters=test_config['n_iters'],
-                interval_length=test_config['investigation_time'])
-
-
+            source_bin_gdf['SpacemagBin'],
+            n_iters=test_config['n_iters'],
+            interval_length=test_config['investigation_time'])
 
     def calc_row_log_like(row, mfd_df=source_bin_mfds):
         obs_eqs = row.SpacemagBin.observed_earthquakes
@@ -67,21 +72,93 @@ def mfd_empirical_likelihood_test(
     bin_gdf['log_like'].update(source_bin_log_likes)
 
 
-class MFDLikelihoodTest():
-    """
-    Do I even want this?
-    """
+def mfd_poisson_likelihood_test(
+        cfg,
+        bin_gdf: Optional[GeoDataFrame] = None,
+        obs_seis_catalog: Optional[GeoDataFrame] = None,
+        validate: bool = False):
 
-    def __init__(self):
-        self.cfg = None
-        self.bin_df = None
-        self.obs_seis_catalog = None
+    test_config = cfg['config']['tests']['likelihood']
+    source_bin_gdf = get_source_bins(bin_gdf)
 
-        raise NotImplementedError
+    source_bin_mfds = source_bin_gdf['SpacemagBin'].apply(
+        lambda x: x.get_rupture_mfd(cumulative=False))
 
-    def run_test(self):
-        return mfd_likelihood_test(self.cfg, self.bin_df,
-                                   self.obs_seis_catalog)
+    logging.info('calculating empirical MFDs for source bins')
+
+    def calc_row_log_like(row, mfd_df=source_bin_mfds):
+        obs_eqs = row.SpacemagBin.observed_earthquakes
+        mfd_dict = mfd_df.loc[row._name]
+
+        return calc_mfd_log_likelihood_independent(
+            obs_eqs,
+            mfd_dict,
+            time_interval=test_config['investigation_time'],
+            not_modeled_val=test_config['not_modeled_val'],
+            likelihood_method='poisson')
+
+    logging.info('calculating log likelihoods for sources')
+    source_bin_log_likes = source_bin_gdf.apply(calc_row_log_like, axis=1)
+
+    bin_gdf['log_like'] = test_config['default_likelihood']
+    bin_gdf['log_like'].update(source_bin_log_likes)
 
 
-gem_test_dict = {'likelihood': mfd_likelihood_test, 'sanity': max_check}
+def model_mfd_test(cfg,
+                   bin_gdf: Optional[GeoDataFrame] = None,
+                   obs_seis_catalog: Optional[GeoDataFrame] = None,
+                   validate: bool = False):
+
+    # calculate observed, model mfd for all bins
+    # add together
+
+    logging.info('Running Model-Observed MFD Comparison')
+
+    test_config = cfg['config']['tests']['model_mfd']
+
+    mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
+    obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(
+        t_yrs=test_config['investigation_time'])
+
+    for i, row in bin_gdf.iloc[1:].iterrows():
+        bin_mod_mfd = row.SpacemagBin.get_rupture_mfd()
+        bin_obs_mfd = row.SpacemagBin.get_empirical_mfd(
+            t_yrs=test_config['investigation_time'])
+
+        for bin_center, rate in bin_mod_mfd.items():
+            mod_mfd[bin_center] += rate
+
+        for bin_center, rate in bin_obs_mfd.items():
+            obs_mfd[bin_center] += rate
+
+    mfd_df = pd.DataFrame.from_dict(mod_mfd,
+                                    orient='index',
+                                    columns=['mod_mfd'])
+    mfd_df['mod_mfd_cum'] = np.cumsum(mfd_df['mod_mfd'].values[::-1])[::-1]
+
+    mfd_df['obs_mfd'] = obs_mfd.values()
+    mfd_df['obs_mfd_cum'] = np.cumsum(mfd_df['obs_mfd'].values[::-1])[::-1]
+
+    mfd_df.index.name = 'bin'
+
+    mfd_df.to_csv(test_config['outfile'])
+
+
+def max_mag_check(cfg,
+                  bin_gdf: Optional[GeoDataFrame] = None,
+                  obs_seis_catalog: Optional[GeoDataFrame] = None):
+
+    logging.info('Checking Maximum Magnitudes')
+
+    test_config = cfg['config']['tests']['max_mag_check']
+
+    max_check(bin_gdf,
+              append_check=test_config['append_check'],
+              warn=test_config['warn'])
+
+
+gem_test_dict = {
+    'likelihood': mfd_likelihood_test,
+    'max_mag_check': max_mag_check,
+    'model_mfd': model_mfd_test
+}

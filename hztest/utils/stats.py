@@ -25,11 +25,13 @@ def sample_event_times_in_interval(annual_occurrence_rate: float,
 
 def poisson_likelihood(rate: float,
                        num_events: int,
+                       time_interval: float = 1.,
                        not_modeled_val: float = 0.) -> float:
     if rate == 0:
         return poisson_likelihood_zero_rate(num_events, not_modeled_val)
     else:
-        return rate / np.math.factorial(num_events) * np.exp(rate)
+        rt = rate * time_interval
+        return np.exp(-rt) * rt**num_events / np.math.factorial(num_events)
 
 
 def poisson_likelihood_zero_rate(num_events: int,

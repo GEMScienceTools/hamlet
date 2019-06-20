@@ -48,6 +48,7 @@ def calc_mag_bin_empirical_likelihood(bin_rate: Dict[int, float],
 
 def calc_mag_bin_poisson_likelihood(bin_rate: float,
                                     n_eqs: int,
+                                    time_interval: float = 1.,
                                     not_modeled_val: float = 1e-5) -> float:
     """
     Calculation of the likelihood of observing a certain number of earthquakes
@@ -60,6 +61,10 @@ def calc_mag_bin_poisson_likelihood(bin_rate: float,
         Number of observed earthquakes in the magnitude bin (or, number of
         earthquakes for which one wants to calculate the likelihood of seeing in
         that bin).
+
+    :param time_interval:
+        Duration of time in which observed earthquakes have accumulated (i.e.,
+        the catalog completeness duration).
 
     :param not_modeled_val:
         Likelihood value resulting from an instance in which no ruptures are
@@ -77,11 +82,12 @@ def calc_mag_bin_poisson_likelihood(bin_rate: float,
 
     """
 
-    return poisson_likelihood(bin_rate, n_eqs, not_modeled_val)
+    return poisson_likelihood(bin_rate, n_eqs, time_interval, not_modeled_val)
 
 
 def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
                             n_eqs: int,
+                            time_interval: float = 1.,
                             not_modeled_val: float = 1e-5,
                             likelihood_method='empirical') -> float:
     """
@@ -101,6 +107,10 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
         Number of observed earthquakes in the magnitude bin (or, number of
         earthquakes for which one wants to calculate the likelihood of seeing in
         that bin).
+
+    :param time_interval:
+        Duration of time in which observed earthquakes have accumulated (i.e.,
+        the catalog completeness duration).
 
     :param not_modeled_val:
         Likelihood value resulting from an instance in which no ruptures are
@@ -126,12 +136,13 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
                                                  not_modeled_val)
 
     elif likelihood_method == 'poisson':
-        return calc_mag_bin_poisson_likelihood(bin_rate, n_eqs,
+        return calc_mag_bin_poisson_likelihood(bin_rate, n_eqs, time_interval,
                                                not_modeled_val)
 
 
 def calc_mfd_log_likelihood_independent(obs_eqs: dict,
                                         mfd: dict,
+                                        time_interval: float = 1.,
                                         not_modeled_val: float = 1e-5,
                                         likelihood_method='empirical'
                                         ) -> float:
@@ -144,7 +155,7 @@ def calc_mfd_log_likelihood_independent(obs_eqs: dict,
 
     bin_likes = [
         calc_mag_bin_likelihood(mfd[bin_center], len(eqs), not_modeled_val,
-                                likelihood_method)
+                                time_interval, likelihood_method)
         for bin_center, eqs in obs_eqs.items()
     ]
 
