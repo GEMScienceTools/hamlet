@@ -124,6 +124,7 @@ def rupture_list_from_lt_branch(branch: dict,
 
     for source_type, sources in branch.items():
         if source_type in source_types and sources != []:
+            logging.info('    processing {} sources'.format(source_type))
             rups = [
                 _process_rup(r, source, simple_ruptures=simple_ruptures)
                     for source in sources
@@ -186,12 +187,15 @@ def rupture_list_from_lt_branch_parallel(
 
     for source_type, sources in branch.items():
         if source_type in source_types and sources != []:
+            logging.info('    processing {} sources'.format(source_type))
             with Pool(n_procs) as pool:
-                rups = pool.map(partial(_process_source,
-                                        simple_ruptures=simple_ruptures),
-                                sources)
+                rups = pool.imap(partial(_process_source,
+                                         simple_ruptures=simple_ruptures),
+                                 sources)
                 rups = flatten_list(rups)
                 rupture_list.extend(rups)
+                pool.close()
+                pool.join()
 
     return rupture_list
 
