@@ -31,11 +31,9 @@ def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
     return mfd_freq_counts
 
 
-def get_stochastic_mfd_counts(
-        spacemag_bin: SpacemagBin,
-        #bin_centers: Sequence[float],
-        n_iters: int,
-        interval_length: float) -> Dict[float, List[int]]:
+def get_stochastic_mfd_counts(spacemag_bin: SpacemagBin, n_iters: int,
+                              interval_length: float
+                              ) -> Dict[float, List[int]]:
     """
     Builds a dictionary of stochastic earthquake counts from a SpacemagBin by
     iteratively sampling the bin and recording the number of events of each
@@ -43,11 +41,6 @@ def get_stochastic_mfd_counts(
 
     :param spacemag_bin:
         The :class:`SpacemagBin` instance to be studied
-
-    :param bin_centers:
-        Sequence of centers of MFD bins; it's assumed that these bin centers
-        represent all of the possible earthquake magnitudes generated
-        stochastically.
 
     :param n_iters:
         Number of Monte Carlo iterations
@@ -74,11 +67,9 @@ def get_stochastic_mfd_counts(
     return mfd_counts
 
 
-def get_stochastic_mfd(
-        spacemag_bin: SpacemagBin,
-        #bin_centers: Sequence[float],
-        n_iters: int,
-        interval_length: float) -> Dict[float, Dict[float, float]]:
+def get_stochastic_mfd(spacemag_bin: SpacemagBin, n_iters: int,
+                       interval_length: float
+                       ) -> Dict[float, Dict[float, float]]:
     """
     Builds an empirical, incremental magnitude-frequency distribution by
     stochastically sampling earthquake ruptures from a :class:`SpacemagBin`
@@ -87,10 +78,6 @@ def get_stochastic_mfd(
     interval provided.
 
     :param spacemag_bin: The :class:`SpacemagBin` instance to be studied
-
-    :param bin_centers: Sequence of centers of MFD bins; it's assumed that these
-        bin centers represent all of the possible earthquake magnitudes
-        generated stochastically.
 
     :param n_iters: Number of Monte Carlo iterations
 

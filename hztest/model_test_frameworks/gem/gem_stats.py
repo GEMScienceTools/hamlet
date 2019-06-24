@@ -93,7 +93,7 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
     """
     Shell function to calculate the likelihood of a magnitude bin given the
     observed earthquakes within the bin. Several methods exist for these
-    calculations, though only one is currently implemented.
+    calculations.
 
     :param bin_rate:
         Expected rate(s) of earthquakes within that magnitude bin. The format of
@@ -154,8 +154,8 @@ def calc_mfd_log_likelihood_independent(obs_eqs: dict,
     n_bins: int = len(obs_eqs.keys())
 
     bin_likes = [
-        calc_mag_bin_likelihood(mfd[bin_center], len(eqs), not_modeled_val,
-                                time_interval, likelihood_method)
+        calc_mag_bin_likelihood(mfd[bin_center], len(eqs), time_interval,
+                                not_modeled_val, likelihood_method)
         for bin_center, eqs in obs_eqs.items()
     ]
 
