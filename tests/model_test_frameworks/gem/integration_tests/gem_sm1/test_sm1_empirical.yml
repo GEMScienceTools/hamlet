@@ -4,7 +4,7 @@ config:
         likelihood:
           likelihood_method: empirical
           investigation_time: 40.
-          n_iters: 100
+          n_iters: 1000
           default_likelihood: 1.
           not_modeled_val: 0.00001
     parallel: True
