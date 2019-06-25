@@ -18,8 +18,18 @@ def mfd_likelihood_test(cfg,
                         obs_seis_catalog: Optional[GeoDataFrame] = None,
                         validate: bool = False):
     """
+    Calculates the likelihood of the Seismic Source Model for each SpacemagBin.
+    The likelihood calculation is (currently) treated as the geometric mean of
+    the individual MagBin likelihoods, which themselves are the likelihood of
+    observing the number of earthquakes within that spatial-magnitude bin given
+    the total modeled earthquake rate (from all sources) within the
+    spatial-magnitude bin.  
 
-
+    The likelihood calculation may be done using the Poisson distribution, if
+    there is a basic assumption of Poissonian seismicity, or through a Monte
+    Carlo-based calculation (currently also done through a Poisson sampling of
+    the modeled seismicity, though more complex temporal occurrence models are
+    possible, such as through a Epidemic-Type Aftershock Sequence).
     """
 
     logging.info('Running GEM MFD Likelihood Test')

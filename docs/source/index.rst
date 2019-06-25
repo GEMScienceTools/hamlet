@@ -25,6 +25,7 @@ implementation.
    :maxdepth: 2
    :caption: Contents:
 
+   architecture
    model_test_frameworks/model_test_frameworks
 
 
