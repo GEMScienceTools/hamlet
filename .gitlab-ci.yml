@@ -34,6 +34,7 @@ pages:
   stage: pages
   script:
     - pip install sphinx
+    - pip install recommonmark
     - cd docs ; sphinx-apidoc -o source/ ../hztest ; make html
     - mv build/html/ ../public/
 
