@@ -85,23 +85,27 @@ def rupture_dict_from_logic_tree_dict(
 
     if parallel is True:
         return {
-            br: rupture_list_from_lt_branch_parallel(branch,
-                    source_types, simple_ruptures=simple_ruptures, 
-                    n_procs=n_procs)
+            br: rupture_list_from_lt_branch_parallel(
+                branch,
+                source_types,
+                simple_ruptures=simple_ruptures,
+                n_procs=n_procs)
             for br, branch in logic_tree_dict.items()
         }
     else:
         return {
-            br: rupture_list_from_lt_branch(branch, source_types,
+            br: rupture_list_from_lt_branch(branch,
+                                            source_types,
                                             simple_ruptures=simple_ruptures)
             for br, branch in logic_tree_dict.items()
         }
 
 
-def rupture_list_from_lt_branch(branch: dict,
-                                source_types: Sequence[str] = ('simple_fault'),
-                                simple_ruptures: bool = True,
-                                ) -> list:
+def rupture_list_from_lt_branch(
+        branch: dict,
+        source_types: Sequence[str] = ('simple_fault'),
+        simple_ruptures: bool = True,
+) -> list:
     """
     Creates a list of ruptures from all of the sources within a single logic
     tree branch, adding the `source_id` of each source to the rupture as an
@@ -127,8 +131,7 @@ def rupture_list_from_lt_branch(branch: dict,
             logging.info('    processing {} sources'.format(source_type))
             rups = [
                 _process_rup(r, source, simple_ruptures=simple_ruptures)
-                    for source in sources
-                for r in source.iter_ruptures()
+                for source in sources for r in source.iter_ruptures()
             ]
 
             rupture_list.extend(rups)
@@ -141,20 +144,34 @@ def _process_rup(rup, source, simple_ruptures=True):
     if simple_ruptures is False:
         rup.source = source.source_id
     else:
-        rup = SimpleRupture(rup.rake, rup.mag, rup.hypocenter,
-                            rup.occurrence_rate, source.source_id)
+        rup = SimpleRupture(strike=rup.surface.get_strike(),
+                            dip=rup.surface.get_dip(),
+                            rake=rup.rake,
+                            mag=rup.mag,
+                            hypocenter=rup.hypocenter,
+                            occurrence_rate=rup.occurrence_rate,
+                            source=source.source_id)
     return rup
 
 
 def _process_source(source, simple_ruptures=True):
-    return [_process_rup(r, source, simple_ruptures=simple_ruptures)
-            for r in source.iter_ruptures()]
+    return [
+        _process_rup(r, source, simple_ruptures=simple_ruptures)
+        for r in source.iter_ruptures()
+    ]
+
+
+def _process_source_chunk(source_chunk, simple_ruptures=True):
+    return flatten_list([
+        _process_source(source, simple_ruptures=simple_ruptures)
+        for source in source_chunk
+    ])
 
 
 def rupture_list_from_lt_branch_parallel(
         branch: dict,
         source_types: Sequence[str] = ('simple_fault'),
-        simple_ruptures: bool = True,
+        simple_ruptures: bool = False,
         n_procs: Optional[int] = None) -> list:
     """
     Creates a list of ruptures from all of the sources within a single logic
@@ -183,21 +200,53 @@ def rupture_list_from_lt_branch_parallel(
     if n_procs is None:
         n_procs = _n_procs
 
-    rupture_list = []
+    #rupture_list = []
+    source_list = []
 
+    logging.info('    combining sources')
     for source_type, sources in branch.items():
         if source_type in source_types and sources != []:
-            logging.info('    processing {} sources'.format(source_type))
-            with Pool(n_procs) as pool:
-                rups = pool.imap(partial(_process_source,
-                                         simple_ruptures=simple_ruptures),
-                                 sources)
-                rups = flatten_list(rups)
-                rupture_list.extend(rups)
-                pool.close()
-                pool.join()
+            source_list.extend(sources)
+
+    logging.info('    chunking sources')
+    source_chunks = _chunk_source_list(source_list, n_procs)
+
+    logging.info('    processing {} sources'.format(source_type))
+    #source_chunks = _chunk_source_list(sources, n_chunks=n_procs)
+    with Pool(n_procs) as pool:
+        rups = pool.imap(
+            partial(_process_source_chunk, simple_ruptures=simple_ruptures),
+            source_chunks)
+
+        rupture_list = flatten_list(rups)
+        pool.close()
+        pool.join()
 
     return rupture_list
+
+
+def _chunk_source_list(sources: list, n_chunks: int = _n_procs) -> list:
+    source_counts = [s.count_ruptures() for s in sources]
+
+    sources = [
+        s for c, s in sorted(zip(source_counts, sources),
+                             key=lambda pair: pair[0],
+                             reverse=True)
+    ]
+
+    source_counts.sort(reverse=True)
+
+    source_chunks = [list() for i in range(n_chunks)]
+    chunk_sums = np.zeros(n_chunks, dtype=int)
+
+    for i, source in enumerate(sources):
+        min_bin = np.argmin(chunk_sums)
+        source_chunks[min_bin].append(source)
+        chunk_sums[min_bin] += source_counts[i]
+
+    logging.info('chunk_sums:\n{}'.format(str(chunk_sums)))
+
+    return source_chunks
 
 
 def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
