@@ -211,7 +211,7 @@ def rupture_list_from_lt_branch_parallel(
     logging.info('    chunking sources')
     source_chunks = _chunk_source_list(source_list, n_procs)
 
-    logging.info('    processing {} sources'.format(source_type))
+    #logging.info('    processing {} sources'.format(source_type))
     #source_chunks = _chunk_source_list(sources, n_chunks=n_procs)
     with Pool(n_procs) as pool:
         rups = pool.imap(
@@ -656,3 +656,21 @@ def sample_earthquakes(rupture: Union[ParametricProbabilisticRupture,
                    time=et) for et in event_times
     ]
     return eqs
+
+
+def mag_to_mo(mag: float, c: float = 9.05):
+    """
+    Scalar moment [in Nm] from moment magnitude
+    :return:
+        The computed scalar seismic moment
+    """
+    return 10**(1.5 * mag + c)
+
+
+def mo_to_mag(mo: float, c: float = 9.05):
+    """
+    From moment magnitude to scalar moment [in Nm]
+    :return:
+        The computed magnitude
+    """
+    return (np.log10(mo) - c) / 1.5

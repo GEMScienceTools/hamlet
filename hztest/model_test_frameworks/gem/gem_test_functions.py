@@ -3,7 +3,7 @@ from typing import Sequence, Dict, List
 import numpy as np
 from geopandas import GeoSeries
 
-from hztest.utils import SpacemagBin, parallelize
+from hztest.utils import SpacemagBin, parallelize, mag_to_mo
 
 
 def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
@@ -104,3 +104,29 @@ def _source_bin_mfd_apply(GeoSeries, **kwargs):
 
 def get_stochastic_mfds_parallel(GeoSeries, **kwargs):
     return parallelize(GeoSeries, _source_bin_mfd_apply, **kwargs)
+
+
+def get_stochastic_moment_set(spacemag_bin: SpacemagBin,
+                              interval_length: float,
+                              n_iters: int) -> np.ndarray:
+    """
+    """
+    return np.array([
+        get_stochastic_moment(spacemag_bin, interval_length)
+        for i in range(n_iters)
+    ])
+
+
+def get_stochastic_moment(spacemag_bin: SpacemagBin,
+                          interval_length: float) -> float:
+    smfd = spacemag_bin.get_rupture_sample_mfd(interval_length,
+                                               normalize=False)
+
+    return get_moment_from_mfd(smfd)
+
+
+def get_moment_from_mfd(mfd: dict) -> float:
+    mo = sum(
+        mag_to_mo(np.array(list(mfd.keys()))) * np.array(list(mfd.values())))
+
+    return mo

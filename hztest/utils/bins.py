@@ -131,7 +131,7 @@ class SpacemagBin():
         if normalize is True:
             denom = interval_length
         else:
-            denom = 1
+            denom = 1.
         noncum_mfd = {
             bc: len(eqs) / denom
             for bc, eqs in self.stochastic_earthquakes.items()
