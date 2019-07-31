@@ -1,7 +1,8 @@
 import os
+import json
 import logging
 import datetime
-from functools import partial
+from functools import partial, singledispatch
 from multiprocessing import Pool
 from typing import Sequence, Dict, List, Optional, Union, Tuple
 
@@ -171,7 +172,7 @@ def _process_source_chunk(source_chunk, simple_ruptures=True):
 def rupture_list_from_lt_branch_parallel(
         branch: dict,
         source_types: Sequence[str] = ('simple_fault'),
-        simple_ruptures: bool = False,
+        simple_ruptures: bool = True,
         n_procs: Optional[int] = None) -> list:
     """
     Creates a list of ruptures from all of the sources within a single logic
@@ -275,8 +276,8 @@ def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
 
 
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
-                         bin_df: gpd.GeoDataFrame,
-                         parallel: bool = False,
+                         bin_gdf: gpd.GeoDataFrame,
+                         parallel: bool = True,
                          n_procs: Optional[int] = None) -> None:
     """
     Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
@@ -291,7 +292,7 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         other being the `geometry` column, with a GeoPandas/Shapely geometry
         class.
 
-    :param bin_df:
+    :param bin_gdf:
         GeoDataFrame of the bins. This should have a `geometry` column with a
         GeoPandas/Shapely geometry and a `SpacemagBin` column that has a
         :class:`SpacemagBin` object.
@@ -306,13 +307,17 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
     """
 
     logging.info('    spatially joining ruptures and bins')
-    join_df = gpd.sjoin(rupture_gdf, bin_df, how='left')
+
+    if rupture_gdf.crs != bin_gdf.crs:
+        rupture_gdf = rupture_gdf.to_crs(bin_gdf.crs)
+
+    join_df = gpd.sjoin(rupture_gdf, bin_gdf, how='left', op='within')
 
     rupture_gdf['bin_id'] = join_df['index_right']
 
     logging.info('    adding ruptures to bins')
     if parallel is False:
-        _ = rupture_gdf.apply(_bin_row, bdf=bin_df['SpacemagBin'], axis=1)
+        _ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
         return
 
     if parallel is True:
@@ -321,10 +326,10 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
             n_procs = _n_procs
 
         if n_procs == 1:
-            _ = rupture_gdf.apply(_bin_row, bdf=bin_df['SpacemagBin'], axis=1)
+            _ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
         else:
-            bin_idx_splits = np.array_split(bin_df.index, n_procs * 10)
-            bin_groups = (bin_df.loc[bi, 'SpacemagBin']
+            bin_idx_splits = np.array_split(bin_gdf.index, n_procs * 10)
+            bin_groups = (bin_gdf.loc[bi, 'SpacemagBin']
                           for bi in bin_idx_splits)
 
             rup_groups = (rupture_gdf[rupture_gdf['bin_id'].isin(bi)]
@@ -335,7 +340,7 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         pool = Pool(n_procs)
         pool_result = pool.imap(_bin_row_apply, bin_rup_zip)
 
-        bin_df['SpacemagBin'] = pd.concat(pool_result)
+        bin_gdf['SpacemagBin'] = pd.concat(pool_result)
 
         pool.close()
         pool.join()
@@ -532,6 +537,8 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
 
     earthquake_gdf['Eq'] = earthquake_gdf.apply(_make_earthquake_from_row,
                                                 axis=1)
+    if earthquake_gdf.crs != bin_df.crs:
+        earthquake_gdf = earthquake_gdf.to_crs(bin_df.crs)
 
     join_df = gpd.sjoin(earthquake_gdf, bin_df, how='left')
 
@@ -588,6 +595,42 @@ def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
                            max_mag=max_mag)
 
     bin_df['SpacemagBin'] = bin_df.apply(bin_to_mag, axis=1)
+
+    # create serialization functions and add to instantiated GeoDataFrame
+    def to_dict():
+        out_dict = {
+            i: bin_df.loc[i, 'SpacemagBin'].to_dict()
+            for i in bin_df.index
+        }
+
+        return out_dict
+
+    bin_df.to_dict = to_dict
+
+    def to_json(fp):
+        def to_serializable(val):
+            """
+            modified from Hynek (https://hynek.me/articles/serialization/)
+            """
+            if isinstance(val, datetime.datetime):
+                return val.isoformat() + "Z"
+            #elif isinstance(val, enum.Enum):
+            #    return val.value
+            elif attr.has(val.__class__):
+                return attr.asdict(val)
+            elif isinstance(val, np.integer):
+                return int(val)
+            elif isinstance(val, Exception):
+                return {
+                    "error": val.__class__.__name__,
+                    "args": val.args,
+                }
+            return str(val)
+
+        with open(fp, 'w') as ff:
+            json.dump(bin_df.to_dict(), ff, default=to_serializable)
+
+    bin_df.to_json = to_json
 
     return bin_df
 

@@ -50,7 +50,8 @@ class SimpleRupture:
             'dip': self.dip,
             'rake': self.rake,
             'mag': self.mag,
-            'hypocenter': self.hypocenter,
+            'hypocenter':
+            [self.hypocenter.x, self.hypocenter.y, self.hypocenter.z],
             'occurrence_rate': self.occurrence_rate,
             'source': self.source
         }
