@@ -210,6 +210,8 @@ def write_outputs(cfg, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
         write_mfd_plots_to_gdf(bin_gdf, **cfg['output']['plots']['kwargs'])
 
     if 'bin_gdf' in cfg['output'].keys():
+        bin_gdf['bin_index'] = bin_gdf.index
         bin_gdf.drop('SpacemagBin',
                      axis=1).to_file(cfg['output']['bin_gdf']['file'],
-                                     driver='GeoJSON')
+                                     driver='GeoJSON',
+                                     )
