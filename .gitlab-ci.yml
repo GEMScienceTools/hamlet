@@ -27,9 +27,6 @@ before_script:
 test:
   stage: test
   script:
-    # fix matplotlib backend error
-    - touch ~/.config/matplotlib/matplotlibrc
-    - echo "backend: svg" > ~/.config/matplotlib/matplotlibrc
     - pip install pytest
     - py.test hztest tests -W ignore::UserWarning
 

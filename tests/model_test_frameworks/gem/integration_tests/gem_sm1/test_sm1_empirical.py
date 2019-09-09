@@ -2,7 +2,8 @@ import os
 import logging
 
 import matplotlib
-matplotlib.use('svg')
+#matplotlib.use('svg')
+matplotlib.pyplot.switch_backend('svg')
 
 from hztest.core.core import run_tests, read_yaml_config
 
