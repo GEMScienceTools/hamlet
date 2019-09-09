@@ -27,6 +27,7 @@ before_script:
 test:
   stage: test
   script:
+    - export DISPLAY=:0.0 # fix matplotlib backend error
     - pip install pytest
     - py.test hztest tests -W ignore::UserWarning
 
