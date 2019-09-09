@@ -61,13 +61,18 @@ class TestPHL1(unittest.TestCase):
         self.assertEqual(list(self.rup_dict.keys()), ['b1'])
         self.assertEqual(len(self.rup_dict['b1']), 7797)
         self.assertIsInstance(self.rup_dict['b1'], list)
-        self.assertIsInstance(self.rup_dict['b1'][0],
-                              ParametricProbabilisticRupture)
+        self.assertIsInstance(
+            self.rup_dict['b1'][0],
+            #ParametricProbabilisticRupture)
+            hztest.utils.SimpleRupture)
 
     def test_rupture_list_from_lt_branch(self):
         self.assertIsInstance(self.rup_list, list)
         self.assertEqual(len(self.rup_list), 7797)
-        self.assertIsInstance(self.rup_list[0], ParametricProbabilisticRupture)
+        self.assertIsInstance(
+            self.rup_list[0],
+            #ParametricProbabilisticRupture)
+            hztest.utils.SimpleRupture)
 
     def test_rupture_list_from_lt_branch_parallel(self):
 
@@ -76,8 +81,10 @@ class TestPHL1(unittest.TestCase):
 
         self.assertIsInstance(self.rup_list_par, list)
         self.assertEqual(len(self.rup_list_par), 7797)
-        self.assertIsInstance(self.rup_list_par[0],
-                              ParametricProbabilisticRupture)
+        self.assertIsInstance(
+            self.rup_list_par[0],
+            #ParametricProbabilisticRupture)
+            hztest.utils.SimpleRupture)
 
     @unittest.skip('not implemented')
     def test_rupture_list_to_gdf(self):

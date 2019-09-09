@@ -171,7 +171,7 @@ def _process_source_chunk(source_chunk, simple_ruptures=True):
 def rupture_list_from_lt_branch_parallel(
         branch: dict,
         source_types: Sequence[str] = ('simple_fault'),
-        simple_ruptures: bool = False,
+        simple_ruptures: bool = True,
         n_procs: Optional[int] = None) -> list:
     """
     Creates a list of ruptures from all of the sources within a single logic
