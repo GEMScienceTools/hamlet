@@ -1,7 +1,7 @@
 import sys
 sys.path.append('../')
 
-import hztest
+import openquake.hme
 
 import pandas as pd
 import geopandas as gpd
@@ -18,8 +18,8 @@ bin_gj = './data/phl_test/phl_bins.geojson'
 # bin stuff
 # make bins
 print('making bins')
-bin_df = hztest.utils.make_spatial_bins_df_from_file(bin_gj)
-hztest.utils.make_SpacemagBins_from_bin_df(bin_df)
+bin_df = openquake.hme.utils.make_spatial_bins_df_from_file(bin_gj)
+openquake.hme.utils.make_SpacemagBins_from_bin_df(bin_df)
 
 # read earthquake catalog and put in bins
 print('doing eq cat')
@@ -30,7 +30,7 @@ eq_df['time'] = eq_df.apply(lambda x: datetime.datetime(*np.int_((
 eq_df['geometry'] = eq_df.apply(lambda x: Point(x.longitude, x.latitude),
                                 axis=1)
 eq_df = gpd.GeoDataFrame(eq_df)
-eq_df['Eq'] = eq_df.apply(lambda x: hztest.utils.Earthquake(
+eq_df['Eq'] = eq_df.apply(lambda x: openquake.hme.utils.Earthquake(
     mag=x.magnitude,
     latitude=x.latitude,
     longitude=x.longitude,
@@ -40,20 +40,20 @@ eq_df['Eq'] = eq_df.apply(lambda x: hztest.utils.Earthquake(
     event_id=x.eventID),
                           axis=1)
 
-hztest.utils.add_earthquakes_to_bins(eq_df, bin_df)
+openquake.hme.utils.add_earthquakes_to_bins(eq_df, bin_df)
 
 print('processing sources')
 print('    reading and sorting logic tree')
-phlt = hztest.utils.io.process_logic_tree(phl_ssm_dir)
+phlt = openquake.hme.utils.io.process_logic_tree(phl_ssm_dir)
 
 print('    getting ruptures from sources')
-rl = hztest.utils.rupture_list_from_lt_branch(phlt['b1'],
+rl = openquake.hme.utils.rupture_list_from_lt_branch(phlt['b1'],
                                               source_types=('simple_fault',
                                                             'point'))
 
 print('    binning ruptures')
-rgdf = hztest.utils.rupture_list_to_gdf(rl)
-hztest.utils.add_ruptures_to_bins(rgdf, bin_df)
+rgdf = openquake.hme.utils.rupture_list_to_gdf(rl)
+openquake.hme.utils.add_ruptures_to_bins(rgdf, bin_df)
 print('done processing sources.')
 
 print('')

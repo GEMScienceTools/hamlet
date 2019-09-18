@@ -6,9 +6,9 @@ from shapely.geometry import Polygon
 from openquake.hazardlib.source import ParametricProbabilisticRupture as Rupture
 from openquake.hazardlib.geo import Point
 
-import hztest
-import hztest.model_test_frameworks.gem.gem_test_functions as gtu
-from hztest.utils import SpacemagBin
+import openquake.hme
+import openquake.hme.model_test_frameworks.gem.gem_test_functions as gtu
+from openquake.hme.utils import SpacemagBin
 
 #BASE_DATA_PATH = os.path.dirname(__file__)
 #test_data_dir = os.path.join(BASE_DATA_PATH, '..', '..', 'data', '')

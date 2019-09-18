@@ -1,7 +1,7 @@
 import sys
 sys.path.append('../')
 
-import hztest
+import openquake.hme
 
 import pandas as pd
 import geopandas as gpd
@@ -33,8 +33,8 @@ print('making bins')
 min_bin_mag = 6.0
 bin_width = 0.1
 
-bin_df = hztest.utils.make_spatial_bins_df_from_file(bin_gj)
-hztest.utils.make_SpacemagBins_from_bin_df(bin_df,
+bin_df = openquake.hme.utils.make_spatial_bins_df_from_file(bin_gj)
+openquake.hme.utils.make_SpacemagBins_from_bin_df(bin_df,
                                            min_mag=min_bin_mag,
                                            bin_width=bin_width)
 
@@ -51,7 +51,7 @@ eq_df['geometry'] = eq_df.apply(lambda x: Point(x.longitude, x.latitude),
                                 axis=1)
 eq_df = gpd.GeoDataFrame(eq_df)
 eq_df.crs = {'init': 'epsg:4326'}
-eq_df['Eq'] = eq_df.apply(lambda x: hztest.utils.Earthquake(
+eq_df['Eq'] = eq_df.apply(lambda x: openquake.hme.utils.Earthquake(
     mag=x.magnitude,
     latitude=x.latitude,
     longitude=x.longitude,
@@ -61,15 +61,15 @@ eq_df['Eq'] = eq_df.apply(lambda x: hztest.utils.Earthquake(
     event_id=x.eventID),
                           axis=1)
 
-hztest.utils.add_earthquakes_to_bins(eq_df, bin_df)
+openquake.hme.utils.add_earthquakes_to_bins(eq_df, bin_df)
 
 print('processing sources')
 print('    reading and sorting logic tree')
-phlt = hztest.utils.io.process_source_logic_tree(phl_ssm_dir)
+phlt = openquake.hme.utils.io.process_source_logic_tree(phl_ssm_dir)
 
 print('    getting ruptures from sources')
 t0 = time.time()
-rl = hztest.utils.rupture_list_from_lt_branch_parallel(
+rl = openquake.hme.utils.rupture_list_from_lt_branch_parallel(
     phlt['b1'], source_types=('simple_fault', 'point'))
 t1 = time.time()
 print('     done in {:.1f} s'.format(t1 - t0))
@@ -79,9 +79,9 @@ print('    binning ruptures')
 
 rl = [r for r in rl if r.mag >= min_bin_mag - bin_width / 2.]
 
-rgdf = hztest.utils.rupture_list_to_gdf(rl)
+rgdf = openquake.hme.utils.rupture_list_to_gdf(rl)
 rgdf.crs = {'init': 'epsg:4326'}
-hztest.utils.add_ruptures_to_bins(rgdf, bin_df, parallel=False)
+openquake.hme.utils.add_ruptures_to_bins(rgdf, bin_df, parallel=False)
 t3 = time.time()
 print('     done in {:.1f} s'.format(t3 - t2))
 print('done processing sources.')

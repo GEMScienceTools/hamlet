@@ -5,7 +5,7 @@ import matplotlib
 #matplotlib.use('svg')
 matplotlib.pyplot.switch_backend('svg')
 
-from hztest.core.core import run_tests, read_yaml_config
+from openquake.hme.core.core import run_tests, read_yaml_config
 
 logging.basicConfig(level=logging.INFO)
 
