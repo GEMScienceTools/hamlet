@@ -110,7 +110,7 @@ setup(
     # py_modules=['mypackage'],
 
      entry_points={
-         'console_scripts': ['hamlet=openquake.hme.bin.hazard_model_test:main'],
+         'console_scripts': ['hamlet=openquake.hme.bin.hamlet:main'],
      },
     install_requires=REQUIRED,
     extras_require=EXTRAS,
