@@ -1,7 +1,7 @@
 import os
 import logging
 
-import matplotlib
+import matplotlib.pyplot
 #matplotlib.use('svg')
 matplotlib.pyplot.switch_backend('svg')
 
