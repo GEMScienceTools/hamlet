@@ -28,14 +28,14 @@ test:
   stage: test
   script:
     - pip install pytest
-    - py.test hztest tests -W ignore::UserWarning
+    - py.test openquake tests -W ignore::UserWarning
 
 pages:
   stage: pages
   script:
     - pip install sphinx
     - pip install recommonmark
-    - cd docs ; sphinx-apidoc -o source/ ../hztest ; make html
+    - cd docs ; sphinx-apidoc -o source/ ../openquake/hme/ ; make html
     - mv build/html/ ../public/
 
   artifacts:
