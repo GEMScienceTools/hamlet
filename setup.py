@@ -108,6 +108,7 @@ setup(
         exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
+    namespace_packages=['openquake'],
 
      entry_points={
          'console_scripts': ['hamlet=openquake.hme.bin.hamlet:main'],
