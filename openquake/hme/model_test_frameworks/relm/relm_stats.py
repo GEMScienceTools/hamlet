@@ -1,5 +1,5 @@
 import numpy as np
-from hztest.utils.stats import poisson_likelihood, poisson_log_likelihood
+from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
 
 
 def bin_observance_likelihood(num_events: int, bin_rate: float) -> float:

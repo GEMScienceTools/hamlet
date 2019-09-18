@@ -9,15 +9,15 @@ import yaml
 import numpy as np
 from geopandas import GeoDataFrame
 
-from hztest.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
-from hztest.utils import (make_SpacemagBins_from_bin_gis_file,
-                          rupture_dict_from_logic_tree_dict,
-                          rupture_list_to_gdf, add_ruptures_to_bins,
-                          add_earthquakes_to_bins,
-                          make_earthquake_gdf_from_csv)
+from openquake.hme.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
+from openquake.hme.utils import (make_SpacemagBins_from_bin_gis_file,
+                                 rupture_dict_from_logic_tree_dict,
+                                 rupture_list_to_gdf, add_ruptures_to_bins,
+                                 add_earthquakes_to_bins,
+                                 make_earthquake_gdf_from_csv)
 
-from hztest.model_test_frameworks.gem.gem_tests import gem_test_dict
-from hztest.model_test_frameworks.relm.relm_tests import relm_test_dict
+from openquake.hme.model_test_frameworks.gem.gem_tests import gem_test_dict
+from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict
 
 Openable = Union[str, bytes, int, 'os.PathLike[Any]']
 
@@ -44,7 +44,7 @@ def read_yaml_config(yaml_config: Openable) -> dict:
 
 
 def update_defaults(cfg: dict):
-    # need to update hztest defaults with values from the cfg,
+    # need to update openquake.hme defaults with values from the cfg,
     # or just add the necessary stuff to cfg
     raise NotImplementedError
 
@@ -86,9 +86,9 @@ def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
 
 def make_bin_gdf(cfg: dict) -> GeoDataFrame:
     """
-    Makes a GeoDataFrame of :class:`~hztest.utils.bins.SpacemagBin`s by passing
+    Makes a GeoDataFrame of :class:`~openquake.hme.utils.bins.SpacemagBin`s by passing
     the required parameters from the configuration dictionary to the
-    :func:`~hztest.utils.make_SpacemagBins_from_bin_gis_file` function.
+    :func:`~openquake.hme.utils.make_SpacemagBins_from_bin_gis_file` function.
 
     :param cfg:
         Configuration for the test, such as that parsed from the YAML
@@ -133,7 +133,7 @@ def load_ruptures_from_ssm(cfg: dict):
     logging.info('  processing logic tree')
     ssm_lt_ruptures = process_source_logic_tree(
         source_cfg['ssm_dir'], lt_file=source_cfg['ssm_lt_file'])
-    
+
     logging.info('  making dictionary of ruptures')
     rupture_dict = rupture_dict_from_logic_tree_dict(
         ssm_lt_ruptures,
@@ -142,7 +142,7 @@ def load_ruptures_from_ssm(cfg: dict):
 
     logging.info('  making geodataframe from ruptures')
     rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg['branch']])
-    
+
     return rupture_gdf
 
 
@@ -152,13 +152,13 @@ def load_inputs(cfg: dict):
 
     bin_gdf = make_bin_gdf(cfg)
     rupture_gdf = load_ruptures_from_ssm(cfg)
-    
+
     logging.info('bin_gdf shape: {}'.format(bin_gdf.shape))
-    
+
     logging.info('rupture_gdf shape: {}'.format(rupture_gdf.shape))
     logging.debug('rupture_gdf memory: {} GB'.format(
         sum(rupture_gdf.memory_usage(index=True, deep=True)) * 1e-9))
-    
+
     logging.info('adding ruptures to bins')
     add_ruptures_to_bins(rupture_gdf,
                          bin_gdf,

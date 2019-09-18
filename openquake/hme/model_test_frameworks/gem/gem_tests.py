@@ -5,9 +5,7 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-#from hztest.core.core import make_bin_gdf
-
-from hztest.utils import get_source_bins
+from openquake.hme.utils import get_source_bins
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import get_stochastic_mfd, get_stochastic_mfds_parallel
 from .gem_stats import calc_mfd_log_likelihood_independent

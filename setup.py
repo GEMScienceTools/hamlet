@@ -12,13 +12,13 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'hztest'
-DESCRIPTION = 'probabilistic seismic hazard model testing'
+NAME = 'openquake.hme'
+DESCRIPTION = 'Hamlet: Hazard model evaluation and testing'
 URL = 'https://github.com/cossatot/hz_testing'
 EMAIL = 'richard.h.styron@gmail.com'
 AUTHOR = 'Richard Styron, GEM Foundation'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.0.2'
+VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
@@ -110,7 +110,7 @@ setup(
     # py_modules=['mypackage'],
 
      entry_points={
-         'console_scripts': ['hztest=hztest.bin.hazard_model_test:main'],
+         'console_scripts': ['hamlet=openquake.hme.bin.hazard_model_test:main'],
      },
     install_requires=REQUIRED,
     extras_require=EXTRAS,
@@ -122,7 +122,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy'
     ],

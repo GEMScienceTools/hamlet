@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from hztest.core.core import run_tests, read_yaml_config
+from openquake.hme.core.core import run_tests, read_yaml_config
 
 logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
                     level=logging.INFO,
@@ -13,7 +13,6 @@ def main(arg=None):
         yaml_file = sys.argv[1]
     cfg = read_yaml_config(yaml_file)
     run_tests(cfg)
-
 
 
 if __name__ == '__main__':

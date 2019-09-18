@@ -1,6 +1,6 @@
 import logging
 
-from hztest.utils.bins import SpacemagBin
+from openquake.hme.utils.bins import SpacemagBin
 
 
 def _get_mfd_max_mag(mfd: dict) -> float:

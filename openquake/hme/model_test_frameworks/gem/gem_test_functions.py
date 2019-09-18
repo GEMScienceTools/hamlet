@@ -3,7 +3,7 @@ from typing import Sequence, Dict, List
 import numpy as np
 from geopandas import GeoSeries
 
-from hztest.utils import SpacemagBin, parallelize, mag_to_mo
+from openquake.hme.utils import SpacemagBin, parallelize, mag_to_mo
 
 
 def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:

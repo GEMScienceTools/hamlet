@@ -3,8 +3,8 @@ from typing import Union, Dict
 import numpy as np
 from culpable.stats import pdf_from_samples
 
-from hztest.utils.stats import poisson_likelihood
-from hztest.utils import SpacemagBin
+from openquake.hme.utils.stats import poisson_likelihood
+from openquake.hme.utils import SpacemagBin
 
 from .gem_test_functions import get_stochastic_moment_set, get_moment_from_mfd
 
