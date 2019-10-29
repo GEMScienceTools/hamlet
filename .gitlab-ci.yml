@@ -15,8 +15,8 @@ stages:
   - test
 
 before_script:
-  - apt-get install libspatialindex5
-  - ls
+  - cat /etc/*-release
+  - apt-get install libspatialindex-dev
   - python3 -V  # Print out python version for debugging
   - git clone --depth=1 https://github.com/gem/oq-engine.git 
   - pip install -r oq-engine/requirements-py37-linux64.txt
