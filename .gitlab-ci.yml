@@ -18,7 +18,7 @@ before_script:
   - ls
   - python3 -V  # Print out python version for debugging
   - git clone --depth=1 https://github.com/gem/oq-engine.git 
-  - pip install -r oq-engine/requirements-py36-linux64.txt
+  - pip install -r oq-engine/requirements-py37-linux64.txt
   - pip install -e oq-engine
   - pip install -r requirements.txt
   - pip install -e .
@@ -35,7 +35,7 @@ pages:
   script:
     - pip install sphinx
     - pip install recommonmark
-    - cd docs ; sphinx-apidoc -o source/ ../openquake/hme/ ; make html
+    - cd docs ; sphinx-apidoc -o source/ ../openquake/ ; make html
     - mv build/html/ ../public/
 
   artifacts:
