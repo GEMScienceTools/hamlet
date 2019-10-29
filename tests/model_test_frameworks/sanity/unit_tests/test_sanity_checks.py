@@ -38,3 +38,4 @@ def test_get_mfd_max_mag():
 
     assert _get_mfd_max_mag(d_rates) == 6.2
     assert _get_mfd_max_mag(d_no_rates) == 0.
+

@@ -29,4 +29,4 @@ def check_bin_max(sbin: SpacemagBin) -> bool:
     obs_eq_max = _get_max_obs_eq_mag(sbin)
     rupture_max = _get_max_rupture_mag(sbin)
 
-    return obs_eq_max < rupture_max
+    return obs_eq_max <= rupture_max
