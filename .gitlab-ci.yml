@@ -15,7 +15,7 @@ stages:
   - test
 
 before_script:
-  - sudo apt install libspatialindex
+  - apt-get install libspatialindex
   - ls
   - python3 -V  # Print out python version for debugging
   - git clone --depth=1 https://github.com/gem/oq-engine.git 
