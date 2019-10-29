@@ -1,20 +1,20 @@
-hztest.model\_test\_frameworks.sanity package
+openquake.hme.model\_test\_frameworks.sanity package
 =============================================
 
 Submodules
 ----------
 
-hztest.model\_test\_frameworks.sanity.sanity\_checks module
+openquake.hme.model\_test\_frameworks.sanity.sanity\_checks module
 -----------------------------------------------------------
 
-.. automodule:: hztest.model_test_frameworks.sanity.sanity_checks
+.. automodule:: openquake.hme.model_test_frameworks.sanity.sanity_checks
    :members:
    :undoc-members:
    :show-inheritance:
-hztest.model\_test\_frameworks.sanity.sanity\_test\_functions module
+openquake.hme.model\_test\_frameworks.sanity.sanity\_test\_functions module
 --------------------------------------------------------------------
 
-.. automodule:: hztest.model_test_frameworks.sanity.sanity_test_functions
+.. automodule:: openquake.hme.model_test_frameworks.sanity.sanity_test_functions
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ hztest.model\_test\_frameworks.sanity.sanity\_test\_functions module
 Module contents
 ---------------
 
-.. automodule:: hztest.model_test_frameworks.sanity
+.. automodule:: openquake.hme.model_test_frameworks.sanity
    :members:
    :undoc-members:
    :show-inheritance:

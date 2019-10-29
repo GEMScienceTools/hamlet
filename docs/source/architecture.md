@@ -1,11 +1,11 @@
 # hztest Architecture and Testing Workflow
 
 
-Currently, `hztest` performs spatial-temporal hazard model checks and
+Currently, `Hamlet` performs spatial-temporal hazard model checks and
 statistical evaluation of model consistency and performance against an observed
 earthquake catalog.
 
-`hztest` follows this work process:
+`Hamlet` follows this work process:
 1. Read in YAML configuration file, that specifies:
    - Which tests to be run
      - What parameters for each test

@@ -1,7 +1,7 @@
-hztest
-======
+openquake.hme
+=============
 
 .. toctree::
    :maxdepth: 4
 
-   hztest
+   openquake.hme

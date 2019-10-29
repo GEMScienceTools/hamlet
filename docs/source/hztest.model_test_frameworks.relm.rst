@@ -1,13 +1,13 @@
-hztest.model\_test\_frameworks.relm package
+openquake.hme.model\_test\_frameworks.relm package
 ===========================================
 
 Submodules
 ----------
 
-hztest.model\_test\_frameworks.relm.relm module
+openquake.hme.model\_test\_frameworks.relm.relm module
 -----------------------------------------------
 
-.. automodule:: hztest.model_test_frameworks.relm.relm
+.. automodule:: openquake.hme.model_test_frameworks.relm.relm
    :members:
    :undoc-members:
    :show-inheritance:
@@ -16,7 +16,7 @@ hztest.model\_test\_frameworks.relm.relm module
 Module contents
 ---------------
 
-.. automodule:: hztest.model_test_frameworks.relm
+.. automodule:: openquake.hme.model_test_frameworks.relm
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,34 +1,34 @@
-hztest.utils package
+openquake.hme.utils package
 ====================
 
 Submodules
 ----------
 
-hztest.utils.io module
+openquake.hme.utils.io module
 ----------------------
 
-.. automodule:: hztest.utils.io
+.. automodule:: openquake.hme.utils.io
    :members:
    :undoc-members:
    :show-inheritance:
-hztest.utils.model module
+openquake.hme.utils.model module
 -------------------------
 
-.. automodule:: hztest.utils.model
+.. automodule:: openquake.hme.utils.model
    :members:
    :undoc-members:
    :show-inheritance:
-hztest.utils.stats module
+openquake.hme.utils.stats module
 -------------------------
 
-.. automodule:: hztest.utils.stats
+.. automodule:: openquake.hme.utils.stats
    :members:
    :undoc-members:
    :show-inheritance:
-hztest.utils.utils module
+openquake.hme.utils.utils module
 -------------------------
 
-.. automodule:: hztest.utils.utils
+.. automodule:: openquake.hme.utils.utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,7 +37,7 @@ hztest.utils.utils module
 Module contents
 ---------------
 
-.. automodule:: hztest.utils
+.. automodule:: openquake.hme.utils
    :members:
    :undoc-members:
    :show-inheritance:

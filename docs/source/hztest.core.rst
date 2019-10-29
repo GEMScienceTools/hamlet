@@ -1,13 +1,13 @@
-hztest.core package
-===================
+openquake.hme.core package
+==========================
 
 Submodules
 ----------
 
-hztest.core.core module
------------------------
+openquake.hme.core.core module
+------------------------------
 
-.. automodule:: hztest.core.core
+.. automodule:: openquake.hme.core.core
    :members:
    :undoc-members:
    :show-inheritance:
@@ -16,7 +16,7 @@ hztest.core.core module
 Module contents
 ---------------
 
-.. automodule:: hztest.core
+.. automodule:: openquake.hme.core
    :members:
    :undoc-members:
    :show-inheritance:

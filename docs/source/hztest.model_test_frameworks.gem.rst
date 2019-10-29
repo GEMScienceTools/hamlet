@@ -1,20 +1,20 @@
-hztest.model\_test\_frameworks.gem package
-==========================================
+openquake.hme.model\_test\_frameworks.gem package
+=================================================
 
 Submodules
 ----------
 
-hztest.model\_test\_frameworks.gem.gem\_test module
+openquake.hme.model\_test\_frameworks.gem.gem\_test module
 ---------------------------------------------------
 
-.. automodule:: hztest.model_test_frameworks.gem.gem_test
+.. automodule:: openquake.hme.model_test_frameworks.gem.gem_test
    :members:
    :undoc-members:
    :show-inheritance:
-hztest.model\_test\_frameworks.gem.gem\_test\_functions module
+openquake.hme.model\_test\_frameworks.gem.gem\_test\_functions module
 --------------------------------------------------------------
 
-.. automodule:: hztest.model_test_frameworks.gem.gem_test_functions
+.. automodule:: openquake.hme.model_test_frameworks.gem.gem_test_functions
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ hztest.model\_test\_frameworks.gem.gem\_test\_functions module
 Module contents
 ---------------
 
-.. automodule:: hztest.model_test_frameworks.gem
+.. automodule:: openquake.hme.model_test_frameworks.gem
    :members:
    :undoc-members:
    :show-inheritance:

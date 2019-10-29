@@ -1,4 +1,4 @@
-hztest package
+openquake.hme package
 ==============
 
 Subpackages
@@ -6,12 +6,12 @@ Subpackages
 
 .. toctree::
 
-   hztest.utils
+   openquake.hme.utils
 
 Module contents
 ---------------
 
-.. automodule:: hztest
+.. automodule:: openquake.hme
    :members:
    :undoc-members:
    :show-inheritance:
