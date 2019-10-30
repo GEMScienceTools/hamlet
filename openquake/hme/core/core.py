@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Union, Optional
 
 import yaml
 import numpy as np
@@ -12,6 +12,7 @@ from openquake.hme.utils import (make_SpacemagBins_from_bin_gis_file,
                                  rupture_list_to_gdf, add_ruptures_to_bins,
                                  add_earthquakes_to_bins,
                                  make_earthquake_gdf_from_csv)
+from openquake.hme.utils.reporting import generate_basic_report
 
 from openquake.hme.model_test_frameworks.gem.gem_tests import gem_test_dict
 from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict
@@ -175,7 +176,7 @@ running tests
 """
 
 
-def run_tests(cfg):
+def run_tests(cfg: dict):
 
     try:
         np.random.seed(cfg['config']['rand_seed'])
@@ -186,10 +187,21 @@ def run_tests(cfg):
 
     bin_gdf, eq_gdf = load_inputs(cfg)
 
-    for test in tests:
-        test(cfg, bin_gdf=bin_gdf, obs_seis_catalog=eq_gdf)
+    results = {}
+    # make dict w/ test fn as key, name as val to fill results while testing
+    tds = test_dict['model_framework'][cfg['config']['model_framework']]
+    test_inv = {fn: name for name, fn in tds.items() if fn in tests}
 
-    write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
+    for test in tests:
+        results[test_inv[test]] = {
+            'val': test(cfg, bin_gdf=bin_gdf, obs_seis_catalog=eq_gdf)
+        }
+
+    if 'output' in cfg.keys():
+        write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
+
+    if 'report' in cfg.keys():
+        write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
 
 
 """
@@ -197,7 +209,7 @@ output processing
 """
 
 
-def write_outputs(cfg, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
+def write_outputs(cfg: dict, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
 
     logging.info('writing outputs')
 
@@ -210,3 +222,13 @@ def write_outputs(cfg, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
             cfg['output']['bin_gdf']['file'],
             driver='GeoJSON',
         )
+
+
+def write_reports(cfg: dict,
+                  results: dict,
+                  bin_gdf: Optional[GeoDataFrame] = None,
+                  eq_gdf: Optional[GeoDataFrame] = None):
+    logging.info('writing reports')
+
+    if 'basic' in cfg['report'].keys():
+        generate_basic_report(cfg, results)

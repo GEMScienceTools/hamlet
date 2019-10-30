@@ -45,6 +45,7 @@ def plot_mfd(model: Optional[dict] = None,
         return fig
 
     elif return_string is True:
+        plt.switch_backend('svg')
         fig_str = io.StringIO()
         fig.savefig(fig_str, format='svg')
         plt.close(fig)

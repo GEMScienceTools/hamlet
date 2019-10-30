@@ -151,6 +151,7 @@ def model_mfd_test(cfg,
 
     mfd_df.index.name = 'bin'
 
+    # refactor below -- this shouldn't be in test_config
     if 'out_csv' in test_config.keys():
         mfd_df.to_csv(test_config['out_csv'])
 
@@ -158,6 +159,12 @@ def model_mfd_test(cfg,
         plot_mfd(model=mfd_df['mod_mfd_cum'].to_dict(),
                  observed=mfd_df['obs_mfd_cum'].to_dict(),
                  save_fig=test_config['out_plot'])
+
+    if 'report' in cfg.keys():
+        return plot_mfd(model=mfd_df['mod_mfd_cum'].to_dict(),
+                        observed=mfd_df['obs_mfd_cum'].to_dict(),
+                        return_fig=False,
+                        return_string=True)
 
 
 def max_mag_check(cfg,

@@ -1,11 +1,15 @@
+meta:
+    model_name: GEM SM1
+    description: "A small test suite containing one fault"
+
 config:
     model_framework: gem
     tests:
         likelihood:
-          likelihood_method: poisson
-          investigation_time: 40.
-          default_likelihood: 1.
-          not_modeled_val: 0.00001
+            likelihood_method: poisson
+            investigation_time: 40.
+            default_likelihood: 1.
+            not_modeled_val: 0.00001
         model_mfd:
             out_csv: ./sm1_mfds.csv
             out_plot: ./sm1_poiss_mfds.svg
@@ -28,8 +32,8 @@ input:
         branch: b1
         source_types:
             - simple_fault
-    
-    seis_catalog: 
+
+    seis_catalog:
         seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
         columns:
             time:
@@ -42,15 +46,17 @@ input:
             source: Agency
             event_id: eventID
 
-output:
-    bin_gdf:
-        file: ./gem_sm1_poisson_likelihood_bins.geojson
-    plots: 
-        kwargs:
-            model: True
-            observed: True
-            observed_time: 40.
-            return_fig: False
-            return_string: True
+#output:
+#    bin_gdf:
+#        file: ./gem_sm1_poisson_likelihood_bins.geojson
+#    plots:
+#        kwargs:
+#            model: True
+#            observed: True
+#            observed_time: 40.
+#            return_fig: False
+#            return_string: True
 
-
+report:
+    basic:
+        outfile: sm1_poisson_report.html

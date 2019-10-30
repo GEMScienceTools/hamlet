@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>{{ cfg.meta.model_name }} Hamlet Evaluation</title>
+</head>
+
+<body>
+  <h1>{{ cfg.meta.model_name }} Hamlet Evaluation</h1>
+  <h2>Model Info</h2>
+  {% if cfg.meta.description is defined %}
+  <h3>Description</h3>
+  <p>{{ cfg.meta.description }}</p>
+  {% endif %}
+
+  <h2>Evaluation info</h2>
+  <p>Branch analyzed: {{ cfg.input.ssm.branch }}</p>
+
+  <h2>Results</h2>
+  {% for test, result in results.items() %}
+  {{ result.rendered_text }}
+  {% endfor %}
+
+</body>
+
+</html>
