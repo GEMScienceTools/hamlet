@@ -7,7 +7,8 @@ config:
           default_likelihood: 1.
           not_modeled_val: 0.00001
         model_mfd:
-            outfile: ./sm1_mfds.csv
+            out_csv: ./sm1_mfds.csv
+            out_plot: ./sm1_poiss_mfds.svg
             investigation_time: 40.
         max_mag_check:
             append_check: True

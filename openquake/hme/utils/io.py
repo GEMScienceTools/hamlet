@@ -14,6 +14,7 @@ from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
 
 from .bins import SpacemagBin
 from .model import read
+from .plots import plot_mfd
 
 
 def sort_sources(brd):
@@ -126,41 +127,26 @@ def make_mfd_plot(sbin: SpacemagBin,
     :param save_fig:
         Either the filename to save to, or 
     """
-
-    fig = plt.figure(figsize=(5, 4))
-    ax = fig.add_subplot(111, yscale='log')
-    plt.title('Magnitude-Frequency Distribution')
-
     if model is True:
         mod_mfd = sbin.get_rupture_mfd(cumulative=True)
-        ax.plot(list(mod_mfd.keys()),
-                list(mod_mfd.values()),
-                model_format,
-                label=model_label)
+    else:
+        mod_mfd = None
 
     if observed is True:
         obs_mfd = sbin.get_empirical_mfd(cumulative=True, t_yrs=observed_time)
-        ax.plot(list(obs_mfd.keys()),
-                list(obs_mfd.values()),
-                observed_format,
-                label=observed_label)
+    else:
+        obs_mfd = None
 
-    ax.legend(loc='upper right')
-    ax.set_ylabel('Annual frequency of exceedance')
-    ax.set_xlabel('Magnitude')
-
-    if save_fig is not False:
-        fig.savefig(save_fig)
-
-    if return_fig is True:
-        return fig
-
-    elif return_string is True:
-        fig_str = io.StringIO()
-        fig.savefig(fig_str, format='svg')
-        plt.close(fig)
-        fig_svg = '<svg' + fig_str.getvalue().split('<svg')[1]
-        return fig_svg
+    return plot_mfd(model=mod_mfd,
+                    model_format=model_format,
+                    model_label=model_label,
+                    observed=obs_mfd,
+                    observed_format=observed_format,
+                    observed_label=observed_label,
+                    return_fig=return_fig,
+                    return_string=return_string,
+                    save_fig=save_fig,
+                    **kwargs)
 
 
 def write_mfd_plots_to_gdf(bin_gdf: GeoDataFrame, **kwargs):

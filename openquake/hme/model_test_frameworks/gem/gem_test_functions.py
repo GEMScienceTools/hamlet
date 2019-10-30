@@ -98,12 +98,12 @@ def get_stochastic_mfd(spacemag_bin: SpacemagBin, n_iters: int,
     return mfd_freq_counts
 
 
-def _source_bin_mfd_apply(GeoSeries, **kwargs):
-    return GeoSeries.apply(get_stochastic_mfd, **kwargs)
+def _source_bin_mfd_apply(geo_series: GeoSeries, **kwargs):
+    return geo_series.apply(get_stochastic_mfd, **kwargs)
 
 
-def get_stochastic_mfds_parallel(GeoSeries, **kwargs):
-    return parallelize(GeoSeries, _source_bin_mfd_apply, **kwargs)
+def get_stochastic_mfds_parallel(geo_series: GeoSeries, **kwargs):
+    return parallelize(geo_series, _source_bin_mfd_apply, **kwargs)
 
 
 def get_stochastic_moment_set(spacemag_bin: SpacemagBin,

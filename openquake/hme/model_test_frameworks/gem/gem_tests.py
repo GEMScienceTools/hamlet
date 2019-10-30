@@ -6,8 +6,10 @@ import pandas as pd
 from geopandas import GeoDataFrame
 
 from openquake.hme.utils import get_source_bins
+from openquake.hme.utils.plots import plot_mfd
 from ..sanity.sanity_checks import max_check
-from .gem_test_functions import get_stochastic_mfd, get_stochastic_mfds_parallel
+from .gem_test_functions import (get_stochastic_mfd,
+                                 get_stochastic_mfds_parallel)
 from .gem_stats import calc_mfd_log_likelihood_independent
 
 
@@ -149,7 +151,13 @@ def model_mfd_test(cfg,
 
     mfd_df.index.name = 'bin'
 
-    mfd_df.to_csv(test_config['outfile'])
+    if 'out_csv' in test_config.keys():
+        mfd_df.to_csv(test_config['out_csv'])
+
+    if 'out_plot' in test_config.keys():
+        plot_mfd(model=mfd_df['mod_mfd_cum'].to_dict(),
+                 observed=mfd_df['obs_mfd_cum'].to_dict(),
+                 save_fig=test_config['out_plot'])
 
 
 def max_mag_check(cfg,
