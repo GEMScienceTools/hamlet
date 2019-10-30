@@ -1,6 +1,6 @@
 import os
 import io
-from typing import Optional, Union
+from typing import Union
 
 import matplotlib.pyplot as plt
 from geopandas import GeoDataFrame
@@ -13,7 +13,7 @@ from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
                                         SimpleFaultSource)
 
 from .bins import SpacemagBin
-from .model import read, _get_source_model
+from .model import read
 
 
 def sort_sources(brd):
@@ -76,7 +76,6 @@ def sort_sources(brd):
                         elif isinstance(s, NonParametricSeismicSource):
                             sorted_sources[k]['nonpar'].append(s)
                 elif source is None:
-                    #print(k, i, j, source)
                     sorted_sources[k]['none'].append(source)
                 else:
                     print(type(source))
@@ -85,8 +84,6 @@ def sort_sources(brd):
 
 
 def read_branch_sources(base_dir, lt_file='ssmLT.xml'):
-    #base_dir ='../../../hazard_models/mosaic/{}/in/'.format(acr)
-
     lt = SourceModelLogicTree(os.path.join(base_dir, lt_file), validate=False)
 
     d = {}
@@ -130,7 +127,7 @@ def make_mfd_plot(sbin: SpacemagBin,
         Either the filename to save to, or 
     """
 
-    fig = plt.figure(figsize=(5,4))
+    fig = plt.figure(figsize=(5, 4))
     ax = fig.add_subplot(111, yscale='log')
     plt.title('Magnitude-Frequency Distribution')
 
@@ -162,7 +159,6 @@ def make_mfd_plot(sbin: SpacemagBin,
         fig_str = io.StringIO()
         fig.savefig(fig_str, format='svg')
         plt.close(fig)
-        #fig_svg = fig_str.getvalue()
         fig_svg = '<svg' + fig_str.getvalue().split('<svg')[1]
         return fig_svg
 

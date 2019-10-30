@@ -1,7 +1,3 @@
-import os
-import gc
-import sys
-import time
 import logging
 from typing import Union
 
@@ -9,7 +5,8 @@ import yaml
 import numpy as np
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
+from openquake.hme.utils.io import (process_source_logic_tree,
+                                    write_mfd_plots_to_gdf)
 from openquake.hme.utils import (make_SpacemagBins_from_bin_gis_file,
                                  rupture_dict_from_logic_tree_dict,
                                  rupture_list_to_gdf, add_ruptures_to_bins,
@@ -86,16 +83,14 @@ def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
 
 def make_bin_gdf(cfg: dict) -> GeoDataFrame:
     """
-    Makes a GeoDataFrame of :class:`~openquake.hme.utils.bins.SpacemagBin`s by passing
-    the required parameters from the configuration dictionary to the
+    Makes a GeoDataFrame of :class:`~openquake.hme.utils.bins.SpacemagBin`s by
+    passing the required parameters from the configuration dictionary to the
     :func:`~openquake.hme.utils.make_SpacemagBins_from_bin_gis_file` function.
 
-    :param cfg:
-        Configuration for the test, such as that parsed from the YAML
+    :param cfg: Configuration for the test, such as that parsed from the YAML
         config file when running model tests.
 
-    :returns:
-        A GeoDataFrame of the SpacemagBins.
+    :returns: A GeoDataFrame of the SpacemagBins.
     """
 
     logging.info('making bin GDF from GIS file')
@@ -211,7 +206,7 @@ def write_outputs(cfg, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
 
     if 'bin_gdf' in cfg['output'].keys():
         bin_gdf['bin_index'] = bin_gdf.index
-        bin_gdf.drop('SpacemagBin',
-                     axis=1).to_file(cfg['output']['bin_gdf']['file'],
-                                     driver='GeoJSON',
-                                     )
+        bin_gdf.drop('SpacemagBin', axis=1).to_file(
+            cfg['output']['bin_gdf']['file'],
+            driver='GeoJSON',
+        )

@@ -1,3 +1,5 @@
 Rtree
 geopandas
 -e git+https://github.com/cossatot/culpable.git#egg=culpable
+pytest
+sphinx
