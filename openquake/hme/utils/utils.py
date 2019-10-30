@@ -2,9 +2,9 @@ import os
 import json
 import logging
 import datetime
-from functools import partial, singledispatch
+from functools import partial
 from multiprocessing import Pool
-from typing import Sequence, Dict, List, Optional, Union, Tuple
+from typing import Sequence, List, Optional, Union, Tuple
 
 import attr
 import dateutil
@@ -16,7 +16,7 @@ from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture, ParametricProbabilisticRupture)
 
 from .simple_rupture import SimpleRupture
-from .bins import MagBin, SpacemagBin
+from .bins import SpacemagBin
 from .stats import sample_event_times_in_interval
 
 _n_procs = max(1, os.cpu_count() - 1)
@@ -212,8 +212,6 @@ def rupture_list_from_lt_branch_parallel(
     logging.info('    chunking sources')
     source_chunks = _chunk_source_list(source_list, n_procs)
 
-    #logging.info('    processing {} sources'.format(source_type))
-    #source_chunks = _chunk_source_list(sources, n_chunks=n_procs)
     with Pool(n_procs) as pool:
         rups = pool.imap(
             partial(_process_source_chunk, simple_ruptures=simple_ruptures),
@@ -464,7 +462,7 @@ def make_earthquake_gdf_from_csv(
     eq_gdf = gpd.GeoDataFrame(df)
     eq_gdf.crs = {'init': 'epsg:{}'.format(epsg)}
 
-    if epsg is not 4326:
+    if epsg != 4326:
         eq_gdf = eq_gdf.to_crs(epsg=4326)
 
     eq_gdf['longitude'] = [
@@ -688,7 +686,7 @@ def sample_earthquakes(rupture: Union[ParametricProbabilisticRupture,
                                                  rand_seed)
     try:
         source = rupture.source
-    except:
+    except AttributeError:
         source = None
 
     eqs = [
