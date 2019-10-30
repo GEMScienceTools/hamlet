@@ -327,6 +327,7 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
 
         if n_procs == 1:
             _ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
+            return
         else:
             bin_idx_splits = np.array_split(bin_gdf.index, n_procs * 10)
             bin_groups = (bin_gdf.loc[bi, 'SpacemagBin']
