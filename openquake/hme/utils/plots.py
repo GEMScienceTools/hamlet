@@ -78,7 +78,8 @@ def plot_likelihood_map(bin_gdf: GeoDataFrame,
                    eq_gdf.latitude,
                    s=(eq_gdf.magnitude**3) / 10.,
                    edgecolor='blue',
-                   facecolors='none')
+                   facecolors='none',
+                   alpha=0.3)
 
     ax.set_xlim(x_lims)
     ax.set_ylim(y_lims)
