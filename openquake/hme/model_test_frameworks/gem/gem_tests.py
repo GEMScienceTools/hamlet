@@ -35,12 +35,13 @@ def mfd_likelihood_test(cfg,
     logging.info('Running GEM MFD Likelihood Test')
     if cfg['config']['tests']['likelihood'][
             'likelihood_method'] == 'empirical':
-        return mfd_empirical_likelihood_test(cfg, bin_gdf, obs_seis_catalog,
-                                             validate)
+        mfd_empirical_likelihood_test(cfg, bin_gdf, obs_seis_catalog, validate)
     elif cfg['config']['tests']['likelihood'][
             'likelihood_method'] == 'poisson':
-        return mfd_poisson_likelihood_test(cfg, bin_gdf, obs_seis_catalog,
-                                           validate)
+        mfd_poisson_likelihood_test(cfg, bin_gdf, obs_seis_catalog, validate)
+
+    if 'report' in cfg.keys():
+        return bin_gdf.log_like.describe().to_frame().to_html()
 
 
 def mfd_empirical_likelihood_test(

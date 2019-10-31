@@ -231,4 +231,4 @@ def write_reports(cfg: dict,
     logging.info('writing reports')
 
     if 'basic' in cfg['report'].keys():
-        generate_basic_report(cfg, results)
+        generate_basic_report(cfg, results, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
