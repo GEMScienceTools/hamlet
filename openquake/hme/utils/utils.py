@@ -53,12 +53,13 @@ def rupture_dict_from_logic_tree_dict(
         parallel: bool = True,
         n_procs: Optional[int] = None) -> dict:
     """
-    Creates a dictionary of ruptures from a dictionary representation of a logic
-    tree (as produced by :func:`~hztest.utils.io.process_source_logic_tree`).
-    Each branch in the logic tree dict is a value (with the branch name as a
-    key) and this structure is retained in the resulting rupture dict. However
-    all of the ruptures from each source within a branch will be flattened to a
-    single list.
+    Creates a dictionary of ruptures from a dictionary representation of a 
+    logic tree (as produced by
+    :func:`~hztest.utils.io.process_source_logic_tree`). Each branch in the
+    logic tree dict is a value (with the branch name as a key) and this
+    structure is retained in the resulting rupture dict. However all of the
+    ruptures from each source within a branch will be flattened to a single
+    list.
 
     Use the `source_types` argument to specify which types of sources should be
     used to collect ruptures.
