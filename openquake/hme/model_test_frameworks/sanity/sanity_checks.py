@@ -13,7 +13,7 @@ def min_max_check():
 
 def max_check(bin_gdf: GeoDataFrame,
               append_check: bool = False,
-              warn: bool = False) -> None:
+              warn: bool = False) -> list:
 
     max_check_col: GeoSeries = bin_gdf.SpacemagBin.apply(check_bin_max)
 
@@ -24,6 +24,8 @@ def max_check(bin_gdf: GeoDataFrame,
 
     if append_check is True:
         bin_gdf['max_check'] = max_check_col
+
+    return bin_gdf[~max_check_col].index.to_list()
 
 
 def min_check():

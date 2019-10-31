@@ -41,7 +41,7 @@ def render_result_text(env: Environment,
                        cfg: dict,
                        results: dict,
                        bin_gdf: Optional[GeoDataFrame] = None,
-                       eq_gdf: Optional[GeoDataFrame] = None):
+                       eq_gdf: Optional[GeoDataFrame] = None) -> None:
 
     if 'model_mfd' in results.keys():
         render_mfd(env=env, cfg=cfg, results=results)
@@ -52,6 +52,9 @@ def render_result_text(env: Environment,
                           results=results,
                           bin_gdf=bin_gdf,
                           eq_gdf=eq_gdf)
+
+    if 'max_mag_check' in results.keys():
+        render_max_mag(env=env, cfg=cfg, results=results)
 
 
 def render_mfd(env: Environment, cfg: dict, results: dict):
@@ -64,7 +67,7 @@ def render_likelihood(env: Environment,
                       cfg: dict,
                       results: dict,
                       bin_gdf: GeoDataFrame,
-                      eq_gdf: Optional[GeoDataFrame] = None):
+                      eq_gdf: Optional[GeoDataFrame] = None) -> None:
 
     total_log_like = np.sum(bin_gdf['log_like']) / bin_gdf.shape[0]
     total_log_like = "{0:2f}".format(total_log_like)
@@ -78,3 +81,18 @@ def render_likelihood(env: Environment,
         results=results,
         total_log_like=total_log_like,
         likelihood_map_str=likelihood_map_str)
+
+
+def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
+
+    if results['max_mag_check']['val'] == []:
+        max_mag_results = (
+            'PASS: All bins produce seismicity greater than observed.')
+    else:
+        max_mag_results = (
+            "Bins {} have higher observed seismicity than they can produce.".
+            format(results['max_mag_check']['val']))
+
+    max_mag_template = env.get_template('max_mag_check.html')
+    results['max_mag_check']['rendered_text'] = max_mag_template.render(
+        max_mag_results=max_mag_results)

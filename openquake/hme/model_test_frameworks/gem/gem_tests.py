@@ -168,7 +168,7 @@ def model_mfd_test(cfg,
                         return_string=True)
 
 
-def max_mag_check(cfg,
+def max_mag_check(cfg: dict,
                   bin_gdf: Optional[GeoDataFrame] = None,
                   obs_seis_catalog: Optional[GeoDataFrame] = None):
 
@@ -176,9 +176,10 @@ def max_mag_check(cfg,
 
     test_config = cfg['config']['tests']['max_mag_check']
 
-    max_check(bin_gdf,
-              append_check=test_config['append_check'],
-              warn=test_config['warn'])
+    bad_bins = max_check(bin_gdf, append_check=True, warn=test_config['warn'])
+
+    if 'report' in cfg.keys():
+        return bad_bins
 
 
 gem_test_dict = {
