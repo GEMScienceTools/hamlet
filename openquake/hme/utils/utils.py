@@ -201,7 +201,6 @@ def rupture_list_from_lt_branch_parallel(
     if n_procs is None:
         n_procs = _n_procs
 
-    #rupture_list = []
     source_list = []
 
     logging.info('    combining sources')
@@ -243,12 +242,19 @@ def _chunk_source_list(sources: list, n_chunks: int = _n_procs) -> list:
         source_chunks[min_bin].append(source)
         chunk_sums[min_bin] += source_counts[i]
 
-    logging.info('chunk_sums:\n{}'.format(str(chunk_sums)))
+    logging.info('     chunk_sums:\n{}'.format(str(chunk_sums)))
 
     return source_chunks
 
 
-def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
+def _add_rupture_geom(df):
+    return df.apply(lambda z: Point(z.rupture.hypocenter.longitude, z.rupture.
+                                    hypocenter.latitude),
+                    axis=1)
+
+
+def rupture_list_to_gdf(rupture_list: list,
+                        parallel: bool = True) -> gpd.GeoDataFrame:
     """
     Creates a GeoPandas GeoDataFrame from a rupture list.
 
@@ -265,9 +271,11 @@ def rupture_list_to_gdf(rupture_list: list) -> gpd.GeoDataFrame:
                       data=rupture_list,
                       columns=['rupture'])
 
-    df['geometry'] = df.apply(lambda z: Point(z.rupture.hypocenter.longitude, z
-                                              .rupture.hypocenter.latitude),
-                              axis=1)
+    if parallel is True and _n_procs > 1:
+        df['geometry'] = parallelize(df, _add_rupture_geom)
+    else:
+        df['geometry'] = _add_rupture_geom(df)
+
     rupture_gdf = gpd.GeoDataFrame(df)
     rupture_gdf.crs = {'init': 'epsg:4326', 'no_defs': True}
     return rupture_gdf
