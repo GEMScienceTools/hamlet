@@ -25,7 +25,7 @@ config parsing
 """
 
 
-def read_yaml_config(yaml_config: Openable) -> dict:
+def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
     """
     Reads a model test configuration file (YAML).
 
@@ -37,14 +37,41 @@ def read_yaml_config(yaml_config: Openable) -> dict:
     """
     logging.info('reading YAML configuration')
     with open(yaml_config) as config_file:
-        config = yaml.safe_load(config_file)
-    return config
+        cfg = yaml.safe_load(config_file)
+
+    if fill_fields:
+        _fill_necessary_fields(cfg)
+
+    return cfg
 
 
 def update_defaults(cfg: dict):
     # need to update openquake.hme defaults with values from the cfg,
     # or just add the necessary stuff to cfg
     raise NotImplementedError
+
+
+def _fill_necessary_fields(cfg: dict):
+    """
+    Fills the configuration dictionary with `None` types for optional
+    parameters that were not included in the YAML file.
+
+    """
+    # to fill in as necessary (oh god that comment)
+
+    necessary_fields = {
+        'input': {
+            'ssm': ['branch', 'tectonic_region_types', 'source_types']
+        }
+    }
+
+    for field, subfield in necessary_fields.items():
+        for sub_name, subsubfields in subfield.items():
+            for subsubname in subsubfields:
+                if subsubname not in cfg[field][sub_name].keys():
+                    logging.warning(
+                        f"['{field}']['{sub_name}']['{subsubname}'] filled")
+                    cfg[field][sub_name][subsubname] = None
 
 
 def get_test_list_from_config(cfg: dict) -> list:

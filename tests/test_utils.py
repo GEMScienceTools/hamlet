@@ -1,7 +1,5 @@
 import os
-
 import unittest
-#import sys; sys.path.append('../')
 
 from openquake.hazardlib.source import SimpleFaultSource
 from openquake.hazardlib.source.rupture import ParametricProbabilisticRupture
@@ -41,21 +39,8 @@ class TestPHL1(unittest.TestCase):
         #    self.test_dir + 'data/phl_eqs.csv')
 
     def test_process_source_logic_tree(self):
-        test_lt = {
-            'b1': {
-                'area': [],
-                'complex_fault': [],
-                'point': [],
-                'multipoint': [],
-                'none': [None]
-            }
-        }
 
-        for k, v in test_lt['b1'].items():
-            self.assertEqual(self.lt['b1'][k], v)
-
-        self.assertIsInstance(self.lt['b1']['simple_fault'][0],
-                              SimpleFaultSource)
+        self.assertIsInstance(self.lt['b1'][0], SimpleFaultSource)
 
     def test_rupture_dict_from_logic_dict(self):
         self.assertEqual(list(self.rup_dict.keys()), ['b1'])

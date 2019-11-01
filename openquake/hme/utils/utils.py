@@ -49,7 +49,8 @@ def flatten_list(lol: List[list]) -> list:
 def rupture_dict_from_logic_tree_dict(logic_tree_dict: dict,
                                       simple_ruptures: bool = True,
                                       parallel: bool = True,
-                                      n_procs: Optional[int] = None) -> dict:
+                                      n_procs: Optional[int] = _n_procs
+                                      ) -> dict:
     """
     Creates a dictionary of ruptures from a dictionary representation of a 
     logic tree (as produced by
@@ -161,7 +162,7 @@ def _process_source_chunk(source_chunk, simple_ruptures=True):
 
 def rupture_list_from_source_list_parallel(source_list: list,
                                            simple_ruptures: bool = True,
-                                           n_procs: Optional[int] = None
+                                           n_procs: Optional[int] = _n_procs
                                            ) -> list:
     """
     Creates a list of ruptures from all of the sources within list,
