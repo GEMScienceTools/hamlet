@@ -32,7 +32,7 @@ class TestPHL1(unittest.TestCase):
 
         self.rup_dict = hme.utils.rupture_dict_from_logic_tree_dict(self.lt)
 
-        self.rup_list = hme.utils.rupture_list_from_lt_branch(self.lt['b1'])
+        self.rup_list = hme.utils.rupture_list_from_source_list(self.lt['b1'])
 
         self.rup_gdf = hme.utils.rupture_list_to_gdf(self.rup_list)
         self.bin_df = hme.utils.make_SpacemagBins_from_bin_gis_file(
@@ -76,7 +76,7 @@ class TestPHL1(unittest.TestCase):
 
     def test_rupture_list_from_lt_branch_parallel(self):
 
-        self.rup_list_par = hme.utils.rupture_list_from_lt_branch_parallel(
+        self.rup_list_par = hme.utils.rupture_list_from_source_list_parallel(
             self.lt['b1'], n_procs=4)
 
         self.assertIsInstance(self.rup_list_par, list)

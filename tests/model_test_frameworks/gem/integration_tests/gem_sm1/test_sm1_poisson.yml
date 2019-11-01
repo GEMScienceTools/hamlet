@@ -32,8 +32,7 @@ input:
         branch: b1
         tectonic_region_types: 
             - Active Shallow Crust
-        source_types:
-            - simple_fault
+        source_types: null
 
     seis_catalog:
         seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
@@ -61,4 +60,4 @@ input:
 
 report:
     basic:
-        outfile: sm1_poisson_report.html
+        outfile: output/sm1_poisson_report.html

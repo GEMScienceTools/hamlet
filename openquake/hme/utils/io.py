@@ -44,6 +44,28 @@ def sort_sources(branch_sources: dict,
                  source_types: Optional[Sequence[str]] = None,
                  tectonic_region_types: Optional[Sequence[str]] = None,
                  branch: Optional[str] = None) -> dict:
+    """
+    Creates lists of sources for each branch of interest, optionally filtering
+    sources by `source_type` and `tectonic_region_type`.
+
+    :param source_types:
+        Types of sources to collect sources from. Any values in 
+        (`simple_fault1, `complex_fault`, `area`, `point`, `multipoint`) 
+        are allowed.  Must be passed as a sequence (i.e., a tuple or list).
+        Specify `None` if all values are to be included.
+
+    :param tectonic_region_types:
+        Types of tectonic regions to collect sources from. Any values allowed
+        in OpenQuake are allowed here. Must be passed as a sequence (i.e., a
+        tuple or list).  Specify `None` if all values are to be included.
+
+    :param branch:
+        Branch to be evaluated; other branches will be skipped if this is not
+        `None`.
+
+    :returns:
+        Dictionary with one list of sources per branch considered.
+    """
 
     branch_source_lists = {}
 
