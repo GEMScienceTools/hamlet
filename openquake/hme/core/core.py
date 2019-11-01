@@ -124,17 +124,18 @@ def load_ruptures_from_ssm(cfg: dict):
     logging.info('loading ruptures into geodataframe')
 
     source_cfg: dict = cfg['input']['ssm']
-    # make/fetch bin df?  Right now, no.
 
     logging.info('  processing logic tree')
     ssm_lt_ruptures = process_source_logic_tree(
-        source_cfg['ssm_dir'], lt_file=source_cfg['ssm_lt_file'])
+        source_cfg['ssm_dir'],
+        lt_file=source_cfg['ssm_lt_file'],
+        source_types=source_cfg['source_types'],
+        tectonic_region_types=source_cfg['tectonic_region_types'],
+        branch=source_cfg['branch'])
 
     logging.info('  making dictionary of ruptures')
     rupture_dict = rupture_dict_from_logic_tree_dict(
-        ssm_lt_ruptures,
-        source_types=source_cfg['source_types'],
-        parallel=cfg['config']['parallel'])
+        ssm_lt_ruptures, parallel=cfg['config']['parallel'])
 
     logging.info('  making geodataframe from ruptures')
     rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg['branch']])

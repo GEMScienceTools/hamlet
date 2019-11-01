@@ -1,8 +1,7 @@
 import os
-import io
-from typing import Union
+from typing import Union, Optional, Sequence
 
-import matplotlib.pyplot as plt
+import pandas as pd
 from geopandas import GeoDataFrame
 
 from openquake.commonlib.logictree import SourceModelLogicTree
@@ -17,93 +16,114 @@ from .model import read
 from .plots import plot_mfd
 
 
-def sort_sources(brd):
-    sorted_sources = {}
+def _source_to_series(source):
 
-    for k, v in brd.items():
-        sorted_sources[k] = {
-            'area': [],
-            'simple_fault': [],
-            'complex_fault': [],
-            'point': [],
-            'nonpar': [],
-            'multipoint': [],
-            'none': []
-        }
-        for i, vv in enumerate(v):
-            try:
-                vs = read(vv,
-                          get_info=False,
-                          area_source_discretization=15.,
-                          rupture_mesh_spacing=2.,
-                          complex_fault_mesh_spacing=5.)
-            except Exception as e:
-                print('error reading ', k, vv, e)
+    if isinstance(source, AreaSource):
+        source_type = 'area'
+    elif isinstance(source, (SimpleFaultSource, CharacteristicFaultSource)):
+        source_type = 'simple_fault'
+    elif isinstance(source, ComplexFaultSource):
+        source_type = 'complex_fault'
+    elif isinstance(source, PointSource):
+        source_type = 'point'
+    elif isinstance(source, MultiPointSource):
+        source_type = 'multipoint'
+    elif isinstance(source, NonParametricSeismicSource):
+        source_type = 'nonpar'
+    else:
+        return
 
-            try:
-                vs
-            except NameError:
-                break
-
-            for j, source in enumerate(vs):
-                if isinstance(source, AreaSource):
-                    sorted_sources[k]['area'].append(source)
-                elif isinstance(
-                        source,
-                    (SimpleFaultSource, CharacteristicFaultSource)):
-                    sorted_sources[k]['simple_fault'].append(source)
-                elif isinstance(source, ComplexFaultSource):
-                    sorted_sources[k]['complex_fault'].append(source)
-                elif isinstance(source, PointSource):
-                    sorted_sources[k]['point'].append(source)
-                elif isinstance(source, MultiPointSource):
-                    sorted_sources[k]['multipoint'].append(source)
-                elif isinstance(source, NonParametricSeismicSource):
-                    sorted_sources[k]['nonpar'].append(source)
-                elif isinstance(source, list):
-                    for s in source:
-                        if isinstance(s, AreaSource):
-                            sorted_sources[k]['area'].append(s)
-                        elif isinstance(
-                                s,
-                            (SimpleFaultSource, CharacteristicFaultSource)):
-                            sorted_sources[k]['simple_fault'].append(s)
-                        elif isinstance(s, ComplexFaultSource):
-                            sorted_sources[k]['complex_fault'].append(s)
-                        elif isinstance(s, PointSource):
-                            sorted_sources[k]['point'].append(s)
-                        elif isinstance(s, MultiPointSource):
-                            sorted_sources[k]['multipoint'].append(s)
-                        elif isinstance(s, NonParametricSeismicSource):
-                            sorted_sources[k]['nonpar'].append(s)
-                elif source is None:
-                    sorted_sources[k]['none'].append(source)
-                else:
-                    print(type(source))
-
-    return sorted_sources
+    return pd.Series({
+        'source': source,
+        'tectonic_region_type': source.tectonic_region_type,
+        'source_type': source_type
+    })
 
 
-def read_branch_sources(base_dir, lt_file='ssmLT.xml'):
+def sort_sources(branch_sources: dict,
+                 source_types: Optional[Sequence[str]] = None,
+                 tectonic_region_types: Optional[Sequence[str]] = None,
+                 branch: Optional[str] = None) -> dict:
+
+    branch_source_lists = {}
+
+    for branch_name, source_file_list in branch_sources.items():
+        if branch_name == branch or branch is None:
+
+            source_list = []
+
+            for i, source_file in enumerate(source_file_list):
+                try:
+                    sources_from_file = read(source_file,
+                                             get_info=False,
+                                             area_source_discretization=15.,
+                                             rupture_mesh_spacing=2.,
+                                             complex_fault_mesh_spacing=5.)
+                except Exception as e:
+                    print('error reading ', branch, source_file, e)
+
+                try:
+                    sources_from_file
+                except NameError:
+                    break
+
+                for j, source in enumerate(sources_from_file):
+                    if isinstance(source, list):
+                        source_list.append(
+                            *[_source_to_series(s) for s in source])
+                    elif source is None:
+                        pass
+                    else:
+                        source_list.append(_source_to_series(source))
+
+            if len(source_list) == 1:
+                source_df = source_list[0].to_frame().transpose()
+            else:
+                source_df = pd.concat(source_list)
+
+            if source_types is not None:
+                source_df = source_df[source_df.source_type.isin(source_types)]
+            if tectonic_region_types is not None:
+                source_df = source_df[source_df.tectonic_region_type.isin(
+                    tectonic_region_types)]
+
+            branch_source_lists[branch_name] = source_df['source'].to_list()
+
+    return branch_source_lists
+
+
+def read_branch_sources(base_dir,
+                        lt_file='ssmLT.xml',
+                        branch: Optional[str] = None):
     lt = SourceModelLogicTree(os.path.join(base_dir, lt_file), validate=False)
 
     d = {}
-    for k, v in lt.branches.items():
-        try:
-            d[k] = [base_dir + val for val in v.value.split()]
-        except:
-            print('error in ', k)
-            pass
+    for branch_name, branch_filename in lt.branches.items():
+        if branch_name == branch or branch is None:
+            try:
+                d[branch_name] = [
+                    base_dir + val for val in branch_filename.value.split()
+                ]
+            except:
+                print('error in ', branch_name)
+                pass
 
     return d
 
 
 def process_source_logic_tree(base_dir: str,
                               lt_file: str = 'ssmLT.xml',
+                              branch: Optional[str] = None,
+                              source_types: Optional[Sequence] = None,
+                              tectonic_region_types: Optional[Sequence] = None,
                               verbose: bool = False):
     if verbose:
         print('reading source branches')
-    lt = sort_sources(read_branch_sources(base_dir, lt_file=lt_file))
+    branch_sources = (read_branch_sources(base_dir, lt_file=lt_file))
+    lt = sort_sources(branch_sources,
+                      source_types=source_types,
+                      tectonic_region_types=tectonic_region_types,
+                      branch=branch)
 
     if verbose:
         print(lt.keys())

@@ -48,7 +48,7 @@ def flatten_list(lol: List[list]) -> list:
 
 def rupture_dict_from_logic_tree_dict(
         logic_tree_dict: dict,
-        source_types: Sequence[str] = ('simple_fault'),
+        #source_types: Sequence[str] = ('simple_fault'),
         simple_ruptures: bool = True,
         parallel: bool = True,
         n_procs: Optional[int] = None) -> dict:
@@ -88,24 +88,27 @@ def rupture_dict_from_logic_tree_dict(
     if parallel is True:
         return {
             br: rupture_list_from_lt_branch_parallel(
+                #branch,
                 branch,
-                source_types,
+                #source_types,
                 simple_ruptures=simple_ruptures,
                 n_procs=n_procs)
             for br, branch in logic_tree_dict.items()
         }
     else:
         return {
-            br: rupture_list_from_lt_branch(branch,
-                                            source_types,
-                                            simple_ruptures=simple_ruptures)
+            br: rupture_list_from_lt_branch(  #branch,
+                #source_types,
+                branch,
+                simple_ruptures=simple_ruptures)
             for br, branch in logic_tree_dict.items()
         }
 
 
 def rupture_list_from_lt_branch(
-        branch: dict,
-        source_types: Sequence[str] = ('simple_fault'),
+        source_list: list,
+        #branch: dict,
+        #source_types: Sequence[str] = ('simple_fault'),
         simple_ruptures: bool = True,
 ) -> list:
     """
@@ -128,15 +131,15 @@ def rupture_list_from_lt_branch(
 
     rupture_list = []
 
-    for source_type, sources in branch.items():
-        if source_type in source_types and sources != []:
-            logging.info('    processing {} sources'.format(source_type))
-            rups = [
-                _process_rup(r, source, simple_ruptures=simple_ruptures)
-                for source in sources for r in source.iter_ruptures()
-            ]
+    #for source_type, sources in branch.items():
+    #    if source_type in source_types and sources != []:
+    #        logging.info('    processing {} sources'.format(source_type))
+    rups = [
+        _process_rup(r, source, simple_ruptures=simple_ruptures)
+        for source in source_list for r in source.iter_ruptures()
+    ]
 
-            rupture_list.extend(rups)
+    rupture_list.extend(rups)
 
     return rupture_list
 
@@ -171,8 +174,8 @@ def _process_source_chunk(source_chunk, simple_ruptures=True):
 
 
 def rupture_list_from_lt_branch_parallel(
-        branch: dict,
-        source_types: Sequence[str] = ('simple_fault'),
+        #branch: dict,
+        source_list: list,
         simple_ruptures: bool = True,
         n_procs: Optional[int] = None) -> list:
     """
@@ -199,15 +202,15 @@ def rupture_list_from_lt_branch_parallel(
         tree branch.
     """
 
-    if n_procs is None:
-        n_procs = _n_procs
+    #if n_procs is None:
+    #    n_procs = _n_procs
 
-    source_list = []
+    #source_list = []
 
-    logging.info('    combining sources')
-    for source_type, sources in branch.items():
-        if source_type in source_types and sources != []:
-            source_list.extend(sources)
+    #logging.info('    combining sources')
+    #for source_type, sources in branch.items():
+    #    if source_type in source_types and sources != []:
+    #        source_list.extend(sources)
 
     logging.info('    chunking sources')
     source_chunks = _chunk_source_list(source_list, n_procs)

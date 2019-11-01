@@ -30,6 +30,8 @@ input:
         ssm_dir: ../../../../data/source_models/sm1/
         ssm_lt_file: ssmLT.xml
         branch: b1
+        tectonic_region_types: 
+            - Active Shallow Crust
         source_types:
             - simple_fault
 
