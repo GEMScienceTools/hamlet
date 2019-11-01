@@ -11,8 +11,8 @@ config:
             default_likelihood: 1.
             not_modeled_val: 0.00001
         model_mfd:
-            out_csv: ./sm1_mfds.csv
-            out_plot: ./sm1_poiss_mfds.svg
+            out_csv: outputs/sm1_mfds.csv
+            out_plot: outputs/sm1_poiss_mfds.svg
             investigation_time: 40.
         max_mag_check:
             append_check: True
@@ -60,4 +60,4 @@ input:
 
 report:
     basic:
-        outfile: output/sm1_poisson_report.html
+        outfile: outputs/sm1_poisson_report.html
