@@ -233,7 +233,7 @@ def run_tests(cfg: dict):
             'val': test(cfg, bin_gdf=bin_gdf, obs_seis_catalog=eq_gdf)
         }
 
-    t_eval_done = time.time()
+    t_done_eval = time.time()
     logging.info('Done evaluating model in {0:.2f} s'.format(t_done_eval -
                                                              t_done_load))
 
