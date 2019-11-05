@@ -218,7 +218,7 @@ def _chunk_source_list(sources: list, n_chunks: int = _n_procs) -> list:
         source_chunks[min_bin].append(source)
         chunk_sums[min_bin] += source_counts[i]
 
-    logging.info('     chunk_sums:\n{}'.format(str(chunk_sums)))
+    logging.debug('     chunk_sums:\n{}'.format(str(chunk_sums)))
 
     return source_chunks
 
