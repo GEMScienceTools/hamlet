@@ -17,7 +17,7 @@ config:
         max_mag_check:
             append_check: True
             warn: True
-    parallel: False
+    parallel: True
     rand_seed: 69
 
 input:
@@ -30,7 +30,7 @@ input:
         ssm_dir: ../../../../data/source_models/sm1/
         ssm_lt_file: ssmLT.xml
         branch: b1
-        tectonic_region_types: 
+        tectonic_region_types:
             - Active Shallow Crust
         source_types: null
 

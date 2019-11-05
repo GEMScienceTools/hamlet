@@ -260,7 +260,7 @@ def rupture_list_to_gdf(rupture_list: list,
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
                          bin_gdf: gpd.GeoDataFrame,
                          parallel: bool = True,
-                         n_procs: Optional[int] = None) -> None:
+                         n_procs: Optional[int] = _n_procs) -> None:
     """
     Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
     list that is an attribute of each :class:`SpacemagBin` based on location and
@@ -294,7 +294,6 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         rupture_gdf = rupture_gdf.to_crs(bin_gdf.crs)
 
     join_df = gpd.sjoin(rupture_gdf, bin_gdf, how='left', op='within')
-
     rupture_gdf['bin_id'] = join_df['index_right']
 
     logging.info('    adding ruptures to bins')

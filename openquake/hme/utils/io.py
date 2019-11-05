@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Union, Optional, Sequence
 
 import pandas as pd
@@ -74,7 +75,7 @@ def sort_sources(branch_sources: dict,
 
             source_list = []
 
-            for i, source_file in enumerate(source_file_list):
+            for source_file in source_file_list:
                 try:
                     sources_from_file = read(source_file,
                                              get_info=False,
@@ -82,17 +83,18 @@ def sort_sources(branch_sources: dict,
                                              rupture_mesh_spacing=2.,
                                              complex_fault_mesh_spacing=5.)
                 except Exception as e:
-                    print('error reading ', branch, source_file, e)
+                    logging.warning(
+                        f'error reading {branch} {source_file}: {e}')
 
                 try:
                     sources_from_file
                 except NameError:
                     break
 
-                for j, source in enumerate(sources_from_file):
+                for source in sources_from_file:
                     if isinstance(source, list):
-                        source_list.append(
-                            *[_source_to_series(s) for s in source])
+                        source_list.extend(
+                            [_source_to_series(s) for s in source])
                     elif source is None:
                         pass
                     else:
@@ -101,7 +103,9 @@ def sort_sources(branch_sources: dict,
             if len(source_list) == 1:
                 source_df = source_list[0].to_frame().transpose()
             else:
-                source_df = pd.concat(source_list)
+                source_df = pd.concat(source_list, axis=1).transpose()
+
+            logging.info(f'source df shape:{source_df.shape}')
 
             if source_types is not None:
                 source_df = source_df[source_df.source_type.isin(source_types)]
