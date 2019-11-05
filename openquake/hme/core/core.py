@@ -1,3 +1,4 @@
+import time
 import logging
 from typing import Union, Optional
 
@@ -206,6 +207,8 @@ running tests
 
 def run_tests(cfg: dict):
 
+    t_start = time.time()
+
     try:
         np.random.seed(cfg['config']['rand_seed'])
     except Exception as e:
@@ -214,6 +217,11 @@ def run_tests(cfg: dict):
     tests = get_test_list_from_config(cfg)
 
     bin_gdf, eq_gdf = load_inputs(cfg)
+
+    t_done_load = time.time()
+    logging.info(
+        'Done loading and preparing model in {0:.2f} s'.format(t_done_load -
+                                                               t_start))
 
     results = {}
     # make dict w/ test fn as key, name as val to fill results while testing
@@ -225,11 +233,21 @@ def run_tests(cfg: dict):
             'val': test(cfg, bin_gdf=bin_gdf, obs_seis_catalog=eq_gdf)
         }
 
+    t_eval_done = time.time()
+    logging.info('Done evaluating model in {0:.2f} s'.format(t_done_eval -
+                                                             t_done_load))
+
     if 'output' in cfg.keys():
         write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
 
     if 'report' in cfg.keys():
         write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
+
+    t_out_done = time.time()
+    logging.info('Done writing outputs in {0:.2f} s'.format(t_out_done -
+                                                            t_done_eval))
+    logging.info('Done with everything in {0:.2f} m'.format(
+        (t_out_done - t_start) / 60.))
 
 
 """
