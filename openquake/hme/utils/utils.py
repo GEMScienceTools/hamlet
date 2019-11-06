@@ -11,7 +11,8 @@ import dateutil
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point
+from h3 import h3
+from shapely.geometry import Point, Polygon
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture, ParametricProbabilisticRupture)
 
@@ -257,6 +258,48 @@ def rupture_list_to_gdf(rupture_list: list,
     return rupture_gdf
 
 
+def _h3_bin_from_rupture(
+        rupture: Union[SimpleRupture, NonParametricProbabilisticRupture,
+                       ParametricProbabilisticRupture],
+        res: int = 3) -> str:
+
+    return h3.geo_to_h3(rupture.hypocenter.latitude,
+                        rupture.hypocenter.longitude, res)
+
+
+def make_bin_gdf_from_rupture_gdf(rupture_gdf: gpd.GeoDataFrame,
+                                  res: int = 3,
+                                  parallel: bool = True,
+                                  min_mag: Optional[float] = 6.,
+                                  max_mag: Optional[float] = 9.,
+                                  bin_width: Optional[float] = 0.2
+                                  ) -> gpd.GeoDataFrame:
+
+    logging.info('starting rupture-bin spatial join')
+    rupture_gdf['bin_id'] = rupture_gdf['rupture'].apply(_h3_bin_from_rupture,
+                                                         res=res)
+    logging.info('finished rupture-bin spatial join')
+
+    hex_codes = list(set(rupture_gdf['bin_id'].values))
+
+    polies = [
+        Polygon(h3.h3_to_geo_boundary(hex_code, geo_json=True))
+        for hex_code in hex_codes
+    ]
+
+    bin_gdf = gpd.GeoDataFrame(index=hex_codes,
+                               geometry=polies,
+                               crs={
+                                   'init': 'epsg:4326',
+                                   'no_defs': True
+                               })
+    bin_gdf = make_SpacemagBins_from_bin_gdf(bin_gdf,
+                                             min_mag=min_mag,
+                                             max_mag=max_mag,
+                                             bin_width=bin_width)
+    return bin_gdf
+
+
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
                          bin_gdf: gpd.GeoDataFrame,
                          parallel: bool = True,
@@ -288,13 +331,13 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         `None`.
     """
 
-    logging.info('    spatially joining ruptures and bins')
+    #logging.info('    spatially joining ruptures and bins')
 
-    if rupture_gdf.crs != bin_gdf.crs:
-        rupture_gdf = rupture_gdf.to_crs(bin_gdf.crs)
+    #if rupture_gdf.crs != bin_gdf.crs:
+    #    rupture_gdf = rupture_gdf.to_crs(bin_gdf.crs)
 
-    join_df = gpd.sjoin(rupture_gdf, bin_gdf, how='left', op='within')
-    rupture_gdf['bin_id'] = join_df['index_right']
+    #join_df = gpd.sjoin(rupture_gdf, bin_gdf, how='left', op='within')
+    #rupture_gdf['bin_id'] = join_df['index_right']
 
     logging.info('    adding ruptures to bins')
     if parallel is False:
@@ -329,11 +372,10 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
 
 
 def _bin_row(row, bdf=None):
-    if not np.isnan(row.bin_id):
-        spacemag_bin = bdf.loc[row.bin_id]
-        nearest_bc = _nearest_bin(row.rupture.mag,
-                                  spacemag_bin.mag_bin_centers)
-        spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
+    #if not np.isnan(row.bin_id):
+    spacemag_bin = bdf.loc[row.bin_id]
+    nearest_bc = _nearest_bin(row.rupture.mag, spacemag_bin.mag_bin_centers)
+    spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
 
 
 def _bin_row_apply(bin_rup):
@@ -527,7 +569,7 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
     earthquake_gdf['bin_id'] = join_df['index_right']
 
     for i, eq in earthquake_gdf.iterrows():
-        if not np.isnan(eq.bin_id):
+        try:
             spacemag_bin = bin_df.loc[eq.bin_id, 'SpacemagBin']
 
             if eq.magnitude < spacemag_bin.min_mag - spacemag_bin.bin_width / 2:
@@ -541,6 +583,8 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
                 spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(
                     eq['Eq'])
                 spacemag_bin.observed_earthquakes[nearest_bc].append(eq['Eq'])
+        except:
+            pass
 
 
 def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
@@ -568,26 +612,55 @@ def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
         GeoDataFrame with :class:`SpacemagBin`s as a column.
     """
 
-    bin_df = gpd.read_file(bin_filepath)
+    bin_gdf = gpd.read_file(bin_filepath)
+    return make_SpacemagBins_from_bin_gdf(bin_gdf,
+                                          min_mag=min_mag,
+                                          max_mag=max_mag,
+                                          bin_width=bin_width)
 
+
+def make_SpacemagBins_from_bin_gdf(bin_gdf: gpd.GeoDataFrame,
+                                   min_mag: Optional[float] = 6.,
+                                   max_mag: Optional[float] = 9.,
+                                   bin_width: Optional[float] = 0.2
+                                   ) -> gpd.GeoDataFrame:
+    """
+    Creates a GeoPandas GeoDataFrame with :class:`SpacemagBins` that forms the
+    basis of most of the spatial hazard model testing.
+
+    :param bin_filepath:
+        Path to GIS polygon file that contains the spatial bins for analysis.
+
+    :param min_mag:
+        Minimum earthquake magnitude for MFD-based analysis.
+
+    :param max_mag:
+        Maximum earthquake magnitude for MFD-based analysis.
+
+    :param bin_width:
+        Width of earthquake/MFD bins.
+
+    :returns:
+        GeoDataFrame with :class:`SpacemagBin`s as a column.
+    """
     def bin_to_mag(row):
         return SpacemagBin(row.geometry,
                            bin_id=row._name,
                            min_mag=min_mag,
                            max_mag=max_mag)
 
-    bin_df['SpacemagBin'] = bin_df.apply(bin_to_mag, axis=1)
+    bin_gdf['SpacemagBin'] = bin_gdf.apply(bin_to_mag, axis=1)
 
     # create serialization functions and add to instantiated GeoDataFrame
     def to_dict():
         out_dict = {
-            i: bin_df.loc[i, 'SpacemagBin'].to_dict()
-            for i in bin_df.index
+            i: bin_gdf.loc[i, 'SpacemagBin'].to_dict()
+            for i in bin_gdf.index
         }
 
         return out_dict
 
-    bin_df.to_dict = to_dict
+    bin_gdf.to_dict = to_dict
 
     def to_json(fp):
         def to_serializable(val):
@@ -610,11 +683,11 @@ def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
             return str(val)
 
         with open(fp, 'w') as ff:
-            json.dump(bin_df.to_dict(), ff, default=to_serializable)
+            json.dump(bin_gdf.to_dict(), ff, default=to_serializable)
 
-    bin_df.to_json = to_json
+    bin_gdf.to_json = to_json
 
-    return bin_df
+    return bin_gdf
 
 
 def get_source_bins(bin_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:

@@ -12,7 +12,8 @@ from openquake.hme.utils import (make_SpacemagBins_from_bin_gis_file,
                                  rupture_dict_from_logic_tree_dict,
                                  rupture_list_to_gdf, add_ruptures_to_bins,
                                  add_earthquakes_to_bins,
-                                 make_earthquake_gdf_from_csv)
+                                 make_earthquake_gdf_from_csv,
+                                 make_bin_gdf_from_rupture_gdf)
 from openquake.hme.utils.reporting import generate_basic_report
 
 from openquake.hme.model_test_frameworks.gem.gem_tests import gem_test_dict
@@ -175,8 +176,15 @@ def load_inputs(cfg: dict):
 
     # TODO: figure out whether to load EQs based on which tests to run
 
-    bin_gdf = make_bin_gdf(cfg)
+    #bin_gdf = make_bin_gdf(cfg)
     rupture_gdf = load_ruptures_from_ssm(cfg)
+    bin_gdf = make_bin_gdf_from_rupture_gdf(
+        rupture_gdf,
+        res=3,
+        min_mag=cfg['input']['bins']['mfd_bin_min'],
+        max_mag=cfg['input']['bins']['mfd_bin_max'],
+        bin_width=cfg['input']['bins']['mfd_bin_width'],
+    )
 
     logging.info('bin_gdf shape: {}'.format(bin_gdf.shape))
 
