@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import datetime
+from time import sleep
 from functools import partial
 from multiprocessing import Pool
 from typing import Sequence, List, Optional, Union, Tuple
@@ -201,9 +202,15 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 
     sc = source_chunk_w_args
 
-    text = f"source chunk #{sc['position']}"
+    pos = str(sc['position'] + 1)
+    if len(pos) == 1:
+        pos = f'0{pos}'
+
+    text = f"source chunk #{pos}"
 
     pbar = tqdm(total=sc['chunk_sum'], position=sc['position'], desc=text)
+
+    sleep(sc['position'])  # wait so that processes don't finish at same time
 
     rups = [
         _process_source(source,
@@ -211,9 +218,10 @@ def _process_source_chunk(source_chunk_w_args) -> list:
                         pbar=pbar) for source in sc['source_chunk']
     ],
 
-    del sc
+    del sc['source_chunk']
 
     rups = flatten_list(rups)
+
     return rups
 
 
@@ -248,7 +256,7 @@ def rupture_list_from_source_list_parallel(source_list: list,
         logger.info('    fewer chunks than processes.')
 
     logger.info('    beginning multiprocess source processing')
-    with Pool(n_procs) as pool:
+    with Pool(n_procs, maxtasksperchild=None) as pool:
         rupture_list = []
 
         chunks_with_args = [{
@@ -258,16 +266,16 @@ def rupture_list_from_source_list_parallel(source_list: list,
             'simple_ruptures': simple_ruptures
         } for i, source_chunk in enumerate(source_chunks)]
 
-        p = tqdm(pool.map(_process_source_chunk, chunks_with_args))
+        pbar = tqdm([n for n in range(n_procs)])
 
-    p.write('\n' * n_procs)
+        for rups in pool.imap_unordered(_process_source_chunk,
+                                        chunks_with_args):
+            rupture_list.extend(rups)
+            rups = ''
 
-    for rups in p:
-        rupture_list.extend(rups)
-        del rups
-    p.close()
-
-    logger.info('    finishing multiprocess source processing, cleaning up.')
+        pbar.write('\n' * n_procs)
+        logger.info(
+            '    finishing multiprocess source processing, cleaning up.')
 
     if isinstance(rupture_list[0], list):
         rupture_list = flatten_list(rupture_list)
@@ -472,10 +480,10 @@ def _bin_row_apply(bin_rup):
     bin_gdf = bin_rup[0]
     rup_gdf = bin_rup[1]
     group_num = bin_rup[2]
-    logger.info(f'\tstarting to bin group {group_num}')
+    #logger.info(f'\tstarting to bin group {group_num}')
     _ = rup_gdf.apply(_bin_row, bdf=bin_gdf, axis=1)
     del bin_rup, _
-    logger.info(f'\tfinished binning group {group_num}')
+    #logger.info(f'\tfinished binning group {group_num}')
     return bin_gdf
 
 
