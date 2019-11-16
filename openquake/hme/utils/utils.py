@@ -11,7 +11,9 @@ import dateutil
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+
 from h3 import h3
+from tqdm import tqdm, trange
 from shapely.geometry import Point, Polygon
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture, ParametricProbabilisticRupture)
@@ -21,6 +23,26 @@ from .bins import SpacemagBin
 from .stats import sample_event_times_in_interval
 
 _n_procs = max(1, os.cpu_count() - 1)
+
+
+class TqdmLoggingHandler(logging.Handler):
+    def __init__(self, level=logging.NOTSET):
+        super().__init__(level=level)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            tqdm.write(msg)
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
+
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+logger.addHandler(TqdmLoggingHandler())
 
 
 def parallelize(data,
@@ -132,11 +154,14 @@ def rupture_list_from_source_list(source_list: list,
     return rupture_list
 
 
-def _process_rup(rup, source, simple_ruptures=True):
+def _process_rup(rup: Union[ParametricProbabilisticRupture,
+                            NonParametricProbabilisticRupture],
+                 source,
+                 simple_ruptures=True):
 
     if simple_ruptures is False:
         rup.source = source.source_id
-    else:
+    elif isinstance(rup, ParametricProbabilisticRupture):
         rup = SimpleRupture(strike=rup.surface.get_strike(),
                             dip=rup.surface.get_dip(),
                             rake=rup.rake,
@@ -144,21 +169,52 @@ def _process_rup(rup, source, simple_ruptures=True):
                             hypocenter=rup.hypocenter,
                             occurrence_rate=rup.occurrence_rate,
                             source=source.source_id)
+
+    elif isinstance(rup, NonParametricProbabilisticRupture):
+        occurrence_rate = sum(i * prob_occur
+                              for i, prob_occur in enumerate(rup.probs_occur))
+        rup = SimpleRupture(strike=rup.surface.get_strike(),
+                            dip=rup.surface.get_dip(),
+                            rake=rup.rake,
+                            mag=rup.mag,
+                            hypocenter=rup.hypocenter,
+                            occurrence_rate=occurrence_rate)
+
     return rup
 
 
-def _process_source(source, simple_ruptures=True):
-    return [
+def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
+    ruptures = [
         _process_rup(r, source, simple_ruptures=simple_ruptures)
         for r in source.iter_ruptures()
     ]
 
+    if pbar is not None:
+        pbar.update(n=len(ruptures))
 
-def _process_source_chunk(source_chunk, simple_ruptures=True):
-    return flatten_list([
-        _process_source(source, simple_ruptures=simple_ruptures)
-        for source in source_chunk
-    ])
+    del source
+
+    return ruptures
+
+
+def _process_source_chunk(source_chunk_w_args) -> list:
+
+    sc = source_chunk_w_args
+
+    text = f"source chunk #{sc['position']}"
+
+    pbar = tqdm(total=sc['chunk_sum'], position=sc['position'], desc=text)
+
+    rups = [
+        _process_source(source,
+                        simple_ruptures=sc['simple_ruptures'],
+                        pbar=pbar) for source in sc['source_chunk']
+    ],
+
+    del sc
+
+    rups = flatten_list(rups)
+    return rups
 
 
 def rupture_list_from_source_list_parallel(source_list: list,
@@ -185,22 +241,41 @@ def rupture_list_from_source_list_parallel(source_list: list,
         All of the ruptures from all sources of `sources_types` in the logic
         tree branch.
     """
-    logging.info('    chunking sources')
-    source_chunks = _chunk_source_list(source_list, n_procs)
+    logger.info('    chunking sources')
+    source_chunks, chunk_sums = _chunk_source_list(source_list, n_procs)
 
+    if n_procs > len(source_chunks):
+        logger.info('    fewer chunks than processes.')
+
+    logger.info('    beginning multiprocess source processing')
     with Pool(n_procs) as pool:
-        rups = pool.imap(
-            partial(_process_source_chunk, simple_ruptures=simple_ruptures),
-            source_chunks)
+        rupture_list = []
 
-        rupture_list = flatten_list(rups)
-        pool.close()
-        pool.join()
+        chunks_with_args = [{
+            'source_chunk': source_chunk,
+            'position': i,
+            'chunk_sum': chunk_sums[i],
+            'simple_ruptures': simple_ruptures
+        } for i, source_chunk in enumerate(source_chunks)]
 
+        p = tqdm(pool.map(_process_source_chunk, chunks_with_args))
+
+    p.write('\n' * n_procs)
+
+    for rups in p:
+        rupture_list.extend(rups)
+        del rups
+    p.close()
+
+    logger.info('    finishing multiprocess source processing, cleaning up.')
+
+    if isinstance(rupture_list[0], list):
+        rupture_list = flatten_list(rupture_list)
     return rupture_list
 
 
-def _chunk_source_list(sources: list, n_chunks: int = _n_procs) -> list:
+def _chunk_source_list(sources: list,
+                       n_chunks: int = _n_procs) -> Tuple[list, list]:
     source_counts = [s.count_ruptures() for s in sources]
 
     sources = [
@@ -219,9 +294,13 @@ def _chunk_source_list(sources: list, n_chunks: int = _n_procs) -> list:
         source_chunks[min_bin].append(source)
         chunk_sums[min_bin] += source_counts[i]
 
-    logging.debug('     chunk_sums:\n{}'.format(str(chunk_sums)))
+    logger.info('     chunk_sums:\n{}'.format(str(chunk_sums)))
 
-    return source_chunks
+    source_chunks = [
+        chunk for i, chunk in enumerate(source_chunks) if chunk_sums[i] != 0
+    ]
+
+    return (source_chunks, chunk_sums.tolist())
 
 
 def _add_rupture_geom(df):
@@ -231,31 +310,39 @@ def _add_rupture_geom(df):
 
 
 def rupture_list_to_gdf(rupture_list: list,
-                        parallel: bool = True) -> gpd.GeoDataFrame:
+                        gdf: bool = False,
+                        parallel: bool = True
+                        ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     """
-    Creates a GeoPandas GeoDataFrame from a rupture list.
+    Creates a Pandas DataFrame or GeoPandas GeoDataFrame from a rupture list.
 
     :param rupture_list:
         List of :class:`Rupture`s. 
+
+    :param gdf:
+        Boolean flag to determine whether output is GeoDataFrame (True)
+        or DataFrame (False).
 
     :returns:
         GeoDataFrame, with two columns, `rupture` which holds the
         :class:`Rupture` object, and `geometry` which has the geometry as a
         Shapely :class:`Point` object.
     """
-
     df = pd.DataFrame(index=range(len(rupture_list)),
                       data=rupture_list,
                       columns=['rupture'])
 
-    if parallel is True and _n_procs > 1:
-        df['geometry'] = parallelize(df, _add_rupture_geom)
-    else:
-        df['geometry'] = _add_rupture_geom(df)
+    if gdf is True:
+        if parallel is True and _n_procs > 1:
+            df['geometry'] = parallelize(df, _add_rupture_geom)
+        else:
+            df['geometry'] = _add_rupture_geom(df)
 
-    rupture_gdf = gpd.GeoDataFrame(df)
-    rupture_gdf.crs = {'init': 'epsg:4326', 'no_defs': True}
-    return rupture_gdf
+        rupture_gdf = gpd.GeoDataFrame(df)
+        rupture_gdf.crs = {'init': 'epsg:4326', 'no_defs': True}
+        return rupture_gdf
+    else:
+        return df
 
 
 def _h3_bin_from_rupture(
@@ -275,10 +362,10 @@ def make_bin_gdf_from_rupture_gdf(rupture_gdf: gpd.GeoDataFrame,
                                   bin_width: Optional[float] = 0.2
                                   ) -> gpd.GeoDataFrame:
 
-    logging.info('starting rupture-bin spatial join')
+    logger.info('starting rupture-bin spatial join')
     rupture_gdf['bin_id'] = rupture_gdf['rupture'].apply(_h3_bin_from_rupture,
                                                          res=res)
-    logging.info('finished rupture-bin spatial join')
+    logger.info('finished rupture-bin spatial join')
 
     hex_codes = list(set(rupture_gdf['bin_id'].values))
 
@@ -331,15 +418,7 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         `None`.
     """
 
-    #logging.info('    spatially joining ruptures and bins')
-
-    #if rupture_gdf.crs != bin_gdf.crs:
-    #    rupture_gdf = rupture_gdf.to_crs(bin_gdf.crs)
-
-    #join_df = gpd.sjoin(rupture_gdf, bin_gdf, how='left', op='within')
-    #rupture_gdf['bin_id'] = join_df['index_right']
-
-    logging.info('    adding ruptures to bins')
+    logger.info('    adding ruptures to bins')
     if parallel is False:
         _ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
         return
@@ -353,17 +432,28 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
             _ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
             return
         else:
-            bin_idx_splits = np.array_split(bin_gdf.index, n_procs * 10)
-            bin_groups = (bin_gdf.loc[bi, 'SpacemagBin']
-                          for bi in bin_idx_splits)
 
-            rup_groups = (rupture_gdf[rupture_gdf['bin_id'].isin(bi)]
-                          for bi in bin_idx_splits)
+            n_splits = n_procs * 10
 
-            bin_rup_zip = zip(bin_groups, rup_groups)
+            bin_idx_splits = np.array_split(bin_gdf.index, n_splits)
+            bin_groups = [
+                bin_gdf.loc[bi, 'SpacemagBin'] for bi in bin_idx_splits
+            ]
+
+            del bin_gdf['SpacemagBin']
+
+            rup_groups = [
+                rupture_gdf[rupture_gdf['bin_id'].isin(bi)]
+                for bi in bin_idx_splits
+            ]
+
+            bin_rup_zip = list(zip(bin_groups, rup_groups,
+                                   np.arange(n_splits)))
+
+            del rupture_gdf
 
         pool = Pool(n_procs)
-        pool_result = pool.imap(_bin_row_apply, bin_rup_zip)
+        pool_result = pool.map(_bin_row_apply, bin_rup_zip)
 
         bin_gdf['SpacemagBin'] = pd.concat(pool_result)
 
@@ -381,7 +471,11 @@ def _bin_row(row, bdf=None):
 def _bin_row_apply(bin_rup):
     bin_gdf = bin_rup[0]
     rup_gdf = bin_rup[1]
+    group_num = bin_rup[2]
+    logger.info(f'\tstarting to bin group {group_num}')
     _ = rup_gdf.apply(_bin_row, bdf=bin_gdf, axis=1)
+    del bin_rup, _
+    logger.info(f'\tfinished binning group {group_num}')
     return bin_gdf
 
 

@@ -72,7 +72,12 @@ def render_likelihood(env: Environment,
     total_log_like = np.sum(bin_gdf['log_like']) / bin_gdf.shape[0]
     total_log_like = "{0:2f}".format(total_log_like)
 
-    likelihood_map_str = plot_likelihood_map(bin_gdf, eq_gdf)
+    if 'plot_eqs' in cfg['report']['basic'].keys():
+        plot_eqs = cfg['report']['basic']['plot_eqs']
+    else:
+        plot_eqs = True
+
+    likelihood_map_str = plot_likelihood_map(bin_gdf, plot_eqs, eq_gdf)
 
     likelihood_template = env.get_template('likelihood.html')
 

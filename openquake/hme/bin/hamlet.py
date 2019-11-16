@@ -9,6 +9,10 @@ logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
 
 
 def main(arg=None):
+
+    loger = logging.getLogger(__name__)
+    loger.setLevel(logging.INFO)
+
     if arg is None:
         yaml_file = sys.argv[1]
     cfg = read_yaml_config(yaml_file)

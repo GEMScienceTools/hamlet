@@ -17,7 +17,7 @@ config:
         max_mag_check:
             append_check: True
             warn: True
-    parallel: False
+    parallel: True
     rand_seed: 69
 
 input:

@@ -22,9 +22,9 @@ from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict
 Openable = Union[str, bytes, int, 'os.PathLike[Any]']
 
 test_dict = {'model_framework': {'gem': gem_test_dict, 'relm': relm_test_dict}}
-"""
-config parsing
-"""
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
@@ -37,7 +37,7 @@ def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
     :returns:
         Model test configuration from the YAML made into a dictionary.
     """
-    logging.info('reading YAML configuration')
+    logger.info('reading YAML configuration')
     with open(yaml_config) as config_file:
         cfg = yaml.safe_load(config_file)
 
@@ -71,7 +71,7 @@ def _fill_necessary_fields(cfg: dict):
         for sub_name, subsubfields in subfield.items():
             for subsubname in subsubfields:
                 if subsubname not in cfg[field][sub_name].keys():
-                    logging.warning(
+                    logger.warning(
                         f"['{field}']['{sub_name}']['{subsubname}'] filled")
                     cfg[field][sub_name][subsubname] = None
 
@@ -79,7 +79,7 @@ def _fill_necessary_fields(cfg: dict):
 def get_test_list_from_config(cfg: dict) -> list:
     # some ordering would be nice
 
-    logging.info('getting tests from config')
+    logger.info('getting tests from config')
 
     test_names = list(cfg['config']['tests'].keys())
 
@@ -97,7 +97,7 @@ input processing
 
 def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
 
-    logging.info('making earthquake GDF from seismic catalog')
+    logger.info('making earthquake GDF from seismic catalog')
 
     seis_cat_cfg: dict = cfg['input']['seis_catalog']
     seis_cat_params = {
@@ -123,7 +123,7 @@ def make_bin_gdf(cfg: dict) -> GeoDataFrame:
     :returns: A GeoDataFrame of the SpacemagBins.
     """
 
-    logging.info('making bin GDF from GIS file')
+    logger.info('making bin GDF from GIS file')
 
     bin_cfg: dict = cfg['input']['bins']
 
@@ -150,11 +150,11 @@ def load_ruptures_from_ssm(cfg: dict):
         A GeoDataFrame of the ruptures.
     """
 
-    logging.info('loading ruptures into geodataframe')
+    logger.info('loading ruptures into geodataframe')
 
     source_cfg: dict = cfg['input']['ssm']
 
-    logging.info('  processing logic tree')
+    logger.info('  processing logic tree')
     ssm_lt_ruptures = process_source_logic_tree(
         source_cfg['ssm_dir'],
         lt_file=source_cfg['ssm_lt_file'],
@@ -162,12 +162,15 @@ def load_ruptures_from_ssm(cfg: dict):
         tectonic_region_types=source_cfg['tectonic_region_types'],
         branch=source_cfg['branch'])
 
-    logging.info('  making dictionary of ruptures')
+    logger.info('  making dictionary of ruptures')
     rupture_dict = rupture_dict_from_logic_tree_dict(
         ssm_lt_ruptures, parallel=cfg['config']['parallel'])
 
-    logging.info('  making geodataframe from ruptures')
+    del ssm_lt_ruptures
+
+    logger.info('  making geodataframe from ruptures')
     rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg['branch']])
+    logger.info('  done preparing rupture dataframe')
 
     return rupture_gdf
 
@@ -186,23 +189,23 @@ def load_inputs(cfg: dict):
         bin_width=cfg['input']['bins']['mfd_bin_width'],
     )
 
-    logging.info('bin_gdf shape: {}'.format(bin_gdf.shape))
+    logger.info('bin_gdf shape: {}'.format(bin_gdf.shape))
 
-    logging.info('rupture_gdf shape: {}'.format(rupture_gdf.shape))
-    logging.debug('rupture_gdf memory: {} GB'.format(
+    logger.info('rupture_gdf shape: {}'.format(rupture_gdf.shape))
+    logger.debug('rupture_gdf memory: {} GB'.format(
         sum(rupture_gdf.memory_usage(index=True, deep=True)) * 1e-9))
 
-    logging.info('adding ruptures to bins')
+    logger.info('adding ruptures to bins')
     add_ruptures_to_bins(rupture_gdf,
                          bin_gdf,
                          parallel=cfg['config']['parallel'])
 
-    logging.debug('bin_gdf memory: {} GB'.format(
+    logger.debug('bin_gdf memory: {} GB'.format(
         sum(bin_gdf.memory_usage(index=True, deep=True)) * 1e-9))
 
     eq_gdf = load_obs_eq_catalog(cfg)
 
-    logging.info('adding earthquakes to bins')
+    logger.info('adding earthquakes to bins')
     add_earthquakes_to_bins(eq_gdf, bin_gdf)
 
     return bin_gdf, eq_gdf
@@ -220,14 +223,14 @@ def run_tests(cfg: dict):
     try:
         np.random.seed(cfg['config']['rand_seed'])
     except Exception as e:
-        logging.warning('Cannot use random seed: {}'.format(e.__str__()))
+        logger.warning('Cannot use random seed: {}'.format(e.__str__()))
 
     tests = get_test_list_from_config(cfg)
 
     bin_gdf, eq_gdf = load_inputs(cfg)
 
     t_done_load = time.time()
-    logging.info(
+    logger.info(
         'Done loading and preparing model in {0:.2f} s'.format(t_done_load -
                                                                t_start))
 
@@ -242,8 +245,8 @@ def run_tests(cfg: dict):
         }
 
     t_done_eval = time.time()
-    logging.info('Done evaluating model in {0:.2f} s'.format(t_done_eval -
-                                                             t_done_load))
+    logger.info('Done evaluating model in {0:.2f} s'.format(t_done_eval -
+                                                            t_done_load))
 
     if 'output' in cfg.keys():
         write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
@@ -252,9 +255,9 @@ def run_tests(cfg: dict):
         write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
 
     t_out_done = time.time()
-    logging.info('Done writing outputs in {0:.2f} s'.format(t_out_done -
-                                                            t_done_eval))
-    logging.info('Done with everything in {0:.2f} m'.format(
+    logger.info('Done writing outputs in {0:.2f} s'.format(t_out_done -
+                                                           t_done_eval))
+    logger.info('Done with everything in {0:.2f} m'.format(
         (t_out_done - t_start) / 60.))
 
 
@@ -265,7 +268,7 @@ output processing
 
 def write_outputs(cfg: dict, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
 
-    logging.info('writing outputs')
+    logger.info('writing outputs')
 
     if 'plots' in cfg['output'].keys():
         write_mfd_plots_to_gdf(bin_gdf, **cfg['output']['plots']['kwargs'])
@@ -282,7 +285,7 @@ def write_reports(cfg: dict,
                   results: dict,
                   bin_gdf: Optional[GeoDataFrame] = None,
                   eq_gdf: Optional[GeoDataFrame] = None):
-    logging.info('writing reports')
+    logger.info('writing reports')
 
     if 'basic' in cfg['report'].keys():
         generate_basic_report(cfg, results, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
