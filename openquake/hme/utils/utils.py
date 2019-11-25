@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import datetime
-from time import sleep
+from time import time, sleep
 from functools import partial
 from multiprocessing import Pool
 from typing import Sequence, List, Optional, Union, Tuple
@@ -25,6 +25,7 @@ from .bins import SpacemagBin
 from .stats import sample_event_times_in_interval
 
 _n_procs = max(1, os.cpu_count() - 1)
+#_n_procs = 2   # parallel testing
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -186,10 +187,16 @@ def _process_rup(rup: Union[ParametricProbabilisticRupture,
 
 
 def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
-    ruptures = [
-        _process_rup(r, source, simple_ruptures=simple_ruptures)
-        for r in source.iter_ruptures()
-    ]
+    #ruptures = [
+    #    _process_rup(r, source, simple_ruptures=simple_ruptures)
+    #    for r in source.iter_ruptures()
+    #]
+
+    ruptures = list(
+        map(
+            partial(_process_rup,
+                    source=source,
+                    simple_ruptures=simple_ruptures), source.iter_ruptures()))
 
     if pbar is not None:
         pbar.update(n=len(ruptures))
@@ -209,7 +216,8 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 
     pbar = tqdm(total=sc['chunk_sum'], position=sc['position'], desc=text)
 
-    sleep(sc['position'])  # wait so that processes don't finish at same time
+    # wait so that processes don't finish at same time
+    #sleep(sc['position'] * 0.5)
 
     rups = [
         _process_source(source,
@@ -382,9 +390,10 @@ def make_bin_gdf_from_rupture_gdf(rupture_gdf: gpd.GeoDataFrame,
                                   ) -> gpd.GeoDataFrame:
 
     logger.info('starting rupture-bin spatial join')
-    tqdm.pandas()
-    rupture_gdf['bin_id'] = rupture_gdf['rupture'].progress_apply(
-        _h3_bin_from_rupture, res=res)
+    rupture_gdf['bin_id'] = list(
+        tqdm(map(partial(_h3_bin_from_rupture, res=res),
+                 rupture_gdf['rupture'].values),
+             total=rupture_gdf.shape[0]))
     logger.info('finished rupture-bin spatial join')
 
     hex_codes = list(set(rupture_gdf['bin_id'].values))
@@ -453,8 +462,8 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
             return
         else:
 
-            # terrible hack
-            n_pools = n_pools or len(rupture_gdf.index) // 5000000
+            # terrible hack to reduce ram use
+            n_pools = n_pools or max(1, len(rupture_gdf.index) // int(2e6))
 
             n_splits = len(bin_gdf.index)
 
@@ -483,15 +492,18 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
             ch.tolist() for ch in np.array_split(bin_rup_list, n_pools)
         ]
 
-        logging.info('chow the chunks')
-        for bin_rup_chunk in bin_rup_chunks:
+        logging.info('    Processing pool chunks')
+        for i in range(n_pools):
+            bin_rup_chunk = bin_rup_chunks[i]
             pool = Pool(n_procs)
-            for r in pool.imap(_bin_row_apply, bin_rup_chunk):
+            for r in tqdm(pool.imap(_bin_row_apply, bin_rup_chunk)):
                 pool_result.append(r)
-                r = ''
+                r = 0
+            del bin_rup_chunk
+            bin_rup_chunks[i] = 0
             pool.close()
             pool.join()
-            print('dun')
+            logging.info(f'    Done with pool chunk {i}')
 
         bin_gdf['SpacemagBin'] = pd.concat(pool_result)
 
