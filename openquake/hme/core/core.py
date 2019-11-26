@@ -200,6 +200,8 @@ def load_inputs(cfg: dict):
                          bin_gdf,
                          parallel=cfg['config']['parallel'])
 
+    del rupture_gdf
+
     logger.debug('bin_gdf memory: {} GB'.format(
         sum(bin_gdf.memory_usage(index=True, deep=True)) * 1e-9))
 
