@@ -25,8 +25,8 @@ from .simple_rupture import SimpleRupture
 from .bins import SpacemagBin
 from .stats import sample_event_times_in_interval
 
-#_n_procs = 2  # parallel testing
 _n_procs = max(1, os.cpu_count() - 1)
+#_n_procs = 2  # parallel testing
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -301,6 +301,7 @@ def rupture_list_from_source_list_parallel(source_list: list,
 
     logger.info('    beginning multiprocess source processing')
     with Pool(n_procs, maxtasksperchild=None) as pool:
+
         rupture_list = []
 
         chunks_with_args = [{
@@ -322,7 +323,7 @@ def rupture_list_from_source_list_parallel(source_list: list,
         logging.info(
             '    finishing multiprocess source processing, cleaning up.')
 
-    if isinstance(rupture_list[0], list):
+    while isinstance(rupture_list[0], list):
         rupture_list = flatten_list(rupture_list)
     return rupture_list
 
@@ -381,23 +382,28 @@ def _h3_bin_from_rupture(
 def make_bin_gdf_from_rupture_gdf(rupture_gdf: gpd.GeoDataFrame,
                                   res: int = 3,
                                   parallel: bool = True,
+                                  n_procs: Optional[int] = None,
                                   min_mag: Optional[float] = 6.,
                                   max_mag: Optional[float] = 9.,
                                   bin_width: Optional[float] = 0.2
                                   ) -> gpd.GeoDataFrame:
 
-    logging.info('starting rupture-bin spatial join')
-    #rupture_gdf['bin_id'] = list(
-    #    tqdm(map(partial(_h3_bin_from_rupture, res=res),
-    #             rupture_gdf['rupture'].values),
-    #         total=rupture_gdf.shape[0]))
+    n_procs = n_procs or _n_procs
 
-    with Pool(_n_procs) as pool:
-        rupture_gdf['bin_id'] = tqdm(pool.imap(partial(_h3_bin_from_rupture,
-                                                       res=res),
-                                               rupture_gdf['rupture'].values,
-                                               chunksize=500),
-                                     total=rupture_gdf.shape[0])
+    logging.info('starting rupture-bin spatial join')
+
+    if (parallel is False) or (n_procs == 1):
+        rupture_gdf['bin_id'] = list(
+            tqdm(map(partial(_h3_bin_from_rupture, res=res),
+                     rupture_gdf['rupture'].values),
+                 total=rupture_gdf.shape[0]))
+    else:
+        with Pool(n_procs) as pool:
+            rupture_gdf['bin_id'] = tqdm(pool.imap(
+                partial(_h3_bin_from_rupture, res=res),
+                rupture_gdf['rupture'].values,
+                chunksize=500),
+                                         total=rupture_gdf.shape[0])
 
     logging.info('finished rupture-bin spatial join')
 
@@ -463,7 +469,7 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
     else:
 
         # terrible hack to reduce ram use
-        n_pools = n_pools or max(1, len(rupture_gdf.index) // int(1e6))
+        n_pools = n_pools or max(1, len(rupture_gdf.index) // int(1e5))
 
         bin_idx = bin_gdf.index.to_list()
         rup_groups = rupture_gdf.groupby(['bin_id'])
@@ -476,21 +482,22 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
 
         sbin_rup_dict = {idx: _make_srd(idx) for idx in bin_idx}
 
-        bin_rup_chunks = _chunk_rupture_groups(sbin_rup_dict, n_pools)
+        bin_rup_chunks, psums = _chunk_rupture_groups(sbin_rup_dict, n_pools)
 
         del rup_groups
         del rupture_gdf
         del sbin_rup_dict
+        del bin_gdf['SpacemagBin']
 
         pool_result = []
 
         logging.info('    Processing pool chunks')
         for i in range(n_pools):
             bin_rup_chunk = bin_rup_chunks[i]
-            pool = Pool(n_procs)
-            for r in tqdm(
-                    pool.imap_unordered(_stick_ruptures_in_bins,
-                                        bin_rup_chunk)):
+            pool = Pool(min(n_procs, len(bin_rup_chunk)))
+            for r in tqdm(pool.imap_unordered(_stick_ruptures_in_bins,
+                                              bin_rup_chunk),
+                          total=n_procs):
                 pool_result.append(r)
                 r = 0
             del bin_rup_chunk
@@ -527,7 +534,14 @@ def _chunk_rupture_groups(rupture_groups: dict, n_chunks: int):
 
     logging.info(f'pool sums: {chunk_sums}')
 
-    return rup_chunks
+    trimmed_chunks = []
+    for i, chunk in enumerate(rup_chunks):
+        if chunk_sums[i] != 0:
+            trimmed_chunks.append(chunk)
+
+    rup_chunks = trimmed_chunks
+
+    return rup_chunks, chunk_sums[chunk_sums > 0]
 
 
 def _add_rups_to_sbin(ruptures, sbin):
