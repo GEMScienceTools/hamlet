@@ -450,164 +450,36 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
         GeoPandas/Shapely geometry and a `SpacemagBin` column that has a
         :class:`SpacemagBin` object.
 
-    :param parallel:
-
-        Boolean flag to perform the magnitude binning of the earthquakes in
-        parallel. Currently not implemented.
-
     :Returns:
         `None`.
     """
-    parallel = False
-
-    n_procs = n_procs or _n_procs
-
     logger.info('    adding ruptures to bins')
-    if (parallel is False) or (n_procs == 1):
-        #_ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
 
-        bin_edges = bin_gdf.iloc[0].SpacemagBin.get_bin_edges()
-        bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+    bin_edges = bin_gdf.iloc[0].SpacemagBin.get_bin_edges()
+    bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
 
-        logging.info('\tgetting mag bin vals')
-        rupture_gdf['mag_r'] = pd.cut(list(
-            map(lambda r: r.mag, rupture_gdf['rupture'])),
-                                      bin_edges,
-                                      labels=bin_centers)
+    logging.info('\tgetting mag bin vals')
+    rupture_gdf['mag_r'] = pd.cut(list(
+        map(lambda r: r.mag, rupture_gdf['rupture'])),
+                                  bin_edges,
+                                  labels=bin_centers)
 
-        rup_groups = rupture_gdf.groupby(['bin_id'])
+    rup_groups = rupture_gdf.groupby(['bin_id'])
 
-        pbar = tqdm(total=len(rupture_gdf))
+    pbar = tqdm(total=len(rupture_gdf))
 
-        for (bin_id, rup_group) in rup_groups:
-            sbin = bin_gdf.loc[bin_id, 'SpacemagBin']
+    for (bin_id, rup_group) in rup_groups:
+        sbin = bin_gdf.loc[bin_id, 'SpacemagBin']
 
-            mag_groups = rup_group.groupby('mag_r')
+        mag_groups = rup_group.groupby('mag_r')
 
-            for mag_bin, mag_group in mag_groups:
-                sbin.mag_bins[mag_bin].ruptures.extend(
-                    mag_group['rupture'].values)
-            pbar.update(len(rup_group))
+        for mag_bin, mag_group in mag_groups:
+            sbin.mag_bins[mag_bin].ruptures.extend(mag_group['rupture'].values)
+        pbar.update(len(rup_group))
 
-        pbar.close()
-        logging.info('\tdone adding ruptures to bins')
-        return
-
-    else:
-
-        # terrible hack to reduce ram use
-        n_pools = n_pools or max(1, len(rupture_gdf.index) // int(1e5))
-
-        bin_idx = bin_gdf.index.to_list()
-        rup_groups = rupture_gdf.groupby(['bin_id'])
-
-        def _make_srd(idx):
-            return {
-                'sbin': bin_gdf.loc[idx, 'SpacemagBin'],
-                'ruptures': rup_groups.get_group(idx)
-            }
-
-        sbin_rup_dict = {idx: _make_srd(idx) for idx in bin_idx}
-
-        bin_rup_chunks, psums = _chunk_rupture_groups(sbin_rup_dict, n_pools)
-
-        del rup_groups
-        del rupture_gdf
-        del sbin_rup_dict
-        del bin_gdf['SpacemagBin']
-
-        pool_result = []
-
-        logging.info('    Processing pool chunks')
-        for i in range(n_pools):
-            bin_rup_chunk = bin_rup_chunks[i]
-            pool = Pool(min(n_procs, len(bin_rup_chunk)))
-            for r in tqdm(pool.imap_unordered(_stick_ruptures_in_bins,
-                                              bin_rup_chunk),
-                          total=n_procs):
-                pool_result.append(r)
-                r = 0
-            del bin_rup_chunk
-            bin_rup_chunks[i] = 0
-            pool.close()
-            pool.join()
-            logging.info(f'    Done with pool chunk {i+1}/{n_pools}')
-
-        del bin_rup_chunks
-
-        bin_list = []
-        for bidx in bin_idx:
-            for sbin in pool_result:
-                if sbin.bin_id == bidx:
-                    bin_list.append(sbin)
-
-        bin_gdf['SpacemagBin'] = bin_list
-
-
-def _chunk_rupture_groups(rupture_groups: dict, n_chunks: int):
-
-    rup_chunks = [list() for i in range(n_chunks)]
-    chunk_sums = np.zeros(n_chunks, dtype=int)
-
-    group_lens = [(idx, len(rg['ruptures']))
-                  for idx, rg in rupture_groups.items()]
-
-    group_lens = sorted(group_lens, key=lambda pair: pair[1], reverse=True)
-
-    for (idx, length) in group_lens:
-        min_bin = np.argmin(chunk_sums)
-        rup_chunks[min_bin].append(rupture_groups[idx])
-        chunk_sums[min_bin] += length
-
-    logging.info(f'pool sums: {chunk_sums}')
-
-    trimmed_chunks = []
-    for i, chunk in enumerate(rup_chunks):
-        if chunk_sums[i] != 0:
-            trimmed_chunks.append(chunk)
-
-    rup_chunks = trimmed_chunks
-
-    return rup_chunks, chunk_sums[chunk_sums > 0]
-
-
-def _add_rups_to_sbin(ruptures, sbin):
-    def _add_rup_to_sbin(rup, sbin=sbin):
-        nearest_bc = _nearest_bin(rup.mag, sbin.mag_bin_centers)
-        sbin.mag_bins[nearest_bc].ruptures.append(rup)
-
-    _ = deque(map(_add_rup_to_sbin, ruptures['rupture']))
-
-
-def _stick_ruptures_in_bins(bin_rup: dict):
-
-    sbin: SpacemagBin = bin_rup['sbin']
-    rups = bin_rup['ruptures']
-
-    if sbin.bin_id != rups.iloc[0]['bin_id']:
-        raise Exception('Bin/rupture mismatch')
-
-    _add_rups_to_sbin(rups, sbin)
-    del rups
-    return sbin
-
-
-def _bin_row(row, bdf=None):
-    #if not np.isnan(row.bin_id):
-    spacemag_bin = bdf.loc[row.bin_id]
-    nearest_bc = _nearest_bin(row.rupture.mag, spacemag_bin.mag_bin_centers)
-    spacemag_bin.mag_bins[nearest_bc].ruptures.append(row.rupture)
-
-
-def _bin_row_apply(bin_rup):
-    bin_gdf = bin_rup[0]
-    rup_gdf = bin_rup[1]
-    #group_num = bin_rup[2]
-    #logger.info(f'\tstarting to bin group {group_num}')
-    _ = rup_gdf.apply(_bin_row, bdf=bin_gdf, axis=1)
-    del bin_rup, _
-    #logger.info(f'\tfinished binning group {group_num}')
-    return bin_gdf
+    pbar.close()
+    logging.info('\tdone adding ruptures to bins')
+    return
 
 
 def _parse_eq_time(
