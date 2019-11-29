@@ -458,12 +458,39 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
     :Returns:
         `None`.
     """
+    parallel = False
 
     n_procs = n_procs or _n_procs
 
     logger.info('    adding ruptures to bins')
     if (parallel is False) or (n_procs == 1):
-        _ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
+        #_ = rupture_gdf.apply(_bin_row, bdf=bin_gdf['SpacemagBin'], axis=1)
+
+        bin_edges = bin_gdf.iloc[0].SpacemagBin.get_bin_edges()
+        bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+
+        logging.info('\tgetting mag bin vals')
+        rupture_gdf['mag_r'] = pd.cut(list(
+            map(lambda r: r.mag, rupture_gdf['rupture'])),
+                                      bin_edges,
+                                      labels=bin_centers)
+
+        rup_groups = rupture_gdf.groupby(['bin_id'])
+
+        pbar = tqdm(total=len(rupture_gdf))
+
+        for (bin_id, rup_group) in rup_groups:
+            sbin = bin_gdf.loc[bin_id, 'SpacemagBin']
+
+            mag_groups = rup_group.groupby('mag_r')
+
+            for mag_bin, mag_group in mag_groups:
+                sbin.mag_bins[mag_bin].ruptures.extend(
+                    mag_group['rupture'].values)
+            pbar.update(len(rup_group))
+
+        pbar.close()
+        logging.info('\tdone adding ruptures to bins')
         return
 
     else:

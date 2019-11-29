@@ -111,9 +111,10 @@ class SpacemagBin():
         }
 
     def get_bin_edges(self):
-        bin_left_edges = [mb.bin_min for mb in self.mag_bins.values()]
-        edges = bin_left_edges.append(self.mag_bin_centers[-1] +
-                                      self.bin_width / 2.)
+        edges = [mb.bin_min for mb in self.mag_bins.values()]
+
+        edges.append(self.mag_bin_centers[-1] + self.bin_width / 2.)
+
         return edges
 
     def to_dict(self):
