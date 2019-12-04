@@ -503,9 +503,9 @@ def _parse_eq_time(
         time_string = str()
         for i, tc in enumerate(time_cols):
             if i < 2:
-                time_string += str(eq[tc]) + "-"
+                time_string += str(int(eq[tc])) + "-"
             elif i == 2:
-                time_string += str(eq[tc]) + " "
+                time_string += str(int(eq[tc])) + " "
             else:
                 time_string += str(eq[tc]) + ":"
 
