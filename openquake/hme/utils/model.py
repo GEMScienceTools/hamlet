@@ -5,7 +5,7 @@ import glob
 import numpy
 import pickle
 import logging
-#from rtree import index
+from rtree import index
 
 from openquake.hazardlib.pmf import PMF
 from openquake.hazardlib.mfd import TruncatedGRMFD, EvenlyDiscretizedMFD
