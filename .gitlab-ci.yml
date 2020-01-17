@@ -44,3 +44,4 @@ pages:
       - public
   only:
     - master
+    - docs
