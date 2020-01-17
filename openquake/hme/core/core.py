@@ -196,9 +196,7 @@ def load_inputs(cfg: dict):
         sum(rupture_gdf.memory_usage(index=True, deep=True)) * 1e-9))
 
     logger.info('adding ruptures to bins')
-    add_ruptures_to_bins(rupture_gdf,
-                         bin_gdf,
-                         parallel=cfg['config']['parallel'])
+    add_ruptures_to_bins(rupture_gdf, bin_gdf)
 
     del rupture_gdf
 

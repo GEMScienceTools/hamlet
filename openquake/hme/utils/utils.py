@@ -428,30 +428,23 @@ def make_bin_gdf_from_rupture_gdf(rupture_gdf: gpd.GeoDataFrame,
 
 
 def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
-                         bin_gdf: gpd.GeoDataFrame,
-                         parallel: bool = True,
-                         n_pools: Optional[int] = None,
-                         n_procs: Optional[int] = None) -> None:
+                         bin_gdf: gpd.GeoDataFrame) -> None:
     """
     Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
     list that is an attribute of each :class:`SpacemagBin` based on location and
-    magnitude. The spatial binning is performed through a left join via
-    GeoPandas, and should use RTree if available for speed. This function
-    modifies both GeoDataFrames in memory and does not return any value.
+    magnitude. This function modifies both GeoDataFrames in memory and does not
+    return any value.
 
-    :param rupture_gdf:
-        GeoDataFrame of ruptures; this should have two columns, one of them
-        being the `rupture` column with the :class:`Rupture` object, and the
-        other being the `geometry` column, with a GeoPandas/Shapely geometry
-        class.
+    :param rupture_gdf: GeoDataFrame of ruptures; this should have two columns,
+        one of them being the `rupture` column with the :class:`Rupture` object,
+        and the other being the `geometry` column, with a GeoPandas/Shapely
+        geometry class.
 
-    :param bin_gdf:
-        GeoDataFrame of the bins. This should have a `geometry` column with a
-        GeoPandas/Shapely geometry and a `SpacemagBin` column that has a
-        :class:`SpacemagBin` object.
+    :param bin_gdf: GeoDataFrame of the bins. This should have a `geometry`
+        column with a GeoPandas/Shapely geometry and a `SpacemagBin` column that
+        has a :class:`SpacemagBin` object.
 
-    :Returns:
-        `None`.
+    :Returns: `None`.
     """
     logger.info('    adding ruptures to bins')
 
