@@ -24,8 +24,8 @@ Additionally, unlike some other hazard model testing frameworks, Hamlet is
 designed to operate on separate components of a hazard model, so that each
 component can be evaluated against its corresponding data. For example, each
 branch of a source model logic tree can be tested independently, and each type
-of source (e.g., megathrust, crustal, in-slab) can be tested independently as
-well, in the spatial framework described above.
+of source (e.g., subduction megathrust, crustal, in-slab) can be tested
+independently as well, in the spatial framework described above.
 
 Quickstart
 ==========
@@ -71,7 +71,8 @@ to run. Once installed, Hamlet can be run from the command line::
 model, seismic catalog, tests to be run, and other variables and parameters.
 
 
-
+Documentation
+=============
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

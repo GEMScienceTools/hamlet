@@ -17,11 +17,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Hamlet'
-copyright = '2019, Richard Styron (GEM Foundation)'
+copyright = '2019-202, Richard Styron (GEM Foundation)'
 author = 'Richard Styron (GEM Foundation)'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
+release = '0.2.0'
 
 # -- General configuration ---------------------------------------------------
 
