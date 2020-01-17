@@ -56,6 +56,7 @@ def plot_mfd(model: Optional[dict] = None,
 
 
 def plot_likelihood_map(bin_gdf: GeoDataFrame,
+                        plot_eqs: bool = True,
                         eq_gdf: Optional[GeoDataFrame] = None):
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
@@ -73,13 +74,14 @@ def plot_likelihood_map(bin_gdf: GeoDataFrame,
     world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
     world.plot(ax=ax, color='none', edgecolor='black')
 
-    if eq_gdf is not None:
-        ax.scatter(eq_gdf.longitude,
-                   eq_gdf.latitude,
-                   s=(eq_gdf.magnitude**3) / 10.,
-                   edgecolor='blue',
-                   facecolors='none',
-                   alpha=0.3)
+    if plot_eqs is True:
+        if eq_gdf is not None:
+            ax.scatter(eq_gdf.longitude,
+                       eq_gdf.latitude,
+                       s=(eq_gdf.magnitude**3) / 10.,
+                       edgecolor='blue',
+                       facecolors='none',
+                       alpha=0.3)
 
     ax.set_xlim(x_lims)
     ax.set_ylim(y_lims)
