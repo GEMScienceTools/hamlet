@@ -5,3 +5,4 @@ descartes
 pytest
 sphinx
 h3
+tqdm
