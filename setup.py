@@ -14,11 +14,11 @@ from setuptools import find_packages, setup, Command
 # Package meta-data.
 NAME = 'openquake.hme'
 DESCRIPTION = 'Hamlet: Hazard model evaluation and testing'
-URL = 'https://github.com/cossatot/hz_testing'
-EMAIL = 'richard.h.styron@gmail.com'
+URL = 'https://gitlab.com/cossatot/hamlet'
+EMAIL = 'richard.styron@globbalquakemodel.org'
 AUTHOR = 'Richard Styron, GEM Foundation'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
