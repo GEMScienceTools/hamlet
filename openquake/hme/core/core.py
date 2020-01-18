@@ -1,6 +1,14 @@
+"""
+Core functions for running Hamlet.
+
+The functions here read the configuration file, then load all of the model
+inputs (seismic sources, observed earthquake catalog, etc.), run the tests, and
+write the output.
+"""
+
 import time
 import logging
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 import yaml
 import numpy as np
@@ -57,7 +65,6 @@ def _fill_necessary_fields(cfg: dict):
     """
     Fills the configuration dictionary with `None` types for optional
     parameters that were not included in the YAML file.
-
     """
     # to fill in as necessary (oh god that comment)
 
@@ -77,8 +84,13 @@ def _fill_necessary_fields(cfg: dict):
 
 
 def get_test_list_from_config(cfg: dict) -> list:
-    # some ordering would be nice
+    """
+    Reads through the `cfg` and makes a list of tests or evaluations to run.
 
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
+    """
     logger.info('getting tests from config')
 
     test_names = list(cfg['config']['tests'].keys())
@@ -96,6 +108,18 @@ input processing
 
 
 def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
+    """
+    Loads the observed earthquake catalog into a `GeoDataFrame` that has all of
+    the earthquakes processed into :class:`~openquake.hme.utils.Earthquake`
+    objects.
+
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
+
+    :returns:
+        :class:`GeoDataFrame`
+    """
 
     logger.info('making earthquake GDF from seismic catalog')
 
@@ -117,8 +141,9 @@ def make_bin_gdf(cfg: dict) -> GeoDataFrame:
     passing the required parameters from the configuration dictionary to the
     :func:`~openquake.hme.utils.make_SpacemagBins_from_bin_gis_file` function.
 
-    :param cfg: Configuration for the test, such as that parsed from the YAML
-        config file when running model tests.
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
 
     :returns: A GeoDataFrame of the SpacemagBins.
     """
@@ -143,8 +168,8 @@ def load_ruptures_from_ssm(cfg: dict):
     dictionary, as from a test configuration file.
 
     :param cfg:
-        Configuration for the test, such as that parsed from the YAML
-        config file when running model tests.
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
 
     :returns:
         A GeoDataFrame of the ruptures.
@@ -175,7 +200,15 @@ def load_ruptures_from_ssm(cfg: dict):
     return rupture_gdf
 
 
-def load_inputs(cfg: dict):
+def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
+    """
+    Loads all of the inputs specified by the `cfg` and returns a tuple of
+    :class:`GeoDataFrame` objects, the earthquake catalog and the bins.
+
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
+    """
 
     # TODO: figure out whether to load EQs based on which tests to run
 
@@ -216,7 +249,18 @@ running tests
 """
 
 
-def run_tests(cfg: dict):
+def run_tests(cfg: dict) -> None:
+    """
+    Main Hamlet function.
+
+    This function reads the `cfg`, loads all of the inputs, runs the
+    evaluations, and then writes the ouputs.
+
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
+
+    """
 
     t_start = time.time()
 
@@ -266,7 +310,23 @@ output processing
 """
 
 
-def write_outputs(cfg: dict, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
+def write_outputs(cfg: dict, bin_gdf: GeoDataFrame,
+                  eq_gdf: GeoDataFrame) -> None:
+    """
+    Writes output GIS files and plots (i.e., maps or MFD plots.)
+
+    All of the options for what to write are specified in the `cfg`.
+
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
+
+    :param bin_gdf:
+        :class:`GeoDataFrame` with the spatial bins for testing
+
+    :param eq_gdf:
+        :class:`GeoDataFrame` with the observed earthquake catalog.
+    """
 
     logger.info('writing outputs')
 
@@ -284,7 +344,22 @@ def write_outputs(cfg: dict, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame):
 def write_reports(cfg: dict,
                   results: dict,
                   bin_gdf: Optional[GeoDataFrame] = None,
-                  eq_gdf: Optional[GeoDataFrame] = None):
+                  eq_gdf: Optional[GeoDataFrame] = None) -> None:
+    """
+    Writes reports summarizing the results of the tests and evaluations.
+
+    All of the options for what to write are specified in the `cfg`.
+
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
+
+    :param bin_gdf:
+        :class:`GeoDataFrame` with the spatial bins for testing
+
+    :param eq_gdf:
+        :class:`GeoDataFrame` with the observed earthquake catalog.
+    """
     logger.info('writing reports')
 
     if 'basic' in cfg['report'].keys():

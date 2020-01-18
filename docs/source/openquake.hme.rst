@@ -8,6 +8,7 @@ Subpackages
 
    openquake.hme.core
    openquake.hme.model_test_frameworks
+   openquake.hme.reporting
    openquake.hme.utils
 
 Module contents

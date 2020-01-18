@@ -30,6 +30,9 @@ _n_procs = max(1, os.cpu_count() - 1)
 
 
 class TqdmLoggingHandler(logging.Handler):
+    """
+    Class to help `tqdm` log to both a log file and print to the screen.
+    """
     def __init__(self, level=logging.NOTSET):
         super().__init__(level=level)
 
@@ -44,6 +47,7 @@ class TqdmLoggingHandler(logging.Handler):
             self.handleError(record)
 
 
+# config logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.addHandler(TqdmLoggingHandler())
@@ -54,6 +58,35 @@ def parallelize(data,
                 cores: int = _n_procs,
                 partitions: int = _n_procs * 10,
                 **kwargs):
+    """
+    Function to execute the function `func` in parallel over the collection of
+    `data` using the Python multiprocessing (`imap`) functionality.  The
+    function splits the data into 10 times the number of (virtual) cores by
+    default (though this can be changed), runs the `func` over each of those
+    partitions, and then reassembles it. This assumes the data was (or will be)
+    in a Pandas dataframe.
+
+    :param data: Collection of data which will be the argument to the function
+        `func`. Should be a collection that is `numpy`-suitable such as an
+        array, list, or Pandas dataframe.
+
+    :param func: Function object that will be run over the data.
+
+    :cores: Number of virtual cores (i.e., simultaneous processes) to be run.
+        Defaults to the number of cores detected by `os.cpu_count()` minus 1,
+        unless the system only has 1 core, and then 1 core will be used.
+
+    :param partitions:
+        Number of chunks that the data should be split into.  Defaults to 10
+        times the number of virtual cores (minus 1) on the system.
+
+    :param kwargs:
+        Keyword arguments to be passed to `func`.
+
+    :returns:
+        Pandas DataFrame with all of the results from `func`.
+    """
+
     data_split = np.array_split(data, partitions)
     pool = Pool(cores)
     result = pd.concat(pool.imap(partial(func, **kwargs), data_split))
@@ -64,7 +97,7 @@ def parallelize(data,
 
 def flatten_list(lol: List[list]) -> list:
     """
-    Flattens a list of lists (lol).  
+    Flattens a list of lists (lol).
 
     >>> flatten_list([['l'], ['o', 'l']])
     ['l', 'o', 'l']
@@ -101,7 +134,7 @@ def rupture_dict_from_logic_tree_dict(
     :param parallel:
         Flag to use a parallel input method (parallelizing with each source
         branch). Defaults to `True`.
-    
+
     :param n_procs:
         Number of parallel processes. If `None` is passed, it defaults to
         `os.cpu_count() -1`. Only used if `parallel` is `True`.
@@ -329,6 +362,10 @@ def rupture_list_from_source_list_parallel(
 
 
 def _add_rupture_geom(df):
+    """
+    Makes a `Point` object of the the hypocenter of each rupture in the
+    dataframe.
+    """
     return df.apply(lambda z: Point(z.rupture.hypocenter.longitude, z.rupture.
                                     hypocenter.latitude),
                     axis=1)
@@ -374,6 +411,14 @@ def _h3_bin_from_rupture(rupture: Union[SimpleRupture,
                                         NonParametricProbabilisticRupture,
                                         ParametricProbabilisticRupture],
                          res: int = 3) -> str:
+    """
+    Returns the hexadecimal string that is the index of the `h3` spatial bin
+    which contains the hypocenter of the `rupture` at the given level of
+    resolution (`res`).
+
+    See the documentation for `h3` (https://uber.github.io/h3/) for more
+    information.
+    """
 
     return h3.geo_to_h3(rupture.hypocenter.latitude,
                         rupture.hypocenter.longitude, res)
@@ -387,6 +432,42 @@ def make_bin_gdf_from_rupture_gdf(
         min_mag: Optional[float] = 6.,
         max_mag: Optional[float] = 9.,
         bin_width: Optional[float] = 0.2) -> gpd.GeoDataFrame:
+    """
+    Takes all of the ruptures, finds the `h3` spatial bins for each, and then
+    makes a new `GeoDataFrame` of all of the spatial bins, with
+    :class:`~openquake.hme.utils.bins.SpacemagBin` initialized for each of the
+    bins.
+
+    :param rupture_gdf:
+        `GeoDataFrame` with all of the ruptures.
+
+    :param res:
+        Resolution for the `h3` bins (spatial cells). See
+        https://uber.github.io/h3/#/ for more information. Defaults to "3",
+        which seems good for earthquake analysis. Larger numbers are smaller
+        grid cells.
+
+    :param parallel:
+        Boolean flag determining whether to find the spatial indices of the
+        ruptures in parallel or not. The parallel algorithm has a lot of
+        overhead and will be slower with a relatively low number of
+        ruptures (hundreds of thousands or so, depending on the computer).
+
+    :param n_procs:
+        Number of simultaneous processes run if `parallel` is `True`. Defaults
+        to os.cpu_count() - 1 for multicore systems.
+
+    :param min_mag:
+        Minimum magnitude of the :class:`~openquake.hme.utils.bins.SpacemagBin`
+
+    :param max_mag:
+        Maximum magnitude of the :class:`~openquake.hme.utils.bins.SpacemagBin`
+
+    :param bin_width:
+        Width of the :class:`~openquake.hme.utils.bins.SpacemagBin` bins in
+        magnitude units.
+
+    """
 
     n_procs = n_procs or _n_procs
 

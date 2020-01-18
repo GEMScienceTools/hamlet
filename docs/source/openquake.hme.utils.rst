@@ -36,6 +36,14 @@ openquake.hme.utils.moment\_tensor module
    :undoc-members:
    :show-inheritance:
 
+openquake.hme.utils.plots module
+--------------------------------
+
+.. automodule:: openquake.hme.utils.plots
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 openquake.hme.utils.simple\_rupture module
 ------------------------------------------
 
