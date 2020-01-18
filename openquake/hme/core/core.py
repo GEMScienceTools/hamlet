@@ -14,7 +14,7 @@ from openquake.hme.utils import (make_SpacemagBins_from_bin_gis_file,
                                  add_earthquakes_to_bins,
                                  make_earthquake_gdf_from_csv,
                                  make_bin_gdf_from_rupture_gdf)
-from openquake.hme.utils.reporting import generate_basic_report
+from openquake.hme.reporting import generate_basic_report
 
 from openquake.hme.model_test_frameworks.gem.gem_tests import gem_test_dict
 from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict

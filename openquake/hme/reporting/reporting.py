@@ -1,3 +1,8 @@
+"""
+Functionality for writing reports demonstrating the results of the Hamlet
+testing.
+"""
+
 import os
 from typing import Optional
 
@@ -22,6 +27,18 @@ def generate_basic_report(cfg: dict,
                           results: dict,
                           bin_gdf: Optional[GeoDataFrame] = None,
                           eq_gdf: Optional[GeoDataFrame] = None) -> None:
+    """
+    Generates an HTML report with the results of the various evaluations or
+    tests performed by Hamlet.
+
+    :param cfg:
+        Configuration from parsed yaml file.
+
+    :type cfg:
+        `dict`
+
+    """
+
     env = _init_env()
     report_template = env.get_template('basic_report.html')
 
