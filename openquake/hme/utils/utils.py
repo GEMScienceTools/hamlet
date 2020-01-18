@@ -73,11 +73,11 @@ def flatten_list(lol: List[list]) -> list:
     return [item for sublist in lol for item in sublist]
 
 
-def rupture_dict_from_logic_tree_dict(logic_tree_dict: dict,
-                                      simple_ruptures: bool = True,
-                                      parallel: bool = True,
-                                      n_procs: Optional[int] = _n_procs
-                                      ) -> dict:
+def rupture_dict_from_logic_tree_dict(
+        logic_tree_dict: dict,
+        simple_ruptures: bool = True,
+        parallel: bool = True,
+        n_procs: Optional[int] = _n_procs) -> dict:
     """
     Creates a dictionary of ruptures from a dictionary representation of a 
     logic tree (as produced by
@@ -269,10 +269,10 @@ def _chunk_source_list(sources: list,
     return (source_chunks, chunk_sums.tolist())
 
 
-def rupture_list_from_source_list_parallel(source_list: list,
-                                           simple_ruptures: bool = True,
-                                           n_procs: Optional[int] = _n_procs
-                                           ) -> list:
+def rupture_list_from_source_list_parallel(
+        source_list: list,
+        simple_ruptures: bool = True,
+        n_procs: Optional[int] = _n_procs) -> list:
     """
     Creates a list of ruptures from all of the sources within list,
     adding the `source_id` of each source to the rupture as an
@@ -334,15 +334,15 @@ def _add_rupture_geom(df):
                     axis=1)
 
 
-def rupture_list_to_gdf(rupture_list: list,
-                        gdf: bool = False,
-                        parallel: bool = True
-                        ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+def rupture_list_to_gdf(
+        rupture_list: list,
+        gdf: bool = False,
+        parallel: bool = True) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     """
     Creates a Pandas DataFrame or GeoPandas GeoDataFrame from a rupture list.
 
     :param rupture_list:
-        List of :class:`Rupture`s. 
+        List of :class:`~openquake.hme.utils.simple_rupture.SimpleRupture`.
 
     :param gdf:
         Boolean flag to determine whether output is GeoDataFrame (True)
@@ -351,7 +351,7 @@ def rupture_list_to_gdf(rupture_list: list,
     :returns:
         GeoDataFrame, with two columns, `rupture` which holds the
         :class:`Rupture` object, and `geometry` which has the geometry as a
-        Shapely :class:`Point` object.
+        Shapely :class:`~shapely.geometry.Point` object.
     """
     df = pd.DataFrame(index=range(len(rupture_list)),
                       data=rupture_list,
@@ -370,23 +370,23 @@ def rupture_list_to_gdf(rupture_list: list,
         return df
 
 
-def _h3_bin_from_rupture(
-        rupture: Union[SimpleRupture, NonParametricProbabilisticRupture,
-                       ParametricProbabilisticRupture],
-        res: int = 3) -> str:
+def _h3_bin_from_rupture(rupture: Union[SimpleRupture,
+                                        NonParametricProbabilisticRupture,
+                                        ParametricProbabilisticRupture],
+                         res: int = 3) -> str:
 
     return h3.geo_to_h3(rupture.hypocenter.latitude,
                         rupture.hypocenter.longitude, res)
 
 
-def make_bin_gdf_from_rupture_gdf(rupture_gdf: gpd.GeoDataFrame,
-                                  res: int = 3,
-                                  parallel: bool = True,
-                                  n_procs: Optional[int] = None,
-                                  min_mag: Optional[float] = 6.,
-                                  max_mag: Optional[float] = 9.,
-                                  bin_width: Optional[float] = 0.2
-                                  ) -> gpd.GeoDataFrame:
+def make_bin_gdf_from_rupture_gdf(
+        rupture_gdf: gpd.GeoDataFrame,
+        res: int = 3,
+        parallel: bool = True,
+        n_procs: Optional[int] = None,
+        min_mag: Optional[float] = 6.,
+        max_mag: Optional[float] = 9.,
+        bin_width: Optional[float] = 0.2) -> gpd.GeoDataFrame:
 
     n_procs = n_procs or _n_procs
 
@@ -431,7 +431,8 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
                          bin_gdf: gpd.GeoDataFrame) -> None:
     """
     Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
-    list that is an attribute of each :class:`SpacemagBin` based on location and
+    list that is an attribute of each
+    :class:`~openquake.hme.utils.bins.SpacemagBin` based on location and
     magnitude. This function modifies both GeoDataFrames in memory and does not
     return any value.
 
@@ -442,7 +443,7 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
 
     :param bin_gdf: GeoDataFrame of the bins. This should have a `geometry`
         column with a GeoPandas/Shapely geometry and a `SpacemagBin` column that
-        has a :class:`SpacemagBin` object.
+        has a :class:`~openquake.hme.utils.bins.SpacemagBin` object.
 
     :Returns: `None`.
     """
@@ -476,8 +477,8 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
 
 
 def _parse_eq_time(
-        eq,
-        time_cols: Union[List[str], Tuple[str], str, None] = None,
+    eq,
+    time_cols: Union[List[str], Tuple[str], str, None] = None,
 ) -> datetime.datetime:
     """
     Parses time information into a :class:`datetime.datetime` time.
@@ -677,13 +678,14 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
             pass
 
 
-def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
-                                        min_mag: Optional[float] = 6.,
-                                        max_mag: Optional[float] = 9.,
-                                        bin_width: Optional[float] = 0.2
-                                        ) -> gpd.GeoDataFrame:
+def make_SpacemagBins_from_bin_gis_file(
+        bin_filepath: str,
+        min_mag: Optional[float] = 6.,
+        max_mag: Optional[float] = 9.,
+        bin_width: Optional[float] = 0.2) -> gpd.GeoDataFrame:
     """
-    Creates a GeoPandas GeoDataFrame with :class:`SpacemagBins` that forms the
+    Creates a GeoPandas GeoDataFrame with
+    :class:`~openquake.hme.utils.bins.SpacemagBin` that forms the
     basis of most of the spatial hazard model testing.
 
     :param bin_filepath:
@@ -699,7 +701,8 @@ def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
         Width of earthquake/MFD bins.
 
     :returns:
-        GeoDataFrame with :class:`SpacemagBin`s as a column.
+        GeoDataFrame with 
+        :class:`~openquake.hme.utils.bins.SpacemagBin` as a column.
     """
 
     bin_gdf = gpd.read_file(bin_filepath)
@@ -709,13 +712,14 @@ def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
                                           bin_width=bin_width)
 
 
-def make_SpacemagBins_from_bin_gdf(bin_gdf: gpd.GeoDataFrame,
-                                   min_mag: Optional[float] = 6.,
-                                   max_mag: Optional[float] = 9.,
-                                   bin_width: Optional[float] = 0.2
-                                   ) -> gpd.GeoDataFrame:
+def make_SpacemagBins_from_bin_gdf(
+        bin_gdf: gpd.GeoDataFrame,
+        min_mag: Optional[float] = 6.,
+        max_mag: Optional[float] = 9.,
+        bin_width: Optional[float] = 0.2) -> gpd.GeoDataFrame:
     """
-    Creates a GeoPandas GeoDataFrame with :class:`SpacemagBins` that forms the
+    Creates a GeoPandas GeoDataFrame with
+    :class:`~openquake.hme.utils.bins.SpacemagBin` that forms the
     basis of most of the spatial hazard model testing.
 
     :param bin_filepath:
@@ -731,7 +735,8 @@ def make_SpacemagBins_from_bin_gdf(bin_gdf: gpd.GeoDataFrame,
         Width of earthquake/MFD bins.
 
     :returns:
-        GeoDataFrame with :class:`SpacemagBin`s as a column.
+        GeoDataFrame with
+        :class:`~openquake.hme.utils.bins.SpacemagBin` as a column.
     """
     def bin_to_mag(row):
         return SpacemagBin(row.geometry,
@@ -824,7 +829,7 @@ def sample_earthquakes(rupture: Union[ParametricProbabilisticRupture,
         Seed for random time generation.
 
     :returns:
-        List of :class:`Earthquake`s.
+        List of :class:`Earthquake`.
     """
 
     event_times = sample_event_times_in_interval(rupture.occurrence_rate,
@@ -849,6 +854,7 @@ def sample_earthquakes(rupture: Union[ParametricProbabilisticRupture,
 def mag_to_mo(mag: float, c: float = 9.05):
     """
     Scalar moment [in Nm] from moment magnitude
+
     :return:
         The computed scalar seismic moment
     """
@@ -858,6 +864,7 @@ def mag_to_mo(mag: float, c: float = 9.05):
 def mo_to_mag(mo: float, c: float = 9.05):
     """
     From moment magnitude to scalar moment [in Nm]
+
     :return:
         The computed magnitude
     """

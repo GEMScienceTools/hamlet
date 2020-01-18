@@ -171,7 +171,7 @@ def make_mfd_plot(sbin: SpacemagBin,
                   **kwargs):
     """
     :param save_fig:
-        Either the filename to save to, or 
+        Either the filename to save to, or specify `False`.
     """
     if model is True:
         mod_mfd = sbin.get_rupture_mfd(cumulative=True)

@@ -1,7 +1,7 @@
-hme
-===
+openquake
+=========
 
 .. toctree::
    :maxdepth: 4
 
-   hme
+   openquake

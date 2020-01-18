@@ -36,6 +36,33 @@ def add_slots(cls):
 @add_slots
 @dataclass
 class SimpleRupture:
+    """
+    Simplified class for ruptures, containing only the necessary parameters
+    for Hamlet.
+
+    :param strike:
+        Strike of rupture, in degrees.
+
+    :param dip:
+        Dip of rupture, in degrees.
+
+    :param rake:
+        Rake of rupture, in Aki and Richards convention.
+
+    :param mag:
+        Magnitude of rupture.
+
+    :param hypocenter:
+        Hypocenter of rupture (should be an 
+        :class:`openquake.hazardlib.geo.point.Point`) object.
+
+    :param occurrence_rate:
+        Annual occurrence rate of rupture, as a floating-point value.
+
+    :param source:
+        Name of seismic source (string), optional.
+
+    """
     strike: Optional[float] = None
     dip: Optional[float] = None
     rake: Optional[float] = None

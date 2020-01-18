@@ -34,7 +34,7 @@ Hamlet follows this work process:
 
 3. Sorts the ruptures from all sources by magnitude and into spatial bins:
 
-   - Makes :py:class:`openquake.hme.utils.SpacemagBin` class that holds
+   - Makes :class:`openquake.hme.utils.bins.SpacemagBin` class that holds
      ruptures, observed earthquakes, and both model and empirical
      Magnitude-Frequency distributions for each bin.
 
