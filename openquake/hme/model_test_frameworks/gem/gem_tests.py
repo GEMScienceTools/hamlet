@@ -23,7 +23,7 @@ def mfd_likelihood_test(cfg,
     the individual MagBin likelihoods, which themselves are the likelihood of
     observing the number of earthquakes within that spatial-magnitude bin given
     the total modeled earthquake rate (from all sources) within the
-    spatial-magnitude bin.  
+    spatial-magnitude bin.
 
     The likelihood calculation may be done using the Poisson distribution, if
     there is a basic assumption of Poissonian seismicity, or through a Monte
@@ -48,7 +48,25 @@ def mfd_empirical_likelihood_test(
         cfg,
         bin_gdf: Optional[GeoDataFrame] = None,
         obs_seis_catalog: Optional[GeoDataFrame] = None,
-        validate: bool = False):
+        validate: bool = False) -> None:
+    """
+    Calculates the (log)likelihood of observing the earthquakes in the seismic
+    catalog in each :class:`~openquake.hme.utils.bins.SpacemagBin` as the
+    geometric mean of the Poisson likelihoods of observing the earthquakes
+    within each :class:`~openquake.hme.utils.bins.MagBin` of the
+    :class:`~openquake.hme.utils.bins.SpacemagBin`.
+
+    The likelihoods are calculated using the empirical likelihood of observing
+    the number of events that occurred in each
+    :class:`~openquake.hme.utils.bins.MagBin` given the occurrence rate for 
+    that :class:`~openquake.hme.utils.bins.MagBin`. This is done through a Monte
+    Carlo simulation, which returns the fraction of the total Monte Carlo
+    samples had the same number of events as observed.
+
+    The likelihoods for each :class:`~openquake.hme.utils.bins.SpacemagBin` are
+    then log-transformed and appended as a new column to the `bin_gdf`
+    :class:`GeoDataFrame` hosting the bins.
+    """
 
     test_config = cfg['config']['tests']['likelihood']
     source_bin_gdf = get_source_bins(bin_gdf)
@@ -87,15 +105,32 @@ def mfd_poisson_likelihood_test(
         cfg,
         bin_gdf: Optional[GeoDataFrame] = None,
         obs_seis_catalog: Optional[GeoDataFrame] = None,
-        validate: bool = False):
+        validate: bool = False) -> None:
+    """
+    Calculates the (log)likelihood of observing the earthquakes in the seismic
+    catalog in each :class:`~openquake.hme.utils.bins.SpacemagBin` as the
+    geometric mean of the Poisson likelihoods of observing the earthquakes
+    within each :class:`~openquake.hme.utils.bins.MagBin` of the
+    :class:`~openquake.hme.utils.bins.SpacemagBin`.
+
+    The likelihoods are calculated using the Poisson likelihood of observing
+    the number of events that occurred in each
+    :class:`~openquake.hme.utils.bins.MagBin` given the occurrence rate for 
+    that :class:`~openquake.hme.utils.bins.MagBin`.  See
+    :func:`~openquake.hme.utils.stats.poisson_likelihood` for more information.
+
+    The likelihoods for each :class:`~openquake.hme.utils.bins.SpacemagBin` are
+    then log-transformed and appended as a new column to the `bin_gdf`
+    :class:`GeoDataFrame` hosting the bins.
+    """
 
     test_config = cfg['config']['tests']['likelihood']
     source_bin_gdf = get_source_bins(bin_gdf)
 
+    logging.info('calculating empirical MFDs for source bins')
+
     source_bin_mfds = source_bin_gdf['SpacemagBin'].apply(
         lambda x: x.get_rupture_mfd(cumulative=False))
-
-    logging.info('calculating empirical MFDs for source bins')
 
     def calc_row_log_like(row, mfd_df=source_bin_mfds):
         obs_eqs = row.SpacemagBin.observed_earthquakes
@@ -118,7 +153,7 @@ def mfd_poisson_likelihood_test(
 def model_mfd_test(cfg,
                    bin_gdf: Optional[GeoDataFrame] = None,
                    obs_seis_catalog: Optional[GeoDataFrame] = None,
-                   validate: bool = False):
+                   validate: bool = False) -> None:
 
     # calculate observed, model mfd for all bins
     # add together

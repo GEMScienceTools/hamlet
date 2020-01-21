@@ -67,8 +67,9 @@ to run. Once installed, Hamlet can be run from the command line::
 
     hamlet test_model.yml
 
-``test_model.yml`` is a YAML_ configuration file that specifies the source
-model, seismic catalog, tests to be run, and other variables and parameters.
+``test_model.yml`` is a :doc:`configuration file <yaml_config_file>` in YAML_
+format that specifies the source model, seismic catalog, tests to be run, and
+other variables and parameters.
 
 
 Documentation

@@ -8,7 +8,7 @@ earthquake catalog.
 
 Hamlet follows this work process:
 
-1. Read in YAML configuration file, that specifies:
+1. Read in :doc:`YAML configuration file <./yaml_config_file>`, that specifies:
 
    - Which tests to be run
 
@@ -20,11 +20,13 @@ Hamlet follows this work process:
 
      - Seismic catalog (observed earthquakes)
 
-     - GIS file of spatial bins
+     - GIS file of spatial bins (optional)
 
    - What to output:
 
-     - GIS files, etc.
+     - Reports
+
+     - GIS files
 
 2. Reads and process SSM:
 
@@ -34,7 +36,7 @@ Hamlet follows this work process:
 
 3. Sorts the ruptures from all sources by magnitude and into spatial bins:
 
-   - Makes :class:`openquake.hme.utils.bins.SpacemagBin` class that holds
+   - Makes :class:`~openquake.hme.utils.bins.SpacemagBin` class that holds
      ruptures, observed earthquakes, and both model and empirical
      Magnitude-Frequency distributions for each bin.
 

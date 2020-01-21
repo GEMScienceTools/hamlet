@@ -47,17 +47,6 @@ input:
             source: Agency
             event_id: eventID
 
-#output:
-#    bin_gdf:
-#        file: ./gem_sm1_poisson_likelihood_bins.geojson
-#    plots:
-#        kwargs:
-#            model: True
-#            observed: True
-#            observed_time: 40.
-#            return_fig: False
-#            return_string: True
-
 report:
     basic:
         outfile: outputs/sm1_poisson_report.html

@@ -1,3 +1,6 @@
+"""
+Utility functions for running tests in the GEM model test framework.
+"""
 from typing import Sequence, Dict, List
 
 import numpy as np
@@ -31,9 +34,9 @@ def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
     return mfd_freq_counts
 
 
-def get_stochastic_mfd_counts(spacemag_bin: SpacemagBin, n_iters: int,
-                              interval_length: float
-                              ) -> Dict[float, List[int]]:
+def get_stochastic_mfd_counts(
+        spacemag_bin: SpacemagBin, n_iters: int,
+        interval_length: float) -> Dict[float, List[int]]:
     """
     Builds a dictionary of stochastic earthquake counts from a SpacemagBin by
     iteratively sampling the bin and recording the number of events of each
@@ -54,10 +57,9 @@ def get_stochastic_mfd_counts(spacemag_bin: SpacemagBin, n_iters: int,
         number of occurrences (counts) of that magnitude for each iteration.
     """
 
-    mfd_counts: Dict[float, list] = {
-        bc: []
-        for bc in spacemag_bin.mag_bin_centers
-    }
+    mfd_counts: Dict[float,
+                     list] = {bc: []
+                              for bc in spacemag_bin.mag_bin_centers}
 
     for i in range(n_iters):
         for bc, n_eqs in spacemag_bin.get_rupture_sample_mfd(
@@ -67,9 +69,9 @@ def get_stochastic_mfd_counts(spacemag_bin: SpacemagBin, n_iters: int,
     return mfd_counts
 
 
-def get_stochastic_mfd(spacemag_bin: SpacemagBin, n_iters: int,
-                       interval_length: float
-                       ) -> Dict[float, Dict[float, float]]:
+def get_stochastic_mfd(
+        spacemag_bin: SpacemagBin, n_iters: int,
+        interval_length: float) -> Dict[float, Dict[float, float]]:
     """
     Builds an empirical, incremental magnitude-frequency distribution by
     stochastically sampling earthquake ruptures from a :class:`SpacemagBin`

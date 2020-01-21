@@ -9,6 +9,13 @@ def bin_observance_likelihood(num_events: int, bin_rate: float) -> float:
 
 
 def bin_observance_log_likelihood(num_events: int, bin_rate: float) -> float:
+    """
+    Calculates the log-likelihood of observing `num_events` in a bin given the
+    rate of those events occuring in the observation time period, `bin_rate`.
+    If the `bin_rate` = 0, and `num_events` is > 0, then negative infinity is
+    returned.
+    """
+
     if bin_rate == 0:
         return bin_observance_log_likelihood_zero_rate(num_events)
     else:
@@ -26,4 +33,12 @@ def bin_observance_log_likelihood_zero_rate(num_events: int) -> float:
 
 
 def model_log_likelihood(bin_event_counts, bin_rates):
+    """
+    Calculates the log-likelihood of a hazard model given the number of event
+    counts in each bin (a bin is a magnitude bin inside of a spatial bin or
+    cell) given the occurrence rates of earthquakes for that bin. 
+
+    The log-likehood for the model is the sum of the log-likelihoods for each
+    bin in the model (corresponding to the product of the likelihoods).
+    """
     return np.sum(bin_observance_log_likelihood(bin_event_counts, bin_rates))

@@ -93,7 +93,7 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
                             n_eqs: int,
                             time_interval: float = 1.,
                             not_modeled_val: float = 1e-5,
-                            likelihood_method='empirical') -> float:
+                            likelihood_method='poisson') -> float:
     """
     Shell function to calculate the likelihood of a magnitude bin given the
     observed earthquakes within the bin. Several methods exist for these
@@ -148,8 +148,7 @@ def calc_mfd_log_likelihood_independent(obs_eqs: dict,
                                         mfd: dict,
                                         time_interval: float = 1.,
                                         not_modeled_val: float = 1e-5,
-                                        likelihood_method='empirical'
-                                        ) -> float:
+                                        likelihood_method='poisson') -> float:
     """
     Calculation of the log-likelihood of observing earthquakes of a range of
     sizes in a spatial bin (containing many magnitude bins).

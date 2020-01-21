@@ -17,7 +17,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Hamlet'
-copyright = '2019-202, Richard Styron (GEM Foundation)'
+copyright = '2019-2020, Richard Styron (GEM Foundation)'
 author = 'Richard Styron (GEM Foundation)'
 
 # The full version, including alpha/beta/rc tags
@@ -32,6 +32,7 @@ extensions = [
     'sphinx.ext.autodoc',
     #'sphinx.ext.intersphinx',
     'recommonmark',
+    'sphinx.ext.mathjax',
 ]
 
 #intersphinx_mapping = {''}
