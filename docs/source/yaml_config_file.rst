@@ -11,6 +11,10 @@ location of the input files, and what outputs should be written.  The file is
 made into a dictionary that is used guide the Hamlet run. Therefore the order
 of items is not important.
 
+If different components of the model are to be evaluated (different logic tree
+branches, or different source model types, etc.) then a separate YAML file
+should be made for each logic tree branch and source model combination to be
+evaluated, as this will be done in separate Hamlet runs.
 
 A simple example of a yaml configuration file is given at the bottom of this
 page.

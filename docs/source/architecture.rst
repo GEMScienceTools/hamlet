@@ -52,6 +52,8 @@ Hamlet follows this work process:
 
 5. Print/write output.
 
+  - HTML reports summarizing the results
+
   - GIS files with the test results for each bin
 
   - CSV files of the total model and catalog (within the source bins) MFDs
