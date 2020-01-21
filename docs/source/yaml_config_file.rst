@@ -158,7 +158,7 @@ Sub-parameters:
 
 
 * ``source_types``
-    Thsi parameter is optional but specifies which source types are evaluated.
+    This parameter is optional but specifies which source types are evaluated.
     Options include ``simple_fault``, ``complex_fault``, ``area``, ``point``,
     and ``multipoint``.  As with the ``tectonic_region_types``, the values need
     to be passed as a YAML list, or the value of ``null`` should be given.
@@ -173,6 +173,71 @@ Sub-parameters:
 
 Observed earthquake catalog (``seis_catalog``)
 ----------------------------------------------
+
+This set of parameters determines how the seismic catalog will be found and
+parsed so that it can be compared to the source model.
+
+``seis_catalog_file``
+    This parameter gives the relative or absolute filepath and filename of the
+    CSV file that is the earthquake catalog.
+
+``columns``
+    This parameter gives a list of the expected column names with the names of
+    the columns in the CSV file. The first set of column names are optional,
+    with very common defaults, and only need to be put into the YAML file
+    if the names to do not correspond to the defaults.  If the earthquake
+    catalog is made from the ISC-GEM or the GEM toolkits, these columns
+    do not need to be given in the YAML file:
+
+    * ``x_col``
+        This defaults to ``longitude``.  If this column in the CSV is not
+        called ``longitude``, please pass the column name.
+
+    * ``y_col``
+        This defaults to ``latitude``.  If this is not the column name in the
+        CSV file, please pass the column name.
+
+    * ``depth``
+        This defaults to ``depth``. If this is not the column name in the
+        CSV file, please pass the column name.
+
+    * ``magnitude``
+        This defaults to ``magnitude``. If this is not the column name in the
+        CSV file, please pass the column name.
+
+    The following columns have no defaults; if they are to be used, they should
+    be set here:
+
+    * ``source``
+        This column specifies the institutional source of the earthquake, not
+        the geological source.  In the GEM catalogs, this is commonly
+        ``Agency``.
+
+    * ``event_id``
+        This is the ID of the earthquake.  In the GEM catalogs, this is
+        commonly ``eventID``.
+
+    And finally, a more complex column, which is actually a set of columns in
+    many seismic catalogs:
+
+    * ``time``
+        This sub-parameter is an ordered list of the columns specifying the time
+        components that are used to make a single time for the earthquake (this
+        is done by making a :class:`datetime.datetime` time object; please see
+        `dateutil <https://dateutil.readthedocs.io/en/stable/>`_ for more
+        information). For the typical GEM catalog, the time sub-parameter will
+        be specified like this:
+
+.. code-block:: yaml
+
+    time:
+        - year
+        - month
+        - day
+        - hour
+        - minute
+        - second
+
 
 
 
@@ -206,8 +271,35 @@ Sub-parameters:
     Minimum size of the model MFD to be considered. Defaults to 6.0.
 
 * ``mfd_bin_width``
-    Width of the bins for the MFD. Defaults to 0.2. Smaller bins may have issues
-    with lower-resolution source models or seismic catalogs.
+    Width of the bins for the MFD. Defaults to 0.2. Narrower bins may have
+    issues with lower-resolution source models or seismic catalogs.
+
+.. _report:
+
+Reporting
+=========
+
+This optional section describes how reports (listing the results of the
+evaluations) will be written. Currently there is only one option, the ``basic``
+HTML report. This report will aggregate all of the tests or evaluations
+performed and summarize them, either in a map, plot, or table.
+
+It is suggested to use this option instead of writing plots directly
+either through the ``model_mfd`` test configuration, or the ``output``
+configuration below, as it is a nicer summary.  However if one has specific
+goals, then those other options may be used.
+
+To write the basic HTML report, put this section in the YAML:
+
+.. code-block:: yaml
+
+    report:
+        basic:
+            outfile: /path/to/file.html
+
+In the future, more types of reports may be generated, but this is sufficient
+for now.
+
 
 
 .. _output:
@@ -215,10 +307,29 @@ Sub-parameters:
 Outputs
 =======
 
-.. _report:
+This optional section specifies writing other outputs than reports (plots or GIS
+files). This option can give more fine-grained control over the outputs than the
+``report`` option, at this time. However the results are less convenient than
+writing a report.
 
-Reporting
-=========
+Parameters:
+
+``bin_gdf``
+    If this parameter is passed, a GeoJSON file will be written that contains
+    much of the information in the Hamlet evaluation, including test results,
+    for each spatial bin.  The filename to be used is given with a sub-parameter
+    ``file``:
+
+.. code-block:: yaml
+
+    bin_gdf:
+        file: /path/to/file.geojson
+
+
+``plots``
+    This is a parameter (that may be soon deprecated) describing how an MFD plot
+    should be written.  It can offer more control than the other options,
+    but is not not thoroughly documented at this time.
 
 
 Putting it all together
