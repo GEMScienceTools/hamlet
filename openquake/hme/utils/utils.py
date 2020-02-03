@@ -17,7 +17,8 @@ import geopandas as gpd
 from h3 import h3
 from tqdm import tqdm, trange
 from shapely.geometry import Point, Polygon
-from openquake.hazardlib.source import MultiPointSource
+from openquake.hazardlib.source.rupture_collection import split
+from openquake.hazardlib.source import MultiPointSource, ComplexFaultSource
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture, ParametricProbabilisticRupture)
 
@@ -106,11 +107,11 @@ def flatten_list(lol: List[list]) -> list:
     return [item for sublist in lol for item in sublist]
 
 
-def rupture_dict_from_logic_tree_dict(
-        logic_tree_dict: dict,
-        simple_ruptures: bool = True,
-        parallel: bool = True,
-        n_procs: Optional[int] = _n_procs) -> dict:
+def rupture_dict_from_logic_tree_dict(logic_tree_dict: dict,
+                                      simple_ruptures: bool = True,
+                                      parallel: bool = True,
+                                      n_procs: Optional[int] = _n_procs
+                                      ) -> dict:
     """
     Creates a dictionary of ruptures from a dictionary representation of a 
     logic tree (as produced by
@@ -270,6 +271,12 @@ def _chunk_source_list(sources: list,
         if isinstance(s, MultiPointSource):
             for ps in s:
                 sources_temp.append(ps)
+
+        # very slow
+        #elif isinstance(s, ComplexFaultSource):
+        #    for chunk in split(s, chunksize=s.count_ruptures() // n_chunks):
+        #        sources_temp.append(chunk)
+
         else:
             sources_temp.append(s)
 
@@ -302,10 +309,10 @@ def _chunk_source_list(sources: list,
     return (source_chunks, chunk_sums.tolist())
 
 
-def rupture_list_from_source_list_parallel(
-        source_list: list,
-        simple_ruptures: bool = True,
-        n_procs: Optional[int] = _n_procs) -> list:
+def rupture_list_from_source_list_parallel(source_list: list,
+                                           simple_ruptures: bool = True,
+                                           n_procs: Optional[int] = _n_procs
+                                           ) -> list:
     """
     Creates a list of ruptures from all of the sources within list,
     adding the `source_id` of each source to the rupture as an
@@ -371,10 +378,10 @@ def _add_rupture_geom(df):
                     axis=1)
 
 
-def rupture_list_to_gdf(
-        rupture_list: list,
-        gdf: bool = False,
-        parallel: bool = True) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+def rupture_list_to_gdf(rupture_list: list,
+                        gdf: bool = False,
+                        parallel: bool = True
+                        ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     """
     Creates a Pandas DataFrame or GeoPandas GeoDataFrame from a rupture list.
 
@@ -407,10 +414,10 @@ def rupture_list_to_gdf(
         return df
 
 
-def _h3_bin_from_rupture(rupture: Union[SimpleRupture,
-                                        NonParametricProbabilisticRupture,
-                                        ParametricProbabilisticRupture],
-                         res: int = 3) -> str:
+def _h3_bin_from_rupture(
+        rupture: Union[SimpleRupture, NonParametricProbabilisticRupture,
+                       ParametricProbabilisticRupture],
+        res: int = 3) -> str:
     """
     Returns the hexadecimal string that is the index of the `h3` spatial bin
     which contains the hypocenter of the `rupture` at the given level of
@@ -424,14 +431,14 @@ def _h3_bin_from_rupture(rupture: Union[SimpleRupture,
                         rupture.hypocenter.longitude, res)
 
 
-def make_bin_gdf_from_rupture_gdf(
-        rupture_gdf: gpd.GeoDataFrame,
-        res: int = 3,
-        parallel: bool = True,
-        n_procs: Optional[int] = None,
-        min_mag: Optional[float] = 6.,
-        max_mag: Optional[float] = 9.,
-        bin_width: Optional[float] = 0.2) -> gpd.GeoDataFrame:
+def make_bin_gdf_from_rupture_gdf(rupture_gdf: gpd.GeoDataFrame,
+                                  res: int = 3,
+                                  parallel: bool = True,
+                                  n_procs: Optional[int] = None,
+                                  min_mag: Optional[float] = 6.,
+                                  max_mag: Optional[float] = 9.,
+                                  bin_width: Optional[float] = 0.2
+                                  ) -> gpd.GeoDataFrame:
     """
     Takes all of the ruptures, finds the `h3` spatial bins for each, and then
     makes a new `GeoDataFrame` of all of the spatial bins, with
@@ -558,8 +565,8 @@ def add_ruptures_to_bins(rupture_gdf: gpd.GeoDataFrame,
 
 
 def _parse_eq_time(
-    eq,
-    time_cols: Union[List[str], Tuple[str], str, None] = None,
+        eq,
+        time_cols: Union[List[str], Tuple[str], str, None] = None,
 ) -> datetime.datetime:
     """
     Parses time information into a :class:`datetime.datetime` time.
@@ -707,7 +714,8 @@ def _nearest_bin(val, bin_centers):
 
 
 def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
-                            bin_df: gpd.GeoDataFrame) -> None:
+                            bin_df: gpd.GeoDataFrame,
+                            h3_res: int = 3) -> None:
     """
     Takes a GeoPandas GeoDataFrame of observed earthquakes (i.e., an
     instrumental earthquake catalog) and adds them to the ruptures
@@ -733,12 +741,15 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
 
     earthquake_gdf['Eq'] = earthquake_gdf.apply(_make_earthquake_from_row,
                                                 axis=1)
-    if earthquake_gdf.crs != bin_df.crs:
-        earthquake_gdf = earthquake_gdf.to_crs(bin_df.crs)
+    #if earthquake_gdf.crs != bin_df.crs:
+    #    earthquake_gdf = earthquake_gdf.to_crs(bin_df.crs)
+    #join_df = gpd.sjoin(earthquake_gdf, bin_df, how='left')
+    #earthquake_gdf['bin_id'] = join_df['index_right']
 
-    join_df = gpd.sjoin(earthquake_gdf, bin_df, how='left')
-
-    earthquake_gdf['bin_id'] = join_df['index_right']
+    earthquake_gdf['bin_id'] = [
+        h3.geo_to_h3(eq.latitude, eq.longitude, h3_res)
+        for eq in earthquake_gdf.Eq
+    ]
 
     for i, eq in earthquake_gdf.iterrows():
         try:
@@ -759,11 +770,11 @@ def add_earthquakes_to_bins(earthquake_gdf: gpd.GeoDataFrame,
             pass
 
 
-def make_SpacemagBins_from_bin_gis_file(
-        bin_filepath: str,
-        min_mag: Optional[float] = 6.,
-        max_mag: Optional[float] = 9.,
-        bin_width: Optional[float] = 0.2) -> gpd.GeoDataFrame:
+def make_SpacemagBins_from_bin_gis_file(bin_filepath: str,
+                                        min_mag: Optional[float] = 6.,
+                                        max_mag: Optional[float] = 9.,
+                                        bin_width: Optional[float] = 0.2
+                                        ) -> gpd.GeoDataFrame:
     """
     Creates a GeoPandas GeoDataFrame with
     :class:`~openquake.hme.utils.bins.SpacemagBin` that forms the
@@ -793,11 +804,11 @@ def make_SpacemagBins_from_bin_gis_file(
                                           bin_width=bin_width)
 
 
-def make_SpacemagBins_from_bin_gdf(
-        bin_gdf: gpd.GeoDataFrame,
-        min_mag: Optional[float] = 6.,
-        max_mag: Optional[float] = 9.,
-        bin_width: Optional[float] = 0.2) -> gpd.GeoDataFrame:
+def make_SpacemagBins_from_bin_gdf(bin_gdf: gpd.GeoDataFrame,
+                                   min_mag: Optional[float] = 6.,
+                                   max_mag: Optional[float] = 9.,
+                                   bin_width: Optional[float] = 0.2
+                                   ) -> gpd.GeoDataFrame:
     """
     Creates a GeoPandas GeoDataFrame with
     :class:`~openquake.hme.utils.bins.SpacemagBin` that forms the
