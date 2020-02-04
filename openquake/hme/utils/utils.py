@@ -834,7 +834,8 @@ def make_SpacemagBins_from_bin_gdf(bin_gdf: gpd.GeoDataFrame,
         return SpacemagBin(row.geometry,
                            bin_id=row._name,
                            min_mag=min_mag,
-                           max_mag=max_mag)
+                           max_mag=max_mag,
+                           bin_width=bin_width)
 
     bin_gdf['SpacemagBin'] = bin_gdf.apply(bin_to_mag, axis=1)
 

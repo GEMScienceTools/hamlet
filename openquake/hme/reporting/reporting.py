@@ -111,9 +111,17 @@ def render_likelihood(env: Environment,
     if 'plot_eqs' in cfg['report']['basic'].keys():
         plot_eqs = cfg['report']['basic']['plot_eqs']
     else:
-        plot_eqs = True
+        plot_eqs = False
 
-    likelihood_map_str = plot_likelihood_map(bin_gdf, plot_eqs, eq_gdf)
+    if 'map_epsg' in cfg['report']['basic'].keys():
+        map_epsg = cfg['report']['basic']['map_epsg']
+    else:
+        map_epsg = None
+
+    likelihood_map_str = plot_likelihood_map(bin_gdf,
+                                             plot_eqs=plot_eqs,
+                                             eq_gdf=eq_gdf,
+                                             map_epsg=map_epsg)
 
     likelihood_template = env.get_template('likelihood.html')
 
