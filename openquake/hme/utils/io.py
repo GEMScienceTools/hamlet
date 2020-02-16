@@ -196,5 +196,6 @@ def make_mfd_plot(sbin: SpacemagBin,
 
 
 def write_mfd_plots_to_gdf(bin_gdf: GeoDataFrame, **kwargs):
-    plot_series = bin_gdf['SpacemagBin'].apply(make_mfd_plot, **kwargs)
+    plot_series = bin_gdf['SpacemagBin'].apply(make_mfd_plot, 
+        model_iters=0, **kwargs)
     bin_gdf['mfd_plots'] = plot_series
