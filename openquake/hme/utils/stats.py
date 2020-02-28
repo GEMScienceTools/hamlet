@@ -7,6 +7,7 @@ from typing import Optional
 
 import numpy as np
 from scipy.special import gamma, factorial
+from scipy.optimize import minimize
 
 
 def sample_event_times_in_interval(
@@ -85,7 +86,7 @@ def negative_binomial_distribution(num_events: int, mean_rate: float,
 
     """
     if dispersion == 0.:
-        return poisson_likelihood(mean_rate, num_events)
+        return poisson_likelihood(num_events, mean_rate)
 
     r_disp = 1 / dispersion
 
@@ -96,6 +97,25 @@ def negative_binomial_distribution(num_events: int, mean_rate: float,
     term_3 = (1 + mean_rate * dispersion)**r_disp
 
     return term_1 * term_2 * term_3
+
+
+def estimate_negative_binom_parameters(samples):
+
+    mean = np.mean(samples)
+    cov = np.std(samples) / mean
+
+    print(cov)
+
+    def neg_neg_binom_likelihood(dispersion):
+        neg_like = -1 * np.sum([
+            np.log(negative_binomial_distribution(n, mean, dispersion))
+            for n in samples
+        ])
+        return neg_like
+
+    dispersion = minimize(neg_neg_binom_likelihood, cov, method='BFGS').x[0]
+
+    return (mean, dispersion)
 
 
 def kullback_leibler_divergence(p, q):
