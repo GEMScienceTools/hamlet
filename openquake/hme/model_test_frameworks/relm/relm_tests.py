@@ -46,16 +46,17 @@ def N_test(cfg: dict,
             test_config['conf_interval'])
 
         test_pass = conf_min <= len(obs_eqs) <= conf_max
-        test_result = {
-            'conf_interval_pct': test_config['conf_interval'],
-            'conf_interval': (conf_min, conf_max),
-            'inv_time_rate': test_rup_rate,
-            'n_obs_earthquakes': len(obs_eqs),
-            'pass': test_pass
-        }
 
     elif test_config['prob_model'] == 'neg_binom':
-        pass
+        raise NotImplementedError
+
+    test_result = {
+        'conf_interval_pct': test_config['conf_interval'],
+        'conf_interval': (conf_min, conf_max),
+        'inv_time_rate': test_rup_rate,
+        'n_obs_earthquakes': len(obs_eqs),
+        'pass': test_pass
+    }
 
     return test_result
 
