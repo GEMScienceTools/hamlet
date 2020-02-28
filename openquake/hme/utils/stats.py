@@ -6,6 +6,7 @@ tests.
 from typing import Optional
 
 import numpy as np
+from scipy.special import gamma, factorial
 
 
 def sample_event_times_in_interval(
@@ -29,8 +30,8 @@ def sample_event_times_in_interval(
     return event_times
 
 
-def poisson_likelihood(rate: float,
-                       num_events: int,
+def poisson_likelihood(num_events: int,
+                       rate: float,
                        time_interval: float = 1.,
                        not_modeled_val: float = 0.) -> float:
     """
@@ -65,5 +66,62 @@ def poisson_likelihood_zero_rate(num_events: int,
         raise ValueError("num_events should be zero or a positive integer.")
 
 
-def poisson_log_likelihood():
+def poisson_log_likelihood(
+    num_events,
+    rate,
+):
     raise NotImplementedError
+
+
+def negative_binomial_distribution(num_events: int, mean_rate: float,
+                                   dispersion: float) -> float:
+    """
+    Returns the negative binomial probability for observing 
+
+    """
+    if dispersion == 0.:
+        return poisson_likelihood(mean_rate, num_events)
+
+    r_disp = 1 / dispersion
+
+    term_1 = (gamma(num_events + r_disp)) / (gamma(r_disp) *
+                                             factorial(num_events))
+    term_2 = ((mean_rate * dispersion) /
+              (1 + mean_rate * dispersion))**num_events
+    term_3 = (1 + mean_rate * dispersion)**r_disp
+
+    return term_1 * term_2 * term_3
+
+
+def kullback_leibler_divergence(p, q):
+    """
+    The Kullback-Leibler Divergence is a measure of the information loss in
+    moving from a distribution P to a second distribution Q that may be a model
+    or approximation.
+    """
+
+    # TODO: deal w/ zero probabilities
+
+    pp = np.asarray(p)
+    qq = np.asarray(q)
+
+    return np.sum(pp * np.log(pp / qq))
+
+
+def jensen_shannon_divergence(p, q):
+
+    pp = np.asarray(p)
+    qq = np.asarray(q)
+
+    r = _mid_pt_measure(pp, qq)
+
+    return 0.5 * (kullback_leibler_divergence(pp, r) +
+                  kullback_leibler_divergence(qq, r))
+
+
+def jensen_shannon_distance(p, q):
+    return np.sqrt(jensen_shannon_divergence(p, q))
+
+
+def _mid_pt_measure(p, q):
+    return 0.5 * (p + q)

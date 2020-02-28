@@ -9,8 +9,8 @@ from openquake.hme.utils import SpacemagBin
 from .gem_test_functions import get_stochastic_moment_set, get_moment_from_mfd
 
 
-def calc_mag_bin_empirical_likelihood(bin_rate: Dict[int, float],
-                                      n_eqs: int,
+def calc_mag_bin_empirical_likelihood(n_eqs: int,
+                                      bin_rate: Dict[int, float],
                                       not_modeled_val: float = 1e-5) -> float:
     """
     Calculation of the likelihood of observing a certain number of earthquakes
@@ -19,15 +19,15 @@ def calc_mag_bin_empirical_likelihood(bin_rate: Dict[int, float],
     simulation, or another instance in which earthquake occurrence may not be
     Poissonian.
 
-    :param bin_rate:
-        the `bin_rate` parameter will be a dictionary, with integer
-        keys representing the number of earthquakes and floating point values
-        representing the rates of occurrence of each of those integers.
-
     :param n_eqs:
         Number of observed earthquakes in the magnitude bin (or, number of
         earthquakes for which one wants to calculate the likelihood of seeing in
         that bin).
+
+    :param bin_rate:
+        the `bin_rate` parameter will be a dictionary, with integer
+        keys representing the number of earthquakes and floating point values
+        representing the rates of occurrence of each of those integers.
 
     :param not_modeled_val:
         Likelihood value resulting from an instance in which no ruptures are
@@ -50,21 +50,21 @@ def calc_mag_bin_empirical_likelihood(bin_rate: Dict[int, float],
         return not_modeled_val
 
 
-def calc_mag_bin_poisson_likelihood(bin_rate: float,
-                                    n_eqs: int,
+def calc_mag_bin_poisson_likelihood(n_eqs: int,
+                                    bin_rate: float,
                                     time_interval: float = 1.,
                                     not_modeled_val: float = 1e-5) -> float:
     """
     Calculation of the likelihood of observing a certain number of earthquakes
     using a poisson calculation.
 
-    :param bin_rate:
-        Mean rate of earthquake occurrence within a magnitude bin.
-
     :param n_eqs:
         Number of observed earthquakes in the magnitude bin (or, number of
         earthquakes for which one wants to calculate the likelihood of seeing in
         that bin).
+
+    :param bin_rate:
+        Mean rate of earthquake occurrence within a magnitude bin.
 
     :param time_interval:
         Duration of time in which observed earthquakes have accumulated (i.e.,
@@ -86,11 +86,12 @@ def calc_mag_bin_poisson_likelihood(bin_rate: float,
 
     """
 
-    return poisson_likelihood(bin_rate, n_eqs, time_interval, not_modeled_val)
+    return poisson_likelihood(n_eqs, bin_rate, time_interval, not_modeled_val)
 
 
-def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
-                            n_eqs: int,
+def calc_mag_bin_likelihood(n_eqs: int,
+                            bin_rate: Union[dict, float],
+                            dispersion: Union[float, None] = None,
                             time_interval: float = 1.,
                             not_modeled_val: float = 1e-5,
                             likelihood_method='poisson') -> float:
@@ -98,6 +99,11 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
     Shell function to calculate the likelihood of a magnitude bin given the
     observed earthquakes within the bin. Several methods exist for these
     calculations.
+
+    :param n_eqs:
+        Number of observed earthquakes in the magnitude bin (or, number of
+        earthquakes for which one wants to calculate the likelihood of seeing in
+        that bin).
 
     :param bin_rate:
         Expected rate(s) of earthquakes within that magnitude bin. The format of
@@ -107,10 +113,9 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
         representing the rates of occurrence of each of those integers. For a
         poisson analysis, this should be a float representing the mean rate.
 
-    :param n_eqs:
-        Number of observed earthquakes in the magnitude bin (or, number of
-        earthquakes for which one wants to calculate the likelihood of seeing in
-        that bin).
+    :param dispersion:
+        The dispersion parameter for non-Poisson likelihoods (not yet 
+        implemented).
 
     :param time_interval:
         Duration of time in which observed earthquakes have accumulated (i.e.,
@@ -136,12 +141,15 @@ def calc_mag_bin_likelihood(bin_rate: Union[dict, float],
         earthquake occurrence.
     """
     if likelihood_method == 'empirical':
-        return calc_mag_bin_empirical_likelihood(bin_rate, n_eqs,
+        return calc_mag_bin_empirical_likelihood(n_eqs, bin_rate,
                                                  not_modeled_val)
 
     elif likelihood_method == 'poisson':
-        return calc_mag_bin_poisson_likelihood(bin_rate, n_eqs, time_interval,
+        return calc_mag_bin_poisson_likelihood(n_eqs, bin_rate, time_interval,
                                                not_modeled_val)
+
+    else:
+        raise NotImplementedError
 
 
 def calc_mfd_log_likelihood_independent(obs_eqs: dict,
