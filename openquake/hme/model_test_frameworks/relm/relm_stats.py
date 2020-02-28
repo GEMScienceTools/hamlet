@@ -19,8 +19,7 @@ def bin_observance_log_likelihood(num_events: int, bin_rate: float) -> float:
     if bin_rate == 0:
         return bin_observance_log_likelihood_zero_rate(num_events)
     else:
-        return (-1 * bin_rate + num_events * np.log(bin_rate) -
-                np.log(np.math.factorial(bin_rate)))
+        return poisson_log_likelihood(num_events, bin_rate)
 
 
 def bin_observance_log_likelihood_zero_rate(num_events: int) -> float:

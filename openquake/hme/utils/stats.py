@@ -66,11 +66,16 @@ def poisson_likelihood_zero_rate(num_events: int,
         raise ValueError("num_events should be zero or a positive integer.")
 
 
-def poisson_log_likelihood(
-    num_events,
-    rate,
-):
-    raise NotImplementedError
+def poisson_log_likelihood(num_events: int,
+                           rate: float,
+                           time_interval: float = 1.,
+                           not_modeled_val: float = 0.) -> float:
+    if rate == 0.:
+        return np.log(poisson_likelihood_zero_rate(rate, not_modeled_val))
+    else:
+        rt = rate * time_interval
+        return (-1 * rt + num_events * np.log(rt) -
+                np.log(np.math.factorial(rt)))
 
 
 def negative_binomial_distribution(num_events: int, mean_rate: float,
