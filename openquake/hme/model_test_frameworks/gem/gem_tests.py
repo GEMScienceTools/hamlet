@@ -33,10 +33,10 @@ def mfd_likelihood_test(cfg,
     """
 
     logging.info('Running GEM MFD Likelihood Test')
-    if cfg['config']['tests']['likelihood'][
+    if cfg['config']['model_framework']['gem']['likelihood'][
             'likelihood_method'] == 'empirical':
         mfd_empirical_likelihood_test(cfg, bin_gdf, obs_seis_catalog, validate)
-    elif cfg['config']['tests']['likelihood'][
+    elif cfg['config']['model_framework']['gem']['likelihood'][
             'likelihood_method'] == 'poisson':
         mfd_poisson_likelihood_test(cfg, bin_gdf, obs_seis_catalog, validate)
 
@@ -68,7 +68,7 @@ def mfd_empirical_likelihood_test(
     :class:`GeoDataFrame` hosting the bins.
     """
 
-    test_config = cfg['config']['tests']['likelihood']
+    test_config = cfg['config']['model_framework']['gem']['likelihood']
     source_bin_gdf = get_source_bins(bin_gdf)
 
     logging.info('calculating empirical MFDs for source bins')
@@ -124,7 +124,7 @@ def mfd_poisson_likelihood_test(
     :class:`GeoDataFrame` hosting the bins.
     """
 
-    test_config = cfg['config']['tests']['likelihood']
+    test_config = cfg['config']['model_framework']['gem']['likelihood']
     source_bin_gdf = get_source_bins(bin_gdf)
 
     logging.info('calculating empirical MFDs for source bins')
@@ -160,7 +160,7 @@ def model_mfd_test(cfg,
 
     logging.info('Running Model-Observed MFD Comparison')
 
-    test_config = cfg['config']['tests']['model_mfd']
+    test_config = cfg['config']['model_framework']['gem']['model_mfd']
 
     mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
     obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(
@@ -209,7 +209,7 @@ def max_mag_check(cfg: dict,
 
     logging.info('Checking Maximum Magnitudes')
 
-    test_config = cfg['config']['tests']['max_mag_check']
+    test_config = cfg['config']['model_framework']['gem']['max_mag_check']
 
     bad_bins = max_check(bin_gdf, append_check=True, warn=test_config['warn'])
 

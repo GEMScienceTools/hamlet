@@ -26,10 +26,15 @@ from openquake.hme.reporting import generate_basic_report
 
 from openquake.hme.model_test_frameworks.gem.gem_tests import gem_test_dict
 from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict
+from openquake.hme.model_test_frameworks.sanity.sanity_checks import sanity_test_dict
 
 Openable = Union[str, bytes, int, 'os.PathLike[Any]']
 
-test_dict = {'model_framework': {'gem': gem_test_dict, 'relm': relm_test_dict}}
+test_dict = {
+    'gem': gem_test_dict,
+    'relm': relm_test_dict,
+    'sanity': sanity_test_dict
+}
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -83,21 +88,21 @@ def _fill_necessary_fields(cfg: dict):
                     cfg[field][sub_name][subsubname] = None
 
 
-def get_test_list_from_config(cfg: dict) -> list:
+def get_test_lists_from_config(cfg: dict) -> dict:
     """
-    Reads through the `cfg` and makes a list of tests or evaluations to run.
+    Reads through the `cfg` and makes a dict of lists of tests or evaluations to
+    run for each framework.
 
     :param cfg:
         Configuration for the evaluations, such as that parsed from the YAML
         config file.
     """
-    logger.info('getting tests from config')
+    tests = {}
+    frameworks = list(cfg['config']['model_framework'].keys())
 
-    test_names = list(cfg['config']['tests'].keys())
-
-    tds = test_dict['model_framework'][cfg['config']['model_framework']]
-
-    tests = [tds[test] for test in test_names]
+    for fw in frameworks:
+        fw_test_names = list(cfg['config']['model_framework'][fw].keys())
+        tests[fw] = [ttest_dictest_dict_2[fw][test] for test in fw_test_names]
 
     return tests
 
@@ -269,8 +274,6 @@ def run_tests(cfg: dict) -> None:
     except Exception as e:
         logger.warning('Cannot use random seed: {}'.format(e.__str__()))
 
-    tests = get_test_list_from_config(cfg)
-
     bin_gdf, eq_gdf = load_inputs(cfg)
 
     t_done_load = time.time()
@@ -278,16 +281,26 @@ def run_tests(cfg: dict) -> None:
         'Done loading and preparing model in {0:.2f} s'.format(t_done_load -
                                                                t_start))
 
-    results = {}
-    # make dict w/ test fn as key, name as val to fill results while testing
-    tds = test_dict['model_framework'][cfg['config']['model_framework']]
-    test_inv = {fn: name for name, fn in tds.items() if fn in tests}
-
-    for test in tests:
-        results[test_inv[test]] = {
-            'val': test(cfg, bin_gdf=bin_gdf, obs_seis_catalog=eq_gdf)
+    test_lists = get_test_lists_from_config(cfg)
+    test_inv = {
+        framework: {
+            fn: name
+            for name, fn in ttest_dictest_dict_2[framework].items() if fn in fw_tests
         }
+        for framework, fw_tests in test_lists.items()
+    }
+    
+    results = {}
 
+    for framework, tests in test_lists.items():
+        results[framework] = {}
+        for test in tests:
+            results[framework][test_inv[framework][test]] = {
+                'val': test(cfg, bin_gdf=bin_gdf, obs_seis_catalog=eq_gdf)
+            }
+
+    print(results)
+    # -----
     t_done_eval = time.time()
     logger.info('Done evaluating model in {0:.2f} s'.format(t_done_eval -
                                                             t_done_load))
@@ -353,6 +366,9 @@ def write_reports(cfg: dict,
     :param cfg:
         Configuration for the evaluations, such as that parsed from the YAML
         config file.
+
+    :param results:
+        Dictionary of results for the tests in each framework used.
 
     :param bin_gdf:
         :class:`GeoDataFrame` with the spatial bins for testing

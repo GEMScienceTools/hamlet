@@ -3,24 +3,23 @@ meta:
     description: "A small test suite containing one fault"
 
 config:
-    model_framework: gem
-    tests:
-        likelihood:
-            likelihood_method: poisson
-            investigation_time: 40.
-            default_likelihood: 1.
-            not_modeled_val: 0.00001
-        model_mfd:
-            investigation_time: 40.
-        max_mag_check:
-            append_check: True
-            warn: True
-    parallel: True
+    model_framework:
+        gem:
+            likelihood:
+                likelihood_method: poisson
+                investigation_time: 40.
+                default_likelihood: 1.
+                not_modeled_val: 0.00001
+            model_mfd:
+                investigation_time: 40.
+            max_mag_check:
+                append_check: True
+                warn: True
+    parallel: False
     rand_seed: 69
 
 input:
     bins:
-        bin_gis_file: ../../../../data/source_models/sm1/data/phl_f_bins.geojson
         mfd_bin_max: 8.5
         mfd_bin_min: 6.0
         mfd_bin_width: 0.2

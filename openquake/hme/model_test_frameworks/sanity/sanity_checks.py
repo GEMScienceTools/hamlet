@@ -33,4 +33,6 @@ def min_check():
     raise NotImplementedError
 
 
-sanity_test_dict = {'min_max': min_max_check}
+sanity_test_dict = {
+    'max_check': max_check,
+}

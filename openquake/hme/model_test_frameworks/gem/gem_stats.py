@@ -165,7 +165,7 @@ def calc_mfd_log_likelihood_independent(obs_eqs: dict,
     n_bins: int = len(obs_eqs.keys())
 
     bin_likes = [
-        calc_mag_bin_likelihood(mfd[bin_center], len(eqs), time_interval,
+        calc_mag_bin_likelihood(len(eqs), mfd[bin_center], time_interval,
                                 not_modeled_val, likelihood_method)
         for bin_center, eqs in obs_eqs.items()
     ]
