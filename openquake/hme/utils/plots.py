@@ -13,7 +13,7 @@ def _sample_n_events(rate):
     return len(sample_event_times_in_interval(rate, interval_length=1.))
 
 
-def _make_stoch_mfds(mfd, iters: int):
+def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.):
 
     cum_rates = list(mfd.values())
 
@@ -24,10 +24,14 @@ def _make_stoch_mfds(mfd, iters: int):
         elif i == len(cum_rates) - 1:
             incr_rates.append(rate)
 
+    incr_rates = np.array(incr_rates) * t_yrs
+
     stoch_mfd_vals = []
 
     for i in range(iters):
-        n_event_list = [_sample_n_events(rate) for rate in incr_rates]
+        n_event_list = np.array(
+            [_sample_n_events(rate) for rate in incr_rates], dtype=float)
+        n_event_list /= t_yrs
         stoch_mfd_vals.append(np.cumsum(n_event_list[::-1])[::-1])
 
     return stoch_mfd_vals
@@ -40,6 +44,7 @@ def plot_mfd(model: Optional[dict] = None,
              observed: Optional[dict] = None,
              observed_format: str = 'C3o-.',
              observed_label: str = 'observed',
+             t_yrs: float = 1.,
              return_fig: bool = True,
              return_string: bool = False,
              save_fig: Union[bool, str] = False,
@@ -54,7 +59,9 @@ def plot_mfd(model: Optional[dict] = None,
 
     if model is not None:
         if model_iters > 0:
-            stoch_mfd_vals = _make_stoch_mfds(model, iters=model_iters)
+            stoch_mfd_vals = _make_stoch_mfds(model,
+                                              iters=model_iters,
+                                              t_yrs=t_yrs)
             for smfd in stoch_mfd_vals:
                 ax.plot(list(model.keys()),
                         smfd,

@@ -24,7 +24,7 @@ pac_mfd = {
     9.2: 0.0001001167484667318
 }
 
-stoch_mfds = hme.utils.plots._make_stoch_mfds(pac_mfd, 500)
+stoch_mfds = hme.utils.plots._make_stoch_mfds(pac_mfd, 500, t_yrs=40.)
 
 f = plt.figure()
 ax = f.add_subplot(111, yscale='log')

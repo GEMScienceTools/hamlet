@@ -27,8 +27,7 @@ def mfd_likelihood_test(cfg,
 
     The likelihood calculation may be done using the Poisson distribution, if
     there is a basic assumption of Poissonian seismicity, or through a Monte
-    Carlo-based calculation (currently also done through a Poisson sampling of
-    the modeled seismicity, though more complex temporal occurrence models are
+    Carlo-based calculation (currently also done through a Poisson sampling t_yrs though more complex temporal occurrence models are
     possible, such as through a Epidemic-Type Aftershock Sequence).
     """
 
@@ -199,6 +198,7 @@ def model_mfd_test(cfg,
     if 'report' in cfg.keys():
         return plot_mfd(model=mfd_df['mod_mfd_cum'].to_dict(),
                         observed=mfd_df['obs_mfd_cum'].to_dict(),
+                        t_yrs=test_config['investigation_time'],
                         return_fig=False,
                         return_string=True)
 
