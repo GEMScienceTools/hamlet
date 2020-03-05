@@ -1,18 +1,17 @@
 config:
-    model_framework: gem
-    tests:
-        likelihood:
-          likelihood_method: empirical
-          investigation_time: 40.
-          n_iters: 1000
-          default_likelihood: 1.
-          not_modeled_val: 0.00001
+    model_framework:
+        gem:
+            likelihood:
+                likelihood_method: empirical
+                investigation_time: 40.
+                n_iters: 1000
+                default_likelihood: 1.
+                not_modeled_val: 0.00001
     parallel: True
     rand_seed: 69
 
 input:
     bins:
-        bin_gis_file: ../../../../data/source_models/sm1/data/phl_f_bins.geojson
         mfd_bin_max: 8.5
         mfd_bin_min: 6.0
         mfd_bin_width: 0.2
@@ -22,8 +21,8 @@ input:
         branch: b1
         source_types:
             - simple_fault
-    
-    seis_catalog: 
+
+    seis_catalog:
         seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
         columns:
             time:
@@ -35,16 +34,3 @@ input:
                 - second
             source: Agency
             event_id: eventID
-
-output:
-    bin_gdf:
-        file: ./gem_sm1_likelihood_bins.geojson
-    plots: 
-        kwargs:
-            model: True
-            observed: True
-            observed_time: 40.
-            return_fig: False
-            return_string: True
-
-

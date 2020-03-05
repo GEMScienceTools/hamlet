@@ -154,6 +154,7 @@ def calc_mag_bin_likelihood(n_eqs: int,
 
 def calc_mfd_log_likelihood_independent(obs_eqs: dict,
                                         mfd: dict,
+                                        dispersion: Union[float, None] = None,
                                         time_interval: float = 1.,
                                         not_modeled_val: float = 1e-5,
                                         likelihood_method='poisson') -> float:
@@ -165,8 +166,12 @@ def calc_mfd_log_likelihood_independent(obs_eqs: dict,
     n_bins: int = len(obs_eqs.keys())
 
     bin_likes = [
-        calc_mag_bin_likelihood(len(eqs), mfd[bin_center], time_interval,
-                                not_modeled_val, likelihood_method)
+        calc_mag_bin_likelihood(len(eqs), 
+                                mfd[bin_center], 
+                                dispersion=dispersion,
+                                time_interval=time_interval,
+                                not_modeled_val=not_modeled_val, 
+                                likelihood_method=likelihood_method)
         for bin_center, eqs in obs_eqs.items()
     ]
 

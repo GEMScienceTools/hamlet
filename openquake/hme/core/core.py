@@ -102,7 +102,7 @@ def get_test_lists_from_config(cfg: dict) -> dict:
 
     for fw in frameworks:
         fw_test_names = list(cfg['config']['model_framework'][fw].keys())
-        tests[fw] = [ttest_dictest_dict_2[fw][test] for test in fw_test_names]
+        tests[fw] = [test_dict[fw][test] for test in fw_test_names]
 
     return tests
 
@@ -285,7 +285,7 @@ def run_tests(cfg: dict) -> None:
     test_inv = {
         framework: {
             fn: name
-            for name, fn in ttest_dictest_dict_2[framework].items() if fn in fw_tests
+            for name, fn in test_dict[framework].items() if fn in fw_tests
         }
         for framework, fw_tests in test_lists.items()
     }

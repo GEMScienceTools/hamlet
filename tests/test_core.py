@@ -4,10 +4,11 @@ import unittest
 from openquake.hme.core.core import (read_yaml_config,
                                      get_test_lists_from_config)
 
-yml_1 = './model_test_frameworks/gem/integration_tests/gem_sm1/test_sm1_poisson.yml'
-yml_2 = './data/unit_test_data/test_core_1.yml'
+BASE_PATH = os.path.dirname(__file__)
+UNIT_TEST_DATA_DIR = os.path.join(BASE_PATH, 'data', 'unit_test_data')
 
-cfg_1 = read_yaml_config(yml_1)
+yml_2 = os.path.join(UNIT_TEST_DATA_DIR, 'test_core_1.yml')
+
 cfg_2 = read_yaml_config(yml_2)
 
 

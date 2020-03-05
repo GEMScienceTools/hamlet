@@ -64,4 +64,4 @@ class test_relm_tests(unittest.TestCase):
         np.testing.assert_almost_equal(N_test_res['inv_time_rate'],
                                        0.8645872887605222)
         assert N_test_res['n_obs_earthquakes'] == 3
-        assert N_test_res['pass'] is True
+        assert N_test_res['pass']
