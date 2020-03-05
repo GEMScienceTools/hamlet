@@ -121,7 +121,7 @@ def sort_sources(branch_sources: dict,
 def read_branch_sources(base_dir,
                         lt_file='ssmLT.xml',
                         branch: Optional[str] = None):
-    lt = SourceModelLogicTree(os.path.join(base_dir, lt_file), validate=False)
+    lt = SourceModelLogicTree(os.path.join(base_dir, lt_file))
 
     d = {}
     for branch_name, branch_filename in lt.branches.items():
@@ -196,6 +196,7 @@ def make_mfd_plot(sbin: SpacemagBin,
 
 
 def write_mfd_plots_to_gdf(bin_gdf: GeoDataFrame, **kwargs):
-    plot_series = bin_gdf['SpacemagBin'].apply(make_mfd_plot, 
-        model_iters=0, **kwargs)
+    plot_series = bin_gdf['SpacemagBin'].apply(make_mfd_plot,
+                                               model_iters=0,
+                                               **kwargs)
     bin_gdf['mfd_plots'] = plot_series
