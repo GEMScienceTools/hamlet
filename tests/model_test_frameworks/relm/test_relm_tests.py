@@ -15,11 +15,13 @@ class test_relm_tests(unittest.TestCase):
     def setUp(self):
         self.cfg = {
             'config': {
-                'tests': {
-                    'N_test': {
-                        'prob_model': 'poisson',
-                        'conf_interval': 0.96,
-                        'investigation_time': 40.
+                'model_framework': {
+                    'relm': {
+                        'N_test': {
+                            'prob_model': 'poisson',
+                            'conf_interval': 0.96,
+                            'investigation_time': 40.
+                        }
                     }
                 },
                 'parallel': False,
