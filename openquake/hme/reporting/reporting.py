@@ -148,7 +148,7 @@ def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
     else:
         max_mag_results = (
             "Bins {} have higher observed seismicity than they can produce.".
-            format(results['max_mag_check']['val']))
+            format(results['gem']['max_mag_check']['val']))
 
     max_mag_template = env.get_template('max_mag_check.html')
     results['gem']['max_mag_check']['rendered_text'] = max_mag_template.render(
