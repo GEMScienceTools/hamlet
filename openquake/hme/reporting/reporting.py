@@ -94,7 +94,8 @@ def render_result_text(env: Environment,
             render_max_mag(env=env, cfg=cfg, results=results)
 
     if 'relm' in results.keys():
-        raise NotImplementedError("Reporting for RELM not implemented.")
+        if 'N_test' in results['relm'].keys():
+            render_N_test(env=env, cfg=cfg, results=results)
 
     if 'sanity' in results.keys():
         raise NotImplementedError("Reporting for sanity not implemented.")
@@ -152,3 +153,9 @@ def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
     max_mag_template = env.get_template('max_mag_check.html')
     results['gem']['max_mag_check']['rendered_text'] = max_mag_template.render(
         max_mag_results=max_mag_results)
+
+
+def render_N_test(env: Environment, cfg: dict, results: dict) -> None:
+    n_test = env.get_template('n_test.html')
+    results['relm']['N_test']['rendered_text'] = n_test.render(
+        res=results['relm']['N_test']['val'])

@@ -23,7 +23,7 @@ def N_test(cfg: dict,
 
     """
 
-    test_config = cfg['config']['tests']['N_test']
+    test_config = cfg['config']['model_framework']['relm']['N_test']
 
     if 'conf_interval' not in test_config:
         test_config['conf_interval'] = 0.95
