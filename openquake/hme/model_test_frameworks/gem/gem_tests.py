@@ -16,6 +16,7 @@ from .gem_stats import calc_mfd_log_likelihood_independent
 def mfd_likelihood_test(cfg,
                         bin_gdf: Optional[GeoDataFrame] = None,
                         obs_seis_catalog: Optional[GeoDataFrame] = None,
+                        pro_seis_catalog: Optional[GeoDataFrame] = None,
                         validate: bool = False):
     """
     Calculates the likelihood of the Seismic Source Model for each SpacemagBin.
@@ -47,6 +48,7 @@ def mfd_empirical_likelihood_test(
         cfg,
         bin_gdf: Optional[GeoDataFrame] = None,
         obs_seis_catalog: Optional[GeoDataFrame] = None,
+        pro_seis_catalog: Optional[GeoDataFrame] = None,
         validate: bool = False) -> None:
     """
     Calculates the (log)likelihood of observing the earthquakes in the seismic
@@ -104,6 +106,7 @@ def mfd_poisson_likelihood_test(
         cfg,
         bin_gdf: Optional[GeoDataFrame] = None,
         obs_seis_catalog: Optional[GeoDataFrame] = None,
+        pro_seis_catalog: Optional[GeoDataFrame] = None,
         validate: bool = False) -> None:
     """
     Calculates the (log)likelihood of observing the earthquakes in the seismic
@@ -152,6 +155,7 @@ def mfd_poisson_likelihood_test(
 def model_mfd_test(cfg,
                    bin_gdf: Optional[GeoDataFrame] = None,
                    obs_seis_catalog: Optional[GeoDataFrame] = None,
+                   pro_seis_catalog: Optional[GeoDataFrame] = None,
                    validate: bool = False) -> None:
 
     # calculate observed, model mfd for all bins
@@ -205,7 +209,8 @@ def model_mfd_test(cfg,
 
 def max_mag_check(cfg: dict,
                   bin_gdf: Optional[GeoDataFrame] = None,
-                  obs_seis_catalog: Optional[GeoDataFrame] = None):
+                  obs_seis_catalog: Optional[GeoDataFrame] = None,
+                  pro_seis_catalog: Optional[GeoDataFrame] = None):
 
     logging.info('Checking Maximum Magnitudes')
 

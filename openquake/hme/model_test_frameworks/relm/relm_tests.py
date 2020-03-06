@@ -15,20 +15,29 @@ def L_test():
     raise NotImplementedError
 
 
-def N_test(cfg: dict,
-           bin_gdf: Optional[GeoDataFrame] = None,
-           obs_seis_catalog: Optional[GeoDataFrame] = None,
-           validate: bool = False):
+def N_test(
+    cfg: dict,
+    bin_gdf: Optional[GeoDataFrame] = None,
+    obs_seis_catalog: Optional[GeoDataFrame] = None,
+    pro_seis_catalog: Optional[GeoDataFrame] = None,
+    validate: bool = False,
+) -> dict:
     """
 
     """
 
-    test_config = cfg['config']['model_framework']['relm']['N_test']
+    logging.info("Running N-Test")
+    test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
 
-    if 'conf_interval' not in test_config:
-        test_config['conf_interval'] = 0.95
+    if "prospective" not in test_config.keys():
+        prospective = False
+    else:
+        prospective = test_config["prospective"]
 
-    annual_rup_rate = 0.
+    if "conf_interval" not in test_config:
+        test_config["conf_interval"] = 0.95
+
+    annual_rup_rate = 0.0
     obs_eqs = []
     for i, row in bin_gdf.iterrows():
         sb = row.SpacemagBin
@@ -36,29 +45,37 @@ def N_test(cfg: dict,
         bin_mfd = sb.get_rupture_mfd(cumulative=True)
         annual_rup_rate += bin_mfd[min_bin_center]
 
-        for mb in sb.observed_earthquakes.values():
-            obs_eqs.extend(mb)
+        if prospective is False:
+            for mb in sb.observed_earthquakes.values():
+                obs_eqs.extend(mb)
+        else:
+            for mb in sb.prospective_earthquakes.values():
+                obs_eqs.extend(mb)
 
-    test_rup_rate = annual_rup_rate * test_config['investigation_time']
+    # breakpoint()
 
-    if test_config['prob_model'] == 'poisson':
+    test_rup_rate = annual_rup_rate * test_config["investigation_time"]
+
+    if test_config["prob_model"] == "poisson":
         conf_min, conf_max = poisson(test_rup_rate).interval(
-            test_config['conf_interval'])
+            test_config["conf_interval"]
+        )
 
         test_pass = conf_min <= len(obs_eqs) <= conf_max
 
-    elif test_config['prob_model'] == 'neg_binom':
+    elif test_config["prob_model"] == "neg_binom":
         raise NotImplementedError
 
     test_result = {
-        'conf_interval_pct': test_config['conf_interval'],
-        'conf_interval': (conf_min, conf_max),
-        'inv_time_rate': test_rup_rate,
-        'n_obs_earthquakes': len(obs_eqs),
-        'pass': test_pass
+        "conf_interval_pct": test_config["conf_interval"],
+        "conf_interval": (conf_min, conf_max),
+        "inv_time_rate": test_rup_rate,
+        "n_obs_earthquakes": len(obs_eqs),
+        "pass": test_pass,
     }
 
     return test_result
 
 
-relm_test_dict = {'L_test': L_test, 'N_test': N_test}
+relm_test_dict = {"L_test": L_test, "N_test": N_test}
+
