@@ -52,8 +52,6 @@ def N_test(
             for mb in sb.prospective_earthquakes.values():
                 obs_eqs.extend(mb)
 
-    # breakpoint()
-
     test_rup_rate = annual_rup_rate * test_config["investigation_time"]
 
     if test_config["prob_model"] == "poisson":
