@@ -3,11 +3,19 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from scipy.stats import poisson
 from geopandas import GeoDataFrame
 
+from openquake.hme.utils.stats import (
+    negative_binomial_distribution,
+    estimate_negative_binom_parameters,
+)
 from openquake.hme.utils import get_source_bins
 from openquake.hme.utils.plots import plot_mfd
+from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
+    N_test_poisson,
+    N_test_neg_binom,
+    subdivide_observed_eqs,
+)
 
 
 def L_test():
@@ -55,25 +63,36 @@ def N_test(
     test_rup_rate = annual_rup_rate * test_config["investigation_time"]
 
     if test_config["prob_model"] == "poisson":
-        conf_min, conf_max = poisson(test_rup_rate).interval(
-            test_config["conf_interval"]
+        test_result = N_test_poisson(
+            len(obs_eqs), test_rup_rate, test_config["conf_interval"]
         )
 
-        test_pass = conf_min <= len(obs_eqs) <= conf_max
-
     elif test_config["prob_model"] == "neg_binom":
-        raise NotImplementedError
+        n_eqs_in_subs = subdivide_observed_eqs(
+            bin_gdf, test_config["investigation_time"]
+        )
 
-    test_result = {
-        "conf_interval_pct": test_config["conf_interval"],
-        "conf_interval": (conf_min, conf_max),
-        "inv_time_rate": test_rup_rate,
-        "n_obs_earthquakes": len(obs_eqs),
-        "pass": test_pass,
-    }
+        if prospective:
+            prob_success, r_dispersion = estimate_negative_binom_parameters(
+                n_eqs_in_subs, test_rup_rate
+            )
+        else:
+            prob_success, r_dispersion = estimate_negative_binom_parameters(
+                n_eqs_in_subs
+            )
+
+        test_result = N_test_neg_binom(
+            len(obs_eqs),
+            test_rup_rate,
+            prob_success,
+            r_dispersion,
+            test_config["conf_interval"],
+        )
+
+    else:
+        raise ValueError(f"{test_config['prob_model']} not a valid probability model")
 
     return test_result
 
 
 relm_test_dict = {"L_test": L_test, "N_test": N_test}
-

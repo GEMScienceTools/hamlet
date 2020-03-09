@@ -666,7 +666,7 @@ def make_earthquake_gdf_from_csv(
     df = pd.read_csv(eq_csv)
 
     if time is not None:
-        df["datetime"] = df.apply(_parse_eq_time, time_cols=time, axis=1)
+        df["time"] = df.apply(_parse_eq_time, time_cols=time, axis=1)
 
     if source is not None:
         df.rename({source: "source"}, axis=1, inplace=True)
@@ -696,6 +696,7 @@ def make_earthquake_gdf_from_csv(
 
 
 @attr.s(auto_attribs=True)
+# @dataclass
 class Earthquake:
     magnitude: Optional[float] = None
     longitude: Optional[float] = None
