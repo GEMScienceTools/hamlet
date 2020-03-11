@@ -333,12 +333,7 @@ def run_tests(cfg: dict) -> None:
         results[framework] = {}
         for test in tests:
             results[framework][test_inv[framework][test]] = {
-                "val": test(
-                    cfg,
-                    bin_gdf=bin_gdf,
-                    obs_seis_catalog=eq_gdf,
-                    pro_seis_catalog=pro_gdf,
-                )
+                "val": test(cfg, bin_gdf=bin_gdf)
             }
 
     t_done_eval = time.time()

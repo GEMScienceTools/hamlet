@@ -24,12 +24,7 @@ def L_test():
     raise NotImplementedError
 
 
-def M_test(
-    cfg,
-    bin_gdf: Optional[GeoDataFrame] = None,
-    obs_seis_catalog: Optional[GeoDataFrame] = None,
-    pro_seis_catalog: Optional[GeoDataFrame] = None,
-) -> dict:
+def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
 
     """
 
@@ -143,13 +138,7 @@ def S_test():
     pass
 
 
-def N_test(
-    cfg: dict,
-    bin_gdf: Optional[GeoDataFrame] = None,
-    obs_seis_catalog: Optional[GeoDataFrame] = None,
-    pro_seis_catalog: Optional[GeoDataFrame] = None,
-    validate: bool = False,
-) -> dict:
+def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     """
 
     """
