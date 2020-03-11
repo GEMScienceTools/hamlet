@@ -25,9 +25,36 @@ def L_test():
 
 
 def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
-
     """
+    The M-Test is based on Zechar et al. (2010), though not identical. This
+    tests evaluates the consistency of the magnitude-frequency distribution of
+    the model vs. the observations, by evaluating the log-likelihood of the
+    observed earthquakes given the model (forecast), compared with the
+    log-likelihood of a large number of stochastic catalogs generated from the
+    same forecast. If the log-likelihood of the observed earthquake catalog is
+    less than the majority of the log-likelihoods of stochastic catalogs
+    (specified by the `critical_pct` argument), then the test fails.
 
+    The log-likelihoods are calculated first for each magnitude bin. The
+    log-likelihood for each magnitude bin is the log-likelihood of the observed
+    (or stochastic) number of earthquakes in that magnitude bin occurring
+    throughout the model domain, given the mean rupture rate for that magnitude
+    bin, using the Poisson distribution.
+
+    Then, the log-likelihoods of the observed catalog and the stochastic
+    catalogs are calculated as the geometric mean of the individual bin
+    likelihoods.
+
+    The differences between this implementation and that of Zechar et al. (2010)
+    is that 1) in this version we do not fix the total number of earthquakes
+    that occurs in each stochastic simulation (because that is somewhat
+    complicated to implement within Hamlet) and 2) we use the geometric mean
+    instead of the product of the magnitude bin likelihoods for the total
+    likelihood, because this lets us disregard the discretization of the MFD
+    when comparing between different models. Note that in terms of passing or
+    failing, (1) does not matter much if the model passes the N-test, and (2)
+    does not matter at all because the ranking of the observed and stochasitc
+    catalogs will remain the same.
     """
     logging.info("Running CSEP/RELM M-Test")
 
@@ -38,8 +65,8 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     else:
         prospective = test_config["prospective"]
 
-    if "conf_interval" not in test_config:
-        test_config["conf_interval"] = 0.25
+    if "critical_pct" not in test_config:
+        test_config["critical_pct"] = 0.25
 
     ##
     # get model and observed MFDs
@@ -73,6 +100,9 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
         for bin_center, rate in bin_obs_mfd.items():
             obs_mfd[bin_center] += rate
 
+    ##
+    # calculate log-likelihoods
+    ##
     n_bins = len(mod_mfd.keys())
 
     stochastic_eq_counts = {
@@ -115,13 +145,16 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
         / n_bins
     )
 
-    pctile = len(stoch_geom_mean_likes < obs_geom_mean_like) / test_config["n_iters"]
+    pctile = (
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes < obs_geom_mean_like])
+        / test_config["n_iters"]
+    )
 
-    test_pass = True if pctile >= test_config["conf_interval"] else False
+    test_pass = True if pctile >= test_config["critical_pct"] else False
     test_res = "Pass" if test_pass else "Fail"
 
     test_result = {
-        "conf_interval": test_config["conf_interval"],
+        "critical_pct": test_config["critical_pct"],
         "percentile": pctile,
         "test_pass": test_pass,
         "test_res": test_res,
@@ -135,7 +168,7 @@ def S_test():
     """
     """
 
-    pass
+    raise NotImplementedError
 
 
 def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
