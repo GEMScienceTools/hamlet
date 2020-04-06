@@ -15,6 +15,31 @@ from openquake.hme.utils.stats import (
 )
 
 
+def get_model_annual_eq_rate(bin_gdf: GeoDataFrame) -> float:
+    annual_rup_rate = 0.0
+    for i, row in bin_gdf.iterrows():
+        sb = row.SpacemagBin
+        min_bin_center = np.min(sb.mag_bin_centers)
+        bin_mfd = sb.get_rupture_mfd(cumulative=True)
+        annual_rup_rate += bin_mfd[min_bin_center]
+
+    return annual_rup_rate
+
+
+def get_total_obs_eqs(bin_gdf: GeoDataFrame, prospective: bool = False) -> list:
+    obs_eqs = []
+    for i, row in bin_gdf.iterrows():
+        sb = row.SpacemagBin
+        if prospective is False:
+            for mb in sb.observed_earthquakes.values():
+                obs_eqs.extend(mb)
+        else:
+            for mb in sb.prospective_earthquakes.values():
+                obs_eqs.extend(mb)
+
+    return obs_eqs
+
+
 def subdivide_observed_eqs(bin_gdf: GeoDataFrame, subcat_n_years: int):
 
     # collate earthquakes from bins

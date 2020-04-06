@@ -16,6 +16,8 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     N_test_poisson,
     N_test_neg_binom,
     subdivide_observed_eqs,
+    get_model_annual_eq_rate,
+    get_total_obs_eqs,
 )
 
 
@@ -167,15 +169,16 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
 def S_test():
     """
     """
+    # calc N
 
     raise NotImplementedError
 
 
 def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     """
+    Tests 
 
     """
-
     logging.info("Running N-Test")
     test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
 
@@ -187,27 +190,14 @@ def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     if "conf_interval" not in test_config:
         test_config["conf_interval"] = 0.95
 
-    annual_rup_rate = 0.0
-    obs_eqs = []
-    for i, row in bin_gdf.iterrows():
-        sb = row.SpacemagBin
-        min_bin_center = np.min(sb.mag_bin_centers)
-        bin_mfd = sb.get_rupture_mfd(cumulative=True)
-        annual_rup_rate += bin_mfd[min_bin_center]
-
-        if prospective is False:
-            for mb in sb.observed_earthquakes.values():
-                obs_eqs.extend(mb)
-        else:
-            for mb in sb.prospective_earthquakes.values():
-                obs_eqs.extend(mb)
+    annual_rup_rate = get_model_annual_eq_rate(bin_gdf)
+    obs_eqs = get_total_obs_eqs(bin_gdf, prospective)
+    n_obs = len(obs_eqs)
 
     test_rup_rate = annual_rup_rate * test_config["investigation_time"]
 
     if test_config["prob_model"] == "poisson":
-        test_result = N_test_poisson(
-            len(obs_eqs), test_rup_rate, test_config["conf_interval"]
-        )
+        test_result = N_test_poisson(n_obs, test_rup_rate, test_config["conf_interval"])
 
     elif test_config["prob_model"] == "neg_binom":
         n_eqs_in_subs = subdivide_observed_eqs(
@@ -224,7 +214,7 @@ def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
             )
 
         test_result = N_test_neg_binom(
-            len(obs_eqs),
+            n_obs,
             test_rup_rate,
             prob_success,
             r_dispersion,
