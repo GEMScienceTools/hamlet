@@ -25,20 +25,17 @@ def mfd_likelihood_test(
 
     The likelihood calculation may be done using the Poisson distribution, if
     there is a basic assumption of Poissonian seismicity, or through a Monte
-    Carlo-based calculation (currently also done through a Poisson sampling t_yrs though more complex temporal occurrence models are
+    Carlo-based calculation (currently also done through a Poisson sampling 
+    t_yrs though more complex temporal occurrence models are
     possible, such as through a Epidemic-Type Aftershock Sequence).
     """
-
     logging.info("Running GEM MFD Likelihood Test")
-    if (
-        cfg["config"]["model_framework"]["gem"]["likelihood"]["likelihood_method"]
-        == "empirical"
-    ):
+
+    like_config = cfg["config"]["model_framework"]["gem"]["likelihood"]
+
+    if like_config["likelihood_method"] == "empirical":
         mfd_empirical_likelihood_test(cfg, bin_gdf)
-    elif (
-        cfg["config"]["model_framework"]["gem"]["likelihood"]["likelihood_method"]
-        == "poisson"
-    ):
+    elif like_config["likelihood_method"] == "poisson":
         mfd_poisson_likelihood_test(cfg, bin_gdf)
 
     if "report" in cfg.keys():
