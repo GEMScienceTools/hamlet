@@ -15,6 +15,65 @@ from openquake.hme.utils.stats import (
 )
 
 
+def get_model_mfd(bin_gdf: GeoDataFrame, cumulative: bool = False) -> dict:
+    mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
+    mag_bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+
+    for i, row in bin_gdf.iloc[1:].iterrows():
+        bin_mod_mfd = row.SpacemagBin.get_rupture_mfd()
+        for bin_center, rate in bin_mod_mfd.items():
+            mod_mfd[bin_center] += rate
+
+    if cumulative is True:
+        cum_mfd = {}
+        cum_mag = 0.0
+        # dict has descending order
+        for cb in mag_bin_centers[::-1]:
+            cum_mag += mod_mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # make new dict with ascending order
+        mod_mfd = {cb: cum_mfd[cb] for cb in mag_bin_centers}
+
+    return mod_mfd
+
+
+def get_obs_mfd(
+    bin_gdf: GeoDataFrame,
+    t_yrs: float,
+    prospective: bool = False,
+    cumulative: bool = False,
+) -> dict:
+    mag_bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+
+    if prospective is False:
+        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(t_yrs=t_yrs)
+    else:
+        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_prospective_mfd(t_yrs=t_yrs)
+
+    for i, row in bin_gdf.iloc[1:].iterrows():
+        if prospective is False:
+            bin_obs_mfd = row.SpacemagBin.get_empirical_mfd(t_yrs=t_yrs)
+        else:
+            bin_obs_mfd = row.SpacemagBin.get_prospective_mfd(t_yrs=t_yrs)
+
+        for bin_center, rate in bin_obs_mfd.items():
+            obs_mfd[bin_center] += rate
+
+    if cumulative is True:
+        cum_mfd = {}
+        cum_mag = 0.0
+        # dict has descending order
+        for cb in mag_bin_centers[::-1]:
+            cum_mag += obs_mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # make new dict with ascending order
+        obs_mfd = {cb: cum_mfd[cb] for cb in mag_bin_centers}
+
+    return obs_mfd
+
+
 def get_model_annual_eq_rate(bin_gdf: GeoDataFrame) -> float:
     annual_rup_rate = 0.0
     for i, row in bin_gdf.iterrows():
@@ -28,8 +87,10 @@ def get_model_annual_eq_rate(bin_gdf: GeoDataFrame) -> float:
 
 def get_total_obs_eqs(bin_gdf: GeoDataFrame, prospective: bool = False) -> list:
     obs_eqs = []
+
     for i, row in bin_gdf.iterrows():
         sb = row.SpacemagBin
+
         if prospective is False:
             for mb in sb.observed_earthquakes.values():
                 obs_eqs.extend(mb)
@@ -43,11 +104,7 @@ def get_total_obs_eqs(bin_gdf: GeoDataFrame, prospective: bool = False) -> list:
 def subdivide_observed_eqs(bin_gdf: GeoDataFrame, subcat_n_years: int):
 
     # collate earthquakes from bins
-    obs_eqs = []
-    for i, row in bin_gdf.iterrows():
-        sb = row.SpacemagBin
-        for mb in sb.observed_earthquakes.values():
-            obs_eqs.extend(mb)
+    obs_eqs = get_total_obs_eqs(bin_gdf, prospective=False)
 
     # divide earthquakes into groups, starting with the first observed year.
     # this could be changed to account for years with no events bounding the

@@ -18,6 +18,8 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     subdivide_observed_eqs,
     get_model_annual_eq_rate,
     get_total_obs_eqs,
+    get_model_mfd,
+    get_obs_mfd,
 )
 
 
@@ -70,55 +72,23 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     if "critical_pct" not in test_config:
         test_config["critical_pct"] = 0.25
 
-    ##
+    t_yrs = test_config["investigation_time"]
+
     # get model and observed MFDs
-    ##
-    mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
+    mod_mfd = get_model_mfd(bin_gdf)
+    obs_mfd = get_obs_mfd(bin_gdf, t_yrs, prospective)
 
-    if prospective is False:
-        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(
-            t_yrs=test_config["investigation_time"]
-        )
-    else:
-        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_prospective_mfd(
-            t_yrs=test_config["investigation_time"]
-        )
-
-    for i, row in bin_gdf.iloc[1:].iterrows():
-        bin_mod_mfd = row.SpacemagBin.get_rupture_mfd()
-
-        if prospective is False:
-            bin_obs_mfd = row.SpacemagBin.get_empirical_mfd(
-                t_yrs=test_config["investigation_time"]
-            )
-        else:
-            bin_obs_mfd = row.SpacemagBin.get_prospective_mfd(
-                t_yrs=test_config["investigation_time"]
-            )
-
-        for bin_center, rate in bin_mod_mfd.items():
-            mod_mfd[bin_center] += rate
-
-        for bin_center, rate in bin_obs_mfd.items():
-            obs_mfd[bin_center] += rate
-
-    ##
     # calculate log-likelihoods
-    ##
     n_bins = len(mod_mfd.keys())
 
     stochastic_eq_counts = {
-        bc: np.random.poisson(
-            (rate * test_config["investigation_time"]), size=test_config["n_iters"]
-        )
+        bc: np.random.poisson((rate * t_yrs), size=test_config["n_iters"])
         for bc, rate in mod_mfd.items()
     }
 
     bin_log_likelihoods = {
         bc: [
-            poisson_log_likelihood(
-                n_stoch, (mod_mfd[bc] * test_config["investigation_time"])
-            )
+            poisson_log_likelihood(n_stoch, (mod_mfd[bc] * t_yrs))
             for n_stoch in eq_counts
         ]
         for bc, eq_counts in stochastic_eq_counts.items()
@@ -137,10 +107,7 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     obs_geom_mean_like = np.exp(
         np.sum(
             [
-                poisson_log_likelihood(
-                    int(obs_mfd[bc] * test_config["investigation_time"]),
-                    rate * test_config["investigation_time"],
-                )
+                poisson_log_likelihood(int(obs_mfd[bc] * t_yrs), rate * t_yrs,)
                 for bc, rate in mod_mfd.items()
             ]
         )

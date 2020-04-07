@@ -51,9 +51,10 @@ class test_relm_tests(unittest.TestCase):
 
     def test_N_test_poisson(self):
         N_test_res = N_test(self.cfg, bin_gdf=self.bin_gdf)
+        rate = 0.8645872887605222
 
         assert N_test_res["conf_interval_pct"] == 0.96
         assert N_test_res["conf_interval"] == (0.0, 3.0)
-        np.testing.assert_almost_equal(N_test_res["inv_time_rate"], 0.8645872887605222)
+        np.testing.assert_almost_equal(N_test_res["inv_time_rate"], rate)
         assert N_test_res["n_obs_earthquakes"] == 3
         assert N_test_res["pass"]
