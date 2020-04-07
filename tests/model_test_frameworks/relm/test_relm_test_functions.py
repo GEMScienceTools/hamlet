@@ -12,6 +12,7 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     subdivide_observed_eqs,
     N_test_poisson,
     N_test_neg_binom,
+    mfd_log_likelihood,
 )
 
 BASE_PATH = os.path.dirname(__file__)
@@ -56,11 +57,27 @@ cfg = {
 bin_gdf, obs_seis_catalog = load_inputs(cfg)
 
 
-class test_relm_tests(unittest.TestCase):
+class test_relm_test_functions(unittest.TestCase):
     def setUp(self):
         self.cfg = cfg
         self.bin_gdf = bin_gdf
         self.obs_seis_catalog = obs_seis_catalog
+
+    def test_mfd_log_likelihood(self):
+        # this test is not specific to N test but this is where t_yrs is stored
+        # with this unit test config
+        N_test_cfg = self.cfg["config"]["model_framework"]["relm"]["N_test"]
+        t_yrs = N_test_cfg["investigation_time"]
+
+        sb = self.bin_gdf.loc["836864fffffffff"].SpacemagBin
+
+        obs_eqs = sb.observed_earthquakes
+        rate_mfd = sb.get_rupture_mfd()
+        rate_mfd = {mag: t_yrs * rate for mag, rate in rate_mfd.items()}
+
+        mfd_log_like = mfd_log_likelihood(rate_mfd, binned_events=obs_eqs)
+
+        np.testing.assert_almost_equal(mfd_log_like, -8.213565944294217)
 
     def test_get_model_mfd_noncum(self):
         mod_mfd = get_model_mfd(self.bin_gdf)

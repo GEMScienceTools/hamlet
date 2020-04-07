@@ -158,13 +158,24 @@ class SpacemagBin:
 
         return {**params, **mag_bins}
 
-    def sample_ruptures(self, interval_length, t0=0.0, clean=True):
+    def sample_ruptures(
+        self,
+        interval_length: float,
+        t0: float = 0.0,
+        clean: bool = True,
+        return_rups: bool = False,
+    ):
         for bc, mag_bin in self.mag_bins.items():
             mag_bin.sample_ruptures(interval_length, t0=t0, clean=clean)
             if clean is True:
                 self.stochastic_earthquakes[bc] = mag_bin.stochastic_earthquakes
             else:
                 self.stochastic_earthquakes[bc].append(mag_bin.stochastic_earthquakes)
+
+        if return_rups is True:
+            return self.stochastic_earthquakes
+        else:
+            return
 
     def get_rupture_mfd(self, cumulative=False):
 
@@ -201,7 +212,7 @@ class SpacemagBin:
         if normalize is True:
             denom = interval_length
         else:
-            denom = 1.0
+            denom = 1
         noncum_mfd = {
             bc: len(eqs) / denom for bc, eqs in self.stochastic_earthquakes.items()
         }

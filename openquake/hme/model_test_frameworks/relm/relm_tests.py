@@ -20,6 +20,7 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     get_total_obs_eqs,
     get_model_mfd,
     get_obs_mfd,
+    s_test_bin,
 )
 
 
@@ -133,12 +134,61 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     return test_result
 
 
-def S_test():
+def S_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     """
     """
-    # calc N
+    logging.info("Running S-Test")
 
-    raise NotImplementedError
+    test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
+    t_yrs = test_config["investigation_time"]
+
+    if "prospective" not in test_config.keys():
+        prospective = False
+    else:
+        prospective = test_config["prospective"]
+
+    N_obs = len(get_total_obs_eqs(bin_gdf, prospective=prospective))
+    N_pred = get_model_annual_eq_rate(bin_gdf) * t_yrs
+    N_norm = N_obs / N_pred
+
+    bin_likes = [
+        s_test_bin(row.SpacemagBin, test_config, N_norm)
+        for i, row in bin_gdf.iterrows()
+    ]
+    obs_likes = np.array([bl[0] for bl in bin_likes])
+    stoch_likes = np.vstack([bl[1] for bl in bin_likes]).T
+
+    obs_like_total = sum(obs_likes)
+    stoch_like_totals = np.sum(stoch_likes, axis=1)
+
+    if "append" in test_config.keys():
+        if test_config["append"] is True:
+            bin_pcts = []
+            for i, obs_like in enumerate(obs_likes):
+                stoch_like = stoch_likes[:, i]
+                bin_pct = (
+                    len(stoch_like[stoch_like < obs_like]) / test_config["n_iters"]
+                )
+                bin_pcts.append(bin_pct)
+            bin_gdf["S_bin_pct"] = bin_pcts
+
+    pctile = (
+        len(stoch_like_totals[stoch_like_totals < obs_like_total])
+        / test_config["n_iters"]
+    )
+
+    test_pass = True if pctile >= test_config["critical_pct"] else False
+    test_res = "Pass" if test_pass else "Fail"
+
+    test_result = {
+        "critical_pct": test_config["critical_pct"],
+        "percentile": pctile,
+        "test_pass": test_pass,
+        "test_res": test_res,
+    }
+
+    logging.info("S-Test {}".format(test_res))
+    return test_result
 
 
 def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:

@@ -2,17 +2,71 @@
 Utility functions for running tests in the RELM model test framework.
 """
 import logging
-from typing import Sequence, Dict, List
+from typing import Sequence, Dict, List, Optional
 from datetime import datetime, timedelta
 
 import numpy as np
 from scipy.stats import poisson, nbinom
 from geopandas import GeoSeries, GeoDataFrame
 
+from openquake.hme.utils.bins import SpacemagBin
 from openquake.hme.utils.stats import (
     negative_binomial_distribution,
     estimate_negative_binom_parameters,
 )
+from openquake.hme.model_test_frameworks.relm.relm_stats import (
+    bin_observance_log_likelihood,
+)
+
+
+def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
+    t_yrs = test_cfg["investigation_time"]
+
+    # calculate the rate
+    rate_mfd = sbin.get_rupture_mfd()
+    rate_mfd = {mag: t_yrs * rate * N_norm for mag, rate in rate_mfd.items()}
+
+    # calculate the observed L
+    obs_eqs = sbin.observed_earthquakes
+    obs_L = mfd_log_likelihood(rate_mfd, obs_eqs)
+
+    # calculate L for iterated stochastic event sets
+    stoch_Ls = np.array(
+        [
+            mfd_log_likelihood(
+                rate_mfd, sbin.sample_ruptures(t_yrs, clean=True, return_rups=True)
+            )
+            for i in range(test_cfg["n_iters"])
+        ]
+    )
+    return obs_L, stoch_Ls
+
+
+def mfd_log_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the whole MFD, which is the sum of the
+    log-likelihoods of each bin, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {mag: len(obs_eq) for mag, obs_eq in binned_events.items()}
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
+
+    return np.sum(
+        [
+            bin_observance_log_likelihood(n_obs, rate_mfd[mag])
+            for mag, n_obs in num_obs_events.items()
+        ]
+    )
 
 
 def get_model_mfd(bin_gdf: GeoDataFrame, cumulative: bool = False) -> dict:
@@ -86,6 +140,9 @@ def get_model_annual_eq_rate(bin_gdf: GeoDataFrame) -> float:
 
 
 def get_total_obs_eqs(bin_gdf: GeoDataFrame, prospective: bool = False) -> list:
+    """
+    Returns a list of all of the observed earthquakes within the model domain.
+    """
     obs_eqs = []
 
     for i, row in bin_gdf.iterrows():
