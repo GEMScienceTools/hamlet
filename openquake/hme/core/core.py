@@ -307,6 +307,8 @@ def run_tests(cfg: dict) -> None:
         np.random.seed(cfg["config"]["rand_seed"])
     except Exception as e:
         logger.warning("Cannot use random seed: {}".format(e.__str__()))
+    except KeyError:
+        pass
 
     if "prospective_catalog" in cfg["input"].keys():
         bin_gdf, eq_gdf, pro_gdf = load_inputs(cfg)

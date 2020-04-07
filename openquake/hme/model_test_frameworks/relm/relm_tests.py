@@ -244,4 +244,10 @@ def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     return test_result
 
 
-relm_test_dict = {"L_test": L_test, "N_test": N_test, "M_test": M_test}
+relm_test_dict = {
+    "L_test": L_test,
+    "N_test": N_test,
+    "M_test": M_test,
+    "S_test": S_test,
+}
+

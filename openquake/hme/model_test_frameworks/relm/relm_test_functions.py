@@ -30,15 +30,25 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
     obs_eqs = sbin.observed_earthquakes
     obs_L = mfd_log_likelihood(rate_mfd, obs_eqs)
 
+    binned_event_arr = [
+        sbin.sample_ruptures(t_yrs, clean=True, return_rups=True)
+        for i in range(test_cfg["n_iters"])
+    ]
+
     # calculate L for iterated stochastic event sets
     stoch_Ls = np.array(
         [
             mfd_log_likelihood(
-                rate_mfd, sbin.sample_ruptures(t_yrs, clean=True, return_rups=True)
+                rate_mfd,
+                # binned_events=sbin.sample_ruptures(t_yrs, clean=True,
+                # return_rups=True),
+                binned_events=binned_event_arr[i],
             )
             for i in range(test_cfg["n_iters"])
         ]
     )
+
+    breakpoint()
     return obs_L, stoch_Ls
 
 

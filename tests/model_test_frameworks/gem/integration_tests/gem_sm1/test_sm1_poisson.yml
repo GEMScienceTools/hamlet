@@ -20,6 +20,18 @@ config:
                 conf_interval: 0.95
                 investigation_time: 40.
                 prob_model: poisson
+            M_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
+            S_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
+                append: True
+
     parallel: False
     rand_seed: 69
 
