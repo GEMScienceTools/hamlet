@@ -20,7 +20,8 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     get_total_obs_eqs,
     get_model_mfd,
     get_obs_mfd,
-    s_test_bin,
+    # s_test_bin,
+    s_test_gdf_series,
 )
 
 
@@ -151,10 +152,12 @@ def S_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     N_pred = get_model_annual_eq_rate(bin_gdf) * t_yrs
     N_norm = N_obs / N_pred
 
-    bin_likes = [
-        s_test_bin(row.SpacemagBin, test_config, N_norm)
-        for i, row in bin_gdf.iterrows()
-    ]
+    if cfg["config"]["parallel"] is False:
+        bin_likes = s_test_gdf_series(bin_gdf, test_config, N_norm)
+    else:
+        logging.warn("parallel S test not implemented, using Serial test")
+        bin_likes = s_test_gdf_series(bin_gdf, test_config, N_norm)
+
     obs_likes = np.array([bl[0] for bl in bin_likes])
     stoch_likes = np.vstack([bl[1] for bl in bin_likes]).T
 
@@ -250,4 +253,3 @@ relm_test_dict = {
     "M_test": M_test,
     "S_test": S_test,
 }
-

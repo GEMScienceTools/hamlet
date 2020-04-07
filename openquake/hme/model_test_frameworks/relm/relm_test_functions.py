@@ -6,6 +6,7 @@ from typing import Sequence, Dict, List, Optional
 from datetime import datetime, timedelta
 
 import numpy as np
+from tqdm import tqdm
 from scipy.stats import poisson, nbinom
 from geopandas import GeoSeries, GeoDataFrame
 
@@ -19,6 +20,19 @@ from openquake.hme.model_test_frameworks.relm.relm_stats import (
 )
 
 
+def s_test_gdf_series(bin_gdf: GeoDataFrame, test_config: dict, N_norm: float = 1.0):
+    return tqdm(
+        [
+            s_test_bin(row.SpacemagBin, test_config, N_norm)
+            for i, row in bin_gdf.iterrows()
+        ]
+    )
+
+
+def s_test_gdf():
+    pass
+
+
 def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
     t_yrs = test_cfg["investigation_time"]
 
@@ -30,9 +44,8 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
     obs_eqs = sbin.observed_earthquakes
     obs_L = mfd_log_likelihood(rate_mfd, obs_eqs)
 
-    binned_event_arr = [
-        sbin.sample_ruptures(t_yrs, clean=True, return_rups=True)
-        for i in range(test_cfg["n_iters"])
+    stoch_rup_counts = [
+        get_poisson_counts_from_mfd(rate_mfd).copy() for i in range(test_cfg["n_iters"])
     ]
 
     # calculate L for iterated stochastic event sets
@@ -40,16 +53,18 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
         [
             mfd_log_likelihood(
                 rate_mfd,
-                # binned_events=sbin.sample_ruptures(t_yrs, clean=True,
-                # return_rups=True),
-                binned_events=binned_event_arr[i],
+                # binned_events=binned_event_arr[i],
+                empirical_mfd=stoch_rup_counts[i],
             )
             for i in range(test_cfg["n_iters"])
         ]
     )
 
-    breakpoint()
     return obs_L, stoch_Ls
+
+
+def get_poisson_counts_from_mfd(mfd: dict):
+    return {mag: np.random.poisson(rate) for mag, rate in mfd.items()}
 
 
 def mfd_log_likelihood(
