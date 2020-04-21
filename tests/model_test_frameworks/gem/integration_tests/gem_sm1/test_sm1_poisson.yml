@@ -72,4 +72,5 @@ report:
 
 output:
     bin_gdf:
-        outputs/sm1_bins.geojson
+        file:
+            outputs/sm1_bins.geojson

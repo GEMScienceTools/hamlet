@@ -9,7 +9,7 @@ from openquake.hme.utils.stats import (
     negative_binomial_distribution,
     estimate_negative_binom_parameters,
 )
-from openquake.hme.utils import get_source_bins
+from openquake.hme.utils import get_source_bins, get_n_eqs_from_mfd
 from openquake.hme.utils.plots import plot_mfd
 from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
@@ -30,7 +30,10 @@ def L_test():
     raise NotImplementedError
 
 
-def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
+def M_test(
+        cfg,
+        bin_gdf: Optional[GeoDataFrame] = None,
+) -> dict:
     """
     The M-Test is based on Zechar et al. (2010), though not identical. This
     tests evaluates the consistency of the magnitude-frequency distribution of
@@ -96,30 +99,24 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
         for bc, eq_counts in stochastic_eq_counts.items()
     }
 
-    stoch_geom_mean_likes = np.array(
-        [
-            np.exp(
-                np.sum([bll_mag[i] for bll_mag in bin_log_likelihoods.values()])
-                / n_bins
-            )
-            for i in range(test_config["n_iters"])
-        ]
-    )
+    stoch_geom_mean_likes = np.array([
+        np.exp(
+            np.sum([bll_mag[i]
+                    for bll_mag in bin_log_likelihoods.values()]) / n_bins)
+        for i in range(test_config["n_iters"])
+    ])
 
     obs_geom_mean_like = np.exp(
-        np.sum(
-            [
-                poisson_log_likelihood(int(obs_mfd[bc] * t_yrs), rate * t_yrs,)
-                for bc, rate in mod_mfd.items()
-            ]
-        )
-        / n_bins
-    )
+        np.sum([
+            poisson_log_likelihood(
+                int(obs_mfd[bc] * t_yrs),
+                rate * t_yrs,
+            ) for bc, rate in mod_mfd.items()
+        ]) / n_bins)
 
-    pctile = (
-        len(stoch_geom_mean_likes[stoch_geom_mean_likes < obs_geom_mean_like])
-        / test_config["n_iters"]
-    )
+    pctile = (len(
+        stoch_geom_mean_likes[stoch_geom_mean_likes < obs_geom_mean_like]) /
+              test_config["n_iters"])
 
     test_pass = True if pctile >= test_config["critical_pct"] else False
     test_res = "Pass" if test_pass else "Fail"
@@ -137,7 +134,10 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     return test_result
 
 
-def S_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
+def S_test(
+        cfg: dict,
+        bin_gdf: Optional[GeoDataFrame] = None,
+) -> dict:
     """
     """
     logging.info("Running S-Test")
@@ -167,16 +167,19 @@ def S_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
             bin_pcts = []
             for i, obs_like in enumerate(obs_likes):
                 stoch_like = stoch_likes[:, i]
-                bin_pct = (
-                    len(stoch_like[stoch_like < obs_like]) / test_config["n_iters"]
-                )
+                bin_pct = (len(stoch_like[stoch_like < obs_like]) /
+                           test_config["n_iters"])
                 bin_pcts.append(bin_pct)
             bin_gdf["S_bin_pct"] = bin_pcts
 
-    pctile = (
-        len(stoch_like_totals[stoch_like_totals < obs_like_total])
-        / test_config["n_iters"]
-    )
+            bin_gdf['N_model'] = bin_gdf.SpacemagBin.apply(
+                lambda x: get_n_eqs_from_mfd(x.get_rupture_mfd()) * t_yrs)
+
+            bin_gdf['N_obs'] = bin_gdf.SpacemagBin.apply(
+                lambda x: get_n_eqs_from_mfd(x.observed_earthquakes))
+
+    pctile = (len(stoch_like_totals[stoch_like_totals < obs_like_total]) /
+              test_config["n_iters"])
 
     test_pass = True if pctile >= test_config["critical_pct"] else False
     test_res = "Pass" if test_pass else "Fail"
@@ -194,7 +197,10 @@ def S_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     return test_result
 
 
-def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
+def N_test(
+        cfg: dict,
+        bin_gdf: Optional[GeoDataFrame] = None,
+) -> dict:
     """
     Tests 
 
@@ -217,21 +223,19 @@ def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     test_rup_rate = annual_rup_rate * test_config["investigation_time"]
 
     if test_config["prob_model"] == "poisson":
-        test_result = N_test_poisson(n_obs, test_rup_rate, test_config["conf_interval"])
+        test_result = N_test_poisson(n_obs, test_rup_rate,
+                                     test_config["conf_interval"])
 
     elif test_config["prob_model"] == "neg_binom":
         n_eqs_in_subs = subdivide_observed_eqs(
-            bin_gdf, test_config["investigation_time"]
-        )
+            bin_gdf, test_config["investigation_time"])
 
         if prospective:
             prob_success, r_dispersion = estimate_negative_binom_parameters(
-                n_eqs_in_subs, test_rup_rate
-            )
+                n_eqs_in_subs, test_rup_rate)
         else:
             prob_success, r_dispersion = estimate_negative_binom_parameters(
-                n_eqs_in_subs
-            )
+                n_eqs_in_subs)
 
         test_result = N_test_neg_binom(
             n_obs,
@@ -242,7 +246,8 @@ def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
         )
 
     else:
-        raise ValueError(f"{test_config['prob_model']} not a valid probability model")
+        raise ValueError(
+            f"{test_config['prob_model']} not a valid probability model")
 
     if test_result['pass'] == True:
         test_pass = "Pass"

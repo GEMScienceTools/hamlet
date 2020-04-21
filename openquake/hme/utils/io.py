@@ -200,3 +200,11 @@ def write_mfd_plots_to_gdf(bin_gdf: GeoDataFrame, **kwargs):
                                                model_iters=0,
                                                **kwargs)
     bin_gdf['mfd_plots'] = plot_series
+
+
+def write_bin_gdf_to_csv(filename, bin_gdf: GeoDataFrame, index: bool = False):
+    bin_gdf['wkt'] = bin_gdf.apply(lambda row: row.geometry.to_wkt(), axis=1)
+
+    bin_wkt = bin_gdf.drop(['geometry', 'SpacemagBin'], axis=1)
+
+    bin_wkt.to_csv(filename, index=index)
