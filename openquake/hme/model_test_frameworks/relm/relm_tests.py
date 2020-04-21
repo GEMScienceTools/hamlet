@@ -131,6 +131,8 @@ def M_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
         "test_res": test_res,
     }
 
+    logging.info("M-Test crit pct {}".format(test_result['critical_pct']))
+    logging.info("M-Test pct {}".format(pctile))
     logging.info("M-Test {}".format(test_res))
     return test_result
 
@@ -152,11 +154,7 @@ def S_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     N_pred = get_model_annual_eq_rate(bin_gdf) * t_yrs
     N_norm = N_obs / N_pred
 
-    if cfg["config"]["parallel"] is False:
-        bin_likes = s_test_gdf_series(bin_gdf, test_config, N_norm)
-    else:
-        logging.warn("parallel S test not implemented, using Serial test")
-        bin_likes = s_test_gdf_series(bin_gdf, test_config, N_norm)
+    bin_likes = s_test_gdf_series(bin_gdf, test_config, N_norm)
 
     obs_likes = np.array([bl[0] for bl in bin_likes])
     stoch_likes = np.vstack([bl[1] for bl in bin_likes]).T
@@ -191,6 +189,8 @@ def S_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
     }
 
     logging.info("S-Test {}".format(test_res))
+    logging.info("S-Test crit pct: {}".format(test_result['critical_pct']))
+    logging.info("S-Test model pct: {}".format(pctile))
     return test_result
 
 
@@ -243,6 +243,15 @@ def N_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,) -> dict:
 
     else:
         raise ValueError(f"{test_config['prob_model']} not a valid probability model")
+
+    if test_result['pass'] == True:
+        test_pass = "Pass"
+    else:
+        test_pass = "Fail"
+
+    logging.info("N-Test number obs eqs: {}".format(n_obs))
+    logging.info("N-Test number pred eqs: {}".format(test_rup_rate))
+    logging.info("N-Test {}".format(test_pass))
 
     return test_result
 

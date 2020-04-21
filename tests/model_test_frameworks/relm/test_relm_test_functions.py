@@ -13,6 +13,7 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     N_test_poisson,
     N_test_neg_binom,
     mfd_log_likelihood,
+    s_test_bin,
 )
 
 BASE_PATH = os.path.dirname(__file__)
@@ -28,7 +29,13 @@ cfg = {
                     "prob_model": "poisson",
                     "conf_interval": 0.96,
                     "investigation_time": 40.0,
-                }
+                },
+                "S_test": {
+                    "investigation_time": 40.0,
+                    "n_iters": 5,
+                    "critical_pct": 0.25,
+                    "append": True,
+                },
             }
         },
         "parallel": False,
@@ -62,6 +69,13 @@ class test_relm_test_functions(unittest.TestCase):
         self.cfg = cfg
         self.bin_gdf = bin_gdf
         self.obs_seis_catalog = obs_seis_catalog
+
+    def test_s_test_bin(self):
+        S_test_cfg = self.cfg["config"]["model_framework"]["relm"]["S_test"]
+
+        sb = self.bin_gdf.loc["836860fffffffff"].SpacemagBin
+
+        s_test_bin_res = s_test_bin(sb, S_test_cfg)
 
     def test_mfd_log_likelihood(self):
         # this test is not specific to N test but this is where t_yrs is stored

@@ -49,18 +49,27 @@ input:
         source_types: null
 
     seis_catalog:
-        seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
+        seis_catalog_file: ../../../../data/source_models/sm1/data/phl_synth_catalog.csv
         columns:
-            time:
-                - year
-                - month
-                - day
-                - hour
-                - minute
-                - second
-            source: Agency
-            event_id: eventID
+            # time: time
+            event_id: event_id
+        #        seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
+        #        columns:
+        #            time:
+        #                - year
+        #                - month
+        #                - day
+        #                - hour
+        #                - minute
+        #                - second
+        #            source: Agency
+        #            event_id: eventID
+
 
 report:
     basic:
         outfile: outputs/sm1_poisson_report.html
+
+output:
+    bin_gdf:
+        outputs/sm1_bins.geojson

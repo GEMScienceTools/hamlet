@@ -383,8 +383,14 @@ def write_outputs(cfg: dict, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame) -> Non
 
     if "bin_gdf" in cfg["output"].keys():
         bin_gdf["bin_index"] = bin_gdf.index
-        bin_gdf.drop("SpacemagBin", axis=1).to_file(
-            cfg["output"]["bin_gdf"]["file"], driver="GeoJSON",
+        bin_gdf.index = np.arange(len(bin_gdf))
+        breakpoint()
+        # bin_gdf.drop("SpacemagBin", axis=1).to_file(
+        bin_gdf["geometry"].to_file(
+            cfg["output"]["bin_gdf"]["file"],
+            driver="GeoJSON",
+            # driver="GPKG",
+            index=False,
         )
 
 

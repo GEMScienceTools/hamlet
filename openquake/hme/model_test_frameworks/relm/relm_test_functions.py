@@ -20,13 +20,12 @@ from openquake.hme.model_test_frameworks.relm.relm_stats import (
 )
 
 
-def s_test_gdf_series(bin_gdf: GeoDataFrame, test_config: dict, N_norm: float = 1.0):
-    return tqdm(
-        [
-            s_test_bin(row.SpacemagBin, test_config, N_norm)
-            for i, row in bin_gdf.iterrows()
-        ]
-    )
+def s_test_gdf_series(bin_gdf: GeoDataFrame, test_config: dict, 
+                      N_norm: float = 1.0):
+    return [
+        s_test_bin(row.SpacemagBin, test_config, N_norm)
+        for i, row in bin_gdf.iterrows()
+    ]
 
 
 def s_test_gdf():
@@ -42,16 +41,19 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
 
     # calculate the observed L
     obs_eqs = sbin.observed_earthquakes
-    obs_L = mfd_log_likelihood(rate_mfd, obs_eqs)
+    #obs_L = mfd_log_likelihood(rate_mfd, obs_eqs)
+    obs_L = total_event_likelihood(rate_mfd, binned_events=obs_eqs)
 
     stoch_rup_counts = [
-        get_poisson_counts_from_mfd(rate_mfd).copy() for i in range(test_cfg["n_iters"])
+        get_poisson_counts_from_mfd(rate_mfd)
+            .copy() for i in range(test_cfg["n_iters"])
     ]
 
     # calculate L for iterated stochastic event sets
     stoch_Ls = np.array(
         [
-            mfd_log_likelihood(
+            # mfd_log_likelihood(
+            total_event_likelihood(
                 rate_mfd,
                 # binned_events=binned_event_arr[i],
                 empirical_mfd=stoch_rup_counts[i],
@@ -59,6 +61,8 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
             for i in range(test_cfg["n_iters"])
         ]
     )
+
+    # breakpoint()
 
     return obs_L, stoch_Ls
 
@@ -92,6 +96,34 @@ def mfd_log_likelihood(
             for mag, n_obs in num_obs_events.items()
         ]
     )
+
+
+def total_event_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the whole MFD, which is the sum of the
+    log-likelihoods of each bin, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {mag: len(obs_eq) 
+                              for mag, obs_eq in binned_events.items()}
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    # breakpoint()
+
+    return bin_observance_log_likelihood(total_num_events, total_model_rate)
 
 
 def get_model_mfd(bin_gdf: GeoDataFrame, cumulative: bool = False) -> dict:
