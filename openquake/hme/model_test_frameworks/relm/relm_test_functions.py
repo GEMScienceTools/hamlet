@@ -28,12 +28,9 @@ def s_test_gdf_series(bin_gdf: GeoDataFrame,
     ]
 
 
-def s_test_gdf():
-    pass
-
-
 def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
     t_yrs = test_cfg["investigation_time"]
+    like_fn = S_TEST_FN[test_cfg['likelihood_fn']]
 
     # calculate the rate
     rate_mfd = sbin.get_rupture_mfd()
@@ -41,8 +38,7 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
 
     # calculate the observed L
     obs_eqs = sbin.observed_earthquakes
-    #obs_L = mfd_log_likelihood(rate_mfd, obs_eqs)
-    obs_L = total_event_likelihood(rate_mfd, binned_events=obs_eqs)
+    obs_L = like_fn(rate_mfd, binned_events=obs_eqs)
 
     stoch_rup_counts = [
         get_poisson_counts_from_mfd(rate_mfd).copy()
@@ -51,15 +47,11 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
 
     # calculate L for iterated stochastic event sets
     stoch_Ls = np.array([
-        # mfd_log_likelihood(
-        total_event_likelihood(
+        like_fn(
             rate_mfd,
-            # binned_events=binned_event_arr[i],
             empirical_mfd=stoch_rup_counts[i],
         ) for i in range(test_cfg["n_iters"])
     ])
-
-    # breakpoint()
 
     return obs_L, stoch_Ls
 
@@ -130,6 +122,10 @@ def total_event_likelihood(
     # breakpoint()
 
     return bin_observance_log_likelihood(total_num_events, total_model_rate)
+
+
+S_TEST_FN = {'n_eqs': total_event_likelihood,
+             'mfd': mfd_log_likelihood}
 
 
 def get_model_mfd(bin_gdf: GeoDataFrame, cumulative: bool = False) -> dict:
