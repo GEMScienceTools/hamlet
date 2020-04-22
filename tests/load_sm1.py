@@ -42,7 +42,12 @@ cfg = {
         "rand_seed": 69,
     },
     "input": {
-        "bins": {"mfd_bin_min": 6.0, "mfd_bin_max": 8.5, "mfd_bin_width": 0.2},
+        "bins": {
+            "h3_res": 3, 
+            "mfd_bin_min": 6.0, 
+            "mfd_bin_max": 8.5,
+            "mfd_bin_width": 0.2
+        },
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
