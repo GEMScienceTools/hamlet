@@ -8,7 +8,6 @@ write the output.
 
 import time
 import logging
-from copy import deepcopy
 from typing import Union, Optional, Tuple
 
 import yaml
@@ -39,12 +38,8 @@ test_dict = {"gem": gem_test_dict, "relm": relm_test_dict, "sanity": sanity_test
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-DEFAULTS = {"input": {"bins": {"h3_res": 3},
-                      "ssm": {"branch": None,
-                              "tectonic_region_types": None,
-                              "source_types": None}}}
 
-def read_yaml_config(yaml_config: Openable) -> dict:
+def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
     """
     Reads a model test configuration file (YAML).
 
@@ -54,14 +49,39 @@ def read_yaml_config(yaml_config: Openable) -> dict:
     :returns:
         Model test configuration from the YAML made into a dictionary.
     """
-    logger.info("loading defaults")
-    cfg = deepcopy(DEFAULTS)
-    
     logger.info("reading YAML configuration")
     with open(yaml_config) as config_file:
-        cfg.update(yaml.safe_load(config_file))
+        cfg = yaml.safe_load(config_file)
+
+    if fill_fields:
+        _fill_necessary_fields(cfg)
 
     return cfg
+
+
+def update_defaults(cfg: dict):
+    # need to update openquake.hme defaults with values from the cfg,
+    # or just add the necessary stuff to cfg
+    raise NotImplementedError
+
+
+def _fill_necessary_fields(cfg: dict):
+    """
+    Fills the configuration dictionary with `None` types for optional
+    parameters that were not included in the YAML file.
+    """
+    # to fill in as necessary (oh god that comment)
+
+    necessary_fields = {
+        "input": {"ssm": ["branch", "tectonic_region_types", "source_types"]}
+    }
+
+    for field, subfield in necessary_fields.items():
+        for sub_name, subsubfields in subfield.items():
+            for subsubname in subsubfields:
+                if subsubname not in cfg[field][sub_name].keys():
+                    logger.warning(f"['{field}']['{sub_name}']['{subsubname}'] filled")
+                    cfg[field][sub_name][subsubname] = None
 
 
 def get_test_lists_from_config(cfg: dict) -> dict:
@@ -162,7 +182,6 @@ def make_bin_gdf(cfg: dict) -> GeoDataFrame:
 
     bin_gdf = make_SpacemagBins_from_bin_gis_file(
         bin_cfg["bin_gis_file"],
-        res=bin_cfg["h3_res"],
         min_mag=bin_cfg["mfd_bin_min"],
         max_mag=bin_cfg["mfd_bin_max"],
         bin_width=bin_cfg["mfd_bin_width"],
@@ -224,7 +243,7 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     rupture_gdf = load_ruptures_from_ssm(cfg)
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
-        res=cfg["input"]["bins"]["h3_res"],
+        res=3,
         min_mag=cfg["input"]["bins"]["mfd_bin_min"],
         max_mag=cfg["input"]["bins"]["mfd_bin_max"],
         bin_width=cfg["input"]["bins"]["mfd_bin_width"],
@@ -253,14 +272,12 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     eq_gdf = load_obs_eq_catalog(cfg)
 
     logger.info("adding earthquakes to bins")
-    add_earthquakes_to_bins(eq_gdf, bin_gdf,
-                            h3_res=cfg["input"]["bins"]["h3_res"])
+    add_earthquakes_to_bins(eq_gdf, bin_gdf)
 
     if "prospective_catalog" in cfg["input"].keys():
         logger.info("adding prospective earthquakes to bins")
         pro_gdf = load_pro_eq_catalog(cfg)
-        add_earthquakes_to_bins(pro_gdf, bin_gdf, category="prospective",
-                                h3_res=cfg["input"]["bins"]["h3_res"])
+        add_earthquakes_to_bins(pro_gdf, bin_gdf, category="prospective")
         return bin_gdf, eq_gdf, pro_gdf
 
     else:
@@ -367,6 +384,9 @@ def write_outputs(
     if "plots" in cfg["output"].keys():
         write_mfd_plots_to_gdf(bin_gdf, **cfg["output"]["plots"]["kwargs"])
 
+    if "map_epsg" in cfg["config"]:
+        out_gdf = out_gdf.to_crs(cfg["config"]["map_epsg"])
+
     if "bin_gdf" in cfg["output"].keys():
         outfile = cfg["output"]["bin_gdf"]["file"]
         out_format = outfile.split(".")[-1]
@@ -378,14 +398,15 @@ def write_outputs(
 
         else:
             try:
+
                 bin_gdf.drop("SpacemagBin", axis=1).to_file(
-                    outfile, driver=OUTPUT_DRIVERS[out_format], index=write_index,
+                    outfile, driver=OUTPUT_FILE_MAP[out_format], index=write_index,
                 )
             except KeyError:
                 raise Exception(f"No writer for {out_format} format")
 
 
-OUTPUT_DRIVERS = {"geojson": "GeoJSON"}
+OUTPUT_FILE_MAP = {"geojson": "GeoJSON"}
 
 
 def write_reports(
