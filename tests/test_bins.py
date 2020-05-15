@@ -34,7 +34,12 @@ cfg = {
         "rand_seed": 69,
     },
     "input": {
-        "bins": {"mfd_bin_min": 6.5, "mfd_bin_max": 8.5, "mfd_bin_width": 0.2},
+        "bins": {
+            "mfd_bin_min": 6.5,
+            "mfd_bin_max": 8.5,
+            "mfd_bin_width": 0.2,
+            "h3_res": 3,
+        },
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
@@ -56,7 +61,10 @@ cfg = {
 bin_gdf, obs_seis_catalog = load_inputs(cfg)
 
 
-def test_sample_ruptures(bin_gdf):
+def test_sample_ruptures():
+    """
+    Test used during debugging, not a good unit test
+    """
     sb = bin_gdf.iloc[0].SpacemagBin
     evs = []
     rnd = []
@@ -67,8 +75,3 @@ def test_sample_ruptures(bin_gdf):
             print(k, len(v))
         evs.append(rs.copy())
         rnd.append(np.random.get_state())
-
-    return evs, rnd
-
-
-evs, rnd = test_sample_ruptures(bin_gdf)

@@ -41,7 +41,7 @@ input:
         mfd_bin_max: 8.5
         mfd_bin_min: 6.0
         mfd_bin_width: 0.2
-        h3_res: 3
+        #h3_res: 3
     ssm:
         ssm_dir: ../../../../data/source_models/sm1/
         ssm_lt_file: ssmLT.xml
@@ -67,12 +67,10 @@ input:
         #            source: Agency
         #            event_id: eventID
 
-
 report:
     basic:
         outfile: outputs/sm1_poisson_report.html
 
 output:
     bin_gdf:
-        file:
-            outputs/sm1_bins.geojson
+        file: outputs/sm1_bins.geojson

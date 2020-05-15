@@ -8,6 +8,7 @@ write the output.
 
 import time
 import logging
+from copy import deepcopy
 from typing import Union, Optional, Tuple
 
 import yaml
@@ -16,6 +17,7 @@ from geopandas import GeoDataFrame
 
 from openquake.hme.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
 from openquake.hme.utils import (
+    deep_update,
     make_SpacemagBins_from_bin_gis_file,
     rupture_dict_from_logic_tree_dict,
     rupture_list_to_gdf,
@@ -38,6 +40,13 @@ test_dict = {"gem": gem_test_dict, "relm": relm_test_dict, "sanity": sanity_test
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
+cfg_defaults = {
+    "input": {
+        "bins": {"h3_res": 3},
+        "ssm": {"branch": None, "tectonic_region_types": None, "source_types": None},
+    },
+}
+
 
 def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
     """
@@ -49,12 +58,14 @@ def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
     :returns:
         Model test configuration from the YAML made into a dictionary.
     """
+    cfg = deepcopy(cfg_defaults)
+
     logger.info("reading YAML configuration")
     with open(yaml_config) as config_file:
-        cfg = yaml.safe_load(config_file)
+        cfg = deep_update(cfg, yaml.safe_load(config_file))
 
-    if fill_fields:
-        _fill_necessary_fields(cfg)
+    # if fill_fields:
+    #    _fill_necessary_fields(cfg)
 
     return cfg
 
@@ -243,7 +254,7 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     rupture_gdf = load_ruptures_from_ssm(cfg)
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
-        res=3,
+        h3_res=cfg["input"]["bins"]["h3_res"],
         min_mag=cfg["input"]["bins"]["mfd_bin_min"],
         max_mag=cfg["input"]["bins"]["mfd_bin_max"],
         bin_width=cfg["input"]["bins"]["mfd_bin_width"],
@@ -272,12 +283,17 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     eq_gdf = load_obs_eq_catalog(cfg)
 
     logger.info("adding earthquakes to bins")
-    add_earthquakes_to_bins(eq_gdf, bin_gdf)
+    add_earthquakes_to_bins(eq_gdf, bin_gdf, h3_res=cfg["input"]["bins"]["h3_res"])
 
     if "prospective_catalog" in cfg["input"].keys():
         logger.info("adding prospective earthquakes to bins")
         pro_gdf = load_pro_eq_catalog(cfg)
-        add_earthquakes_to_bins(pro_gdf, bin_gdf, category="prospective")
+        add_earthquakes_to_bins(
+            pro_gdf,
+            bin_gdf,
+            h3_res=cfg["input"]["bins"]["h3_res"],
+            category="prospective",
+        )
         return bin_gdf, eq_gdf, pro_gdf
 
     else:
