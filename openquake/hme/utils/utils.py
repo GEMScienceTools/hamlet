@@ -5,7 +5,8 @@ import datetime
 from time import time, sleep
 from functools import partial
 from multiprocessing import Pool
-from collections import deque, Mapping
+from collections import deque
+from collections.abc import Mapping
 from typing import Sequence, List, Optional, Union, Tuple
 
 import attr
@@ -1021,3 +1022,92 @@ def get_n_eqs_from_mfd(mfd: dict):
         return sum(mfd.values())
     else:
         return sum(len(val) for val in mfd.values())
+
+
+def get_model_mfd(bin_gdf: gpd.GeoDataFrame, cumulative: bool = False) -> dict:
+    mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
+    mag_bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+
+    for i, row in bin_gdf.iloc[1:].iterrows():
+        bin_mod_mfd = row.SpacemagBin.get_rupture_mfd()
+        for bin_center, rate in bin_mod_mfd.items():
+            mod_mfd[bin_center] += rate
+
+    if cumulative is True:
+        cum_mfd = {}
+        cum_mag = 0.0
+        # dict has descending order
+        for cb in mag_bin_centers[::-1]:
+            cum_mag += mod_mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # make new dict with ascending order
+        mod_mfd = {cb: cum_mfd[cb] for cb in mag_bin_centers}
+
+    return mod_mfd
+
+
+def get_obs_mfd(
+    bin_gdf: gpd.GeoDataFrame,
+    t_yrs: float,
+    prospective: bool = False,
+    cumulative: bool = False,
+) -> dict:
+    mag_bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+
+    if prospective is False:
+        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(t_yrs=t_yrs)
+    else:
+        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_prospective_mfd(t_yrs=t_yrs)
+
+    for i, row in bin_gdf.iloc[1:].iterrows():
+        if prospective is False:
+            bin_obs_mfd = row.SpacemagBin.get_empirical_mfd(t_yrs=t_yrs)
+        else:
+            bin_obs_mfd = row.SpacemagBin.get_prospective_mfd(t_yrs=t_yrs)
+
+        for bin_center, rate in bin_obs_mfd.items():
+            obs_mfd[bin_center] += rate
+
+    if cumulative is True:
+        cum_mfd = {}
+        cum_mag = 0.0
+        # dict has descending order
+        for cb in mag_bin_centers[::-1]:
+            cum_mag += obs_mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # make new dict with ascending order
+        obs_mfd = {cb: cum_mfd[cb] for cb in mag_bin_centers}
+
+    return obs_mfd
+
+
+def get_model_annual_eq_rate(bin_gdf: gpd.GeoDataFrame) -> float:
+    annual_rup_rate = 0.0
+    for i, row in bin_gdf.iterrows():
+        sb = row.SpacemagBin
+        min_bin_center = np.min(sb.mag_bin_centers)
+        bin_mfd = sb.get_rupture_mfd(cumulative=True)
+        annual_rup_rate += bin_mfd[min_bin_center]
+
+    return annual_rup_rate
+
+
+def get_total_obs_eqs(bin_gdf: gpd.GeoDataFrame, prospective: bool = False) -> list:
+    """
+    Returns a list of all of the observed earthquakes within the model domain.
+    """
+    obs_eqs = []
+
+    for i, row in bin_gdf.iterrows():
+        sb = row.SpacemagBin
+
+        if prospective is False:
+            for mb in sb.observed_earthquakes.values():
+                obs_eqs.extend(mb)
+        else:
+            for mb in sb.prospective_earthquakes.values():
+                obs_eqs.extend(mb)
+
+    return obs_eqs

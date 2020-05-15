@@ -23,9 +23,10 @@ cfg = {
                 },
                 "S_test": {
                     "investigation_time": 40.0,
-                    "n_iters": 100,
-                    "critical_pct": 0.25,
+                    "n_iters": 10000,
+                    "critical_pct": 0.2,
                     "append": True,
+                    "likelihood_fn": "mfd",
                 },
             }
         },
@@ -33,7 +34,12 @@ cfg = {
         "rand_seed": 69,
     },
     "input": {
-        "bins": {"mfd_bin_min": 6.5, "mfd_bin_max": 8.5, "mfd_bin_width": 0.2},
+        "bins": {
+            "mfd_bin_min": 6.5,
+            "mfd_bin_max": 8.5,
+            "mfd_bin_width": 0.2,
+            "h3_res": 3,
+        },
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
@@ -62,21 +68,27 @@ class test_relm_tests(unittest.TestCase):
         self.obs_seis_catalog = obs_seis_catalog
 
     def test_S_test(self):
+        np.random.seed(self.cfg["config"]["rand_seed"])
         S_test_res = S_test(self.cfg, self.bin_gdf)
         s_test_res = {
-            "critical_pct": 0.25,
-            "percentile": 0.01,
-            "test_pass": False,
-            "test_res": "Fail",
+            "critical_pct": 0.2,
+            "percentile": 0.22,
+            "test_pass": True,
+            "test_res": "Pass",
         }
-        assert S_test_res == s_test_res
+        assert S_test_res["critical_pct"] == s_test_res["critical_pct"]
+        assert abs(S_test_res["percentile"] - s_test_res["percentile"]) < 0.1
+        assert S_test_res["test_pass"] == s_test_res["test_pass"]
+        assert S_test_res["test_res"] == s_test_res["test_res"]
 
     def test_N_test_poisson(self):
+        np.random.seed(self.cfg["config"]["rand_seed"])
         N_test_res = N_test(self.cfg, bin_gdf=self.bin_gdf)
-        rate = 0.8645872887605222
+        print(N_test_res)
+        rate = 6.0521104000000125
 
         assert N_test_res["conf_interval_pct"] == 0.96
-        assert N_test_res["conf_interval"] == (0.0, 3.0)
+        assert N_test_res["conf_interval"] == (2.0, 12.0)
         np.testing.assert_almost_equal(N_test_res["inv_time_rate"], rate)
         assert N_test_res["n_obs_earthquakes"] == 3
         assert N_test_res["pass"]
