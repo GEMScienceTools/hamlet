@@ -1,9 +1,11 @@
+import logging
+
 import numpy as np
 from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
 
 
 def bin_observance_likelihood(num_events: int, bin_rate: float) -> float:
-    not_modeled_val = 0.  # hardcoded in the RELM tests
+    not_modeled_val = 0.0  # hardcoded in the RELM tests
 
     return poisson_likelihood(bin_rate, num_events, not_modeled_val)
 

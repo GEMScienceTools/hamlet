@@ -45,6 +45,14 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
     obs_eqs = sbin.observed_earthquakes
     obs_L = like_fn(rate_mfd, binned_events=obs_eqs)
 
+    # report zero likelihood bins
+    if np.isneginf(obs_L):
+        logging.warn(f"{sbin.bin_id} has zero likelihood")
+        obs_mfd = sbin.get_empirical_mfd(cumulative=False)
+        for mag, rate in rate_mfd.items():
+            if rate == 0.0 and obs_mfd[mag] > 0.0:
+                logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
+
     stoch_rup_counts = [
         get_poisson_counts_from_mfd(rate_mfd).copy() for i in range(test_cfg["n_iters"])
     ]
@@ -112,8 +120,6 @@ def total_event_likelihood(
 
     total_model_rate = sum(rate_mfd.values())
     total_num_events = sum(num_obs_events.values())
-
-    # breakpoint()
 
     return bin_observance_log_likelihood(total_num_events, total_model_rate)
 
