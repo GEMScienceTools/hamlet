@@ -6,13 +6,16 @@ inputs (seismic sources, observed earthquake catalog, etc.), run the tests, and
 write the output.
 """
 
+import os
 import time
 import logging
 from copy import deepcopy
 from typing import Union, Optional, Tuple
+import pdb
 
 import yaml
 import numpy as np
+import pandas as pd
 from geopandas import GeoDataFrame
 
 from openquake.hme.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
@@ -21,6 +24,8 @@ from openquake.hme.utils import (
     make_SpacemagBins_from_bin_gis_file,
     rupture_dict_from_logic_tree_dict,
     rupture_list_to_gdf,
+    rup_to_dict,
+    rupdf_from_dict,
     add_ruptures_to_bins,
     add_earthquakes_to_bins,
     make_earthquake_gdf_from_csv,
@@ -210,6 +215,12 @@ def load_ruptures_from_ssm(cfg: dict):
     logger.info("  making geodataframe from ruptures")
     rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
     logger.info("  done preparing rupture dataframe")
+    
+    logger.info(" writing ruptures to file ")
+    ruptures_out = pd.DataFrame.from_dict([rup_to_dict(rup) \
+                                           for rup in rupture_gdf['rupture']])
+#    pdb.set_trace()
+    ruptures_out.to_hdf('testing_output.hdf5',key='ruptures_out')
 
     return rupture_gdf
 
@@ -223,7 +234,15 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         Configuration for the evaluations, such as that parsed from the YAML
         config file.
     """
-    rupture_gdf = load_ruptures_from_ssm(cfg)
+
+    rupture_file = cfg["input"]["ssm"]["rupture_file"]
+
+    if os.path.exists(rupture_file):
+        ruptures = pd.read_hdf(rupture_file)
+        rupture_gdf = rupdf_from_dict(ruptures)
+    else:
+        rupture_gdf = load_ruptures_from_ssm(cfg)
+
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
         h3_res=cfg["input"]["bins"]["h3_res"],

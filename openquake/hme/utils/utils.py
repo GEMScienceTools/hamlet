@@ -18,6 +18,7 @@ import geopandas as gpd
 from h3 import h3
 from tqdm import tqdm, trange
 from shapely.geometry import Point, Polygon
+from openquake.hazardlib.geo.point import Point as OQPoint
 from openquake.hazardlib.source.rupture_collection import split
 from openquake.hazardlib.source import MultiPointSource, ComplexFaultSource
 from openquake.hazardlib.source.rupture import (
@@ -176,6 +177,35 @@ def rupture_dict_from_logic_tree_dict(
             )
             for branch_name, source_list in logic_tree_dict.items()
         }
+
+
+def rup_to_dict(rup: SimpleRupture):
+     return {'strike': rup.strike,
+          'dip': rup.dip,
+          'rake': rup.rake,
+          'mag': rup.mag,
+          'lon': rup.hypocenter.x,
+          'lat': rup.hypocenter.y,
+          'depth': rup.hypocenter.z,
+          'occurrence_rate': rup.occurrence_rate,
+          'source': rup.source}
+
+
+def rupdf_from_dict(rup: dict):
+    rupture_list=[]
+    for (i,r) in rup.iterrows():
+        rupture_list.append(SimpleRupture(strike=r.strike,
+                           dip=r.dip,
+                           rake=r['rake'],
+                           mag=r['mag'],
+                           hypocenter=OQPoint(r['lon'],r['lat'],r['depth']),
+                           occurrence_rate=r['occurrence_rate'],
+                           source=r.source))
+
+    df = pd.DataFrame(
+        index=range(len(rupture_list)), data=rupture_list, columns=["rupture"]
+    )
+    return df 
 
 
 def rupture_list_from_source_list(
