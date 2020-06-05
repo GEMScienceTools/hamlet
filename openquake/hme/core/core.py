@@ -219,8 +219,10 @@ def load_ruptures_from_ssm(cfg: dict):
     logger.info(" writing ruptures to file ")
     ruptures_out = pd.DataFrame.from_dict([rup_to_dict(rup) \
                                            for rup in rupture_gdf['rupture']])
-#    pdb.set_trace()
-    ruptures_out.to_hdf('testing_output.hdf5',key='ruptures_out')
+
+    
+    out_file = cfg["input"]["ssm"]["rupture_file"]
+    ruptures_out.to_hdf(out_file,key='ruptures_out')
 
     return rupture_gdf
 
