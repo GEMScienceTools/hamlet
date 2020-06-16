@@ -180,32 +180,84 @@ def rupture_dict_from_logic_tree_dict(
 
 
 def rup_to_dict(rup: SimpleRupture):
-     return {'strike': rup.strike,
-          'dip': rup.dip,
-          'rake': rup.rake,
-          'mag': rup.mag,
-          'lon': rup.hypocenter.x,
-          'lat': rup.hypocenter.y,
-          'depth': rup.hypocenter.z,
-          'occurrence_rate': rup.occurrence_rate,
-          'source': rup.source}
+    return {
+        "strike": rup.strike,
+        "dip": rup.dip,
+        "rake": rup.rake,
+        "mag": rup.mag,
+        "lon": rup.hypocenter.x,
+        "lat": rup.hypocenter.y,
+        "depth": rup.hypocenter.z,
+        "occurrence_rate": rup.occurrence_rate,
+        "source": rup.source,
+    }
+
+
+def _rupture_from_df_row(row):
+    rup = SimpleRupture(
+        strike=row["strike"],
+        dip=row["dip"],
+        rake=row["rake"],
+        mag=row["mag"],
+        hypocenter=OQPoint(row["lon"], row["lat"], row["depth"]),
+        occurrence_rate=row["occurrence_rate"],
+        source=row["source"],
+    )
+    return rup
+
+
+def _rupture_from_namedtuple(row):
+    rup = SimpleRupture(
+        strike=row.strike,
+        dip=row.dip,
+        rake=row.rake,
+        mag=row.mag,
+        hypocenter=OQPoint(row.lon, row.lat, row.depth),
+        occurrence_rate=row.occurrence_rate,
+        source=row.source,
+    )
+    return rup
+
+
+def _process_ruptures_from_df(rup_df: pd.DataFrame):
+    rup_list = list(
+        tqdm(
+            map(_rupture_from_namedtuple, rup_df.itertuples(index=False, name="rup")),
+            total=len(rup_df),
+        )
+    )
+    rupture_df = rupture_list_to_gdf(rup_list)
+    return rupture_df
+
+
+def _process_ruptures_from_df_parallel(rup_df: pd.DataFrame):
+    raise NotImplementedError
+
+
+def read_ruptures_from_dataframe(rup_df):
+    new_rup_df = _process_ruptures_from_df(rup_df)
+    return new_rup_df
 
 
 def rupdf_from_dict(rup: dict):
-    rupture_list=[]
-    for (i,r) in rup.iterrows():
-        rupture_list.append(SimpleRupture(strike=r.strike,
-                           dip=r.dip,
-                           rake=r['rake'],
-                           mag=r['mag'],
-                           hypocenter=OQPoint(r['lon'],r['lat'],r['depth']),
-                           occurrence_rate=r['occurrence_rate'],
-                           source=r.source))
+    rupture_list = []
+    for (i, r) in rup.iterrows():
+        rupture_list.append(
+            SimpleRupture(
+                strike=r.strike,
+                dip=r.dip,
+                rake=r["rake"],
+                mag=r["mag"],
+                hypocenter=OQPoint(r["lon"], r["lat"], r["depth"]),
+                occurrence_rate=r["occurrence_rate"],
+                source=r.source,
+            )
+        )
 
     df = pd.DataFrame(
         index=range(len(rupture_list)), data=rupture_list, columns=["rupture"]
     )
-    return df 
+    return df
 
 
 def rupture_list_from_source_list(

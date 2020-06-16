@@ -26,6 +26,7 @@ from openquake.hme.utils import (
     rupture_list_to_gdf,
     rup_to_dict,
     rupdf_from_dict,
+    read_ruptures_from_dataframe,
     add_ruptures_to_bins,
     add_earthquakes_to_bins,
     make_earthquake_gdf_from_csv,
@@ -215,14 +216,23 @@ def load_ruptures_from_ssm(cfg: dict):
     logger.info("  making geodataframe from ruptures")
     rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
     logger.info("  done preparing rupture dataframe")
-    
-    logger.info(" writing ruptures to file ")
-    ruptures_out = pd.DataFrame.from_dict([rup_to_dict(rup) \
-                                           for rup in rupture_gdf['rupture']])
 
-    
-    out_file = cfg["input"]["ssm"]["rupture_file"]
-    ruptures_out.to_hdf(out_file,key='ruptures_out')
+    logger.info(" writing ruptures to file ")
+    ruptures_out = pd.DataFrame.from_dict(
+        [rup_to_dict(rup) for rup in rupture_gdf["rupture"]]
+    )
+
+    try:
+        rupture_file = cfg["input"]["ssm"]["rupture_file"]
+        if not os.path.exists(rupture_file):
+            logger.info("writing ruptures")
+            rup_file_type = rupture_file.split(".")[-1]
+            if rup_file_type == "hdf5":
+                ruptures_out.to_hdf(rupture_file, key="ruptures_out")
+            elif rup_file_type == "feather":
+                ruptures_out.to_feather(rupture_file)
+    except KeyError:
+        pass
 
     return rupture_gdf
 
@@ -240,8 +250,18 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     rupture_file = cfg["input"]["ssm"]["rupture_file"]
 
     if os.path.exists(rupture_file):
-        ruptures = pd.read_hdf(rupture_file)
-        rupture_gdf = rupdf_from_dict(ruptures)
+        logger.info(f"Reading ruptures from {rupture_file}")
+        rup_file_type = rupture_file.split(".")[-1]
+        if rup_file_type == "hdf5":
+            ruptures = pd.read_hdf(rupture_file)
+        elif rup_file_type == "feather":
+            ruptures = pd.read_feather(rupture_file)
+        logger.info("converting to SimpleRuptures")
+        # rupture_gdf = rupdf_from_dict(ruptures)
+        rupture_gdf = read_ruptures_from_dataframe(
+            ruptures,
+            # parallel=cfg["config"]["parallel"]
+        )
     else:
         rupture_gdf = load_ruptures_from_ssm(cfg)
 
