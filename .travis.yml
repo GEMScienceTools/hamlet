@@ -1,0 +1,35 @@
+sudo: false
+
+language: python
+
+cache: pip
+
+python: - "3.7"
+
+jobs:
+  include:
+    - stage: test
+      script:
+        - pip install pytest
+        - py.test openquake tests -W ignore::UserWarning
+
+    - stage: pages
+      script:
+        - pip install sphinx
+        - pip install recommonmark
+        - cd doc_src ; sphinx-apidoc -o source/ ../openquake/ ; make html
+        - touch build/html/.nojekyll
+
+    - stage: deploy
+      script:
+        provider: pages
+        skip_cleanup: true
+        github_token: $GITHUB_TOKEN
+        keep-history: true
+        on:
+          branch:
+            - master
+            - docs
+        local_dir: build/html/
+      
+      
