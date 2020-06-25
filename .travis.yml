@@ -26,6 +26,7 @@ jobs:
       script:
         - pip install pytest
         - py.test openquake tests -W ignore::UserWarning
+      deploy:
 
     - stage: pages
       script:
