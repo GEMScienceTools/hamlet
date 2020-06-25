@@ -44,4 +44,4 @@ deploy:
     branch:
       - master
       - docs
-  local_dir: build/html/
+  local_dir: doc_src/build/html/
