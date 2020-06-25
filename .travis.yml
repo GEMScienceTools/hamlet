@@ -8,6 +8,19 @@ python: - "3.7"
 
 jobs:
   include:
+    - stage: install
+      script:
+        - cat /etc/*-release
+        - apt-get update
+        - apt-get -y install libspatialindex-dev
+        - python3 -V # Print out python version for debugging
+        - git clone --depth=1 https://github.com/gem/oq-engine.git
+        - pip install -r oq-engine/requirements-py37-linux64.txt
+        - pip install -e oq-engine
+        - pip install --no-cache-dir https://gitlab.com/cossatot/wheelz/raw/master/h3-py/h3-3.4.3-cp37-cp37m-linux_x86_64.whl
+        - pip install -r requirements.txt
+        - pip install -e .
+
     - stage: test
       script:
         - pip install pytest
