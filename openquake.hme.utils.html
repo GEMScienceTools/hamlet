@@ -1,0 +1,1161 @@
+
+
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>openquake.hme.utils package &#8212; Hamlet 0.2.0 documentation</title>
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">openquake.hme.utils package</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="openquake-hme-utils-package">
+<h1>openquake.hme.utils package<a class="headerlink" href="#openquake-hme-utils-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-openquake.hme.utils.bins">
+<span id="openquake-hme-utils-bins-module"></span><h2>openquake.hme.utils.bins module<a class="headerlink" href="#module-openquake.hme.utils.bins" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="openquake.hme.utils.bins.MagBin">
+<em class="property">class </em><code class="sig-prename descclassname">openquake.hme.utils.bins.</code><code class="sig-name descname">MagBin</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_min</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bin_max</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bin_center</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bin_width</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">rate</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ruptures</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.MagBin.calculate_observed_earthquake_rate">
+<code class="sig-name descname">calculate_observed_earthquake_rate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t_yrs</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">return_rate</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin.calculate_observed_earthquake_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.MagBin.calculate_prospective_earthquake_rate">
+<code class="sig-name descname">calculate_prospective_earthquake_rate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t_yrs</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">return_rate</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin.calculate_prospective_earthquake_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.MagBin.calculate_total_rupture_rate">
+<code class="sig-name descname">calculate_total_rupture_rate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t_yrs</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">return_rate</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin.calculate_total_rupture_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.MagBin.sample_ruptures">
+<code class="sig-name descname">sample_ruptures</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span></em>, <em class="sig-param"><span class="n">t0</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">clean</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin.sample_ruptures" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.MagBin.to_dict">
+<code class="sig-name descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="openquake.hme.utils.bins.SpacemagBin">
+<em class="property">class </em><code class="sig-prename descclassname">openquake.hme.utils.bins.</code><code class="sig-name descname">SpacemagBin</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">poly</span><span class="p">:</span> <span class="n">shapely.geometry.polygon.Polygon</span></em>, <em class="sig-param"><span class="n">min_mag</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_mag</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bin_width</span><span class="o">=</span><span class="default_value">0.2</span></em>, <em class="sig-param"><span class="n">bin_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mag_bin_centers</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.get_bin_edges">
+<code class="sig-name descname">get_bin_edges</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.get_bin_edges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.get_empirical_mfd">
+<code class="sig-name descname">get_empirical_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t_yrs</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">cumulative</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.get_empirical_mfd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the MFD of empirical (observed) earthquakes; no fitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.get_prospective_mfd">
+<code class="sig-name descname">get_prospective_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t_yrs</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">cumulative</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.get_prospective_mfd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the MFD of prospective earthquakes; no fitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.get_rupture_mfd">
+<code class="sig-name descname">get_rupture_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cumulative</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.get_rupture_mfd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.get_rupture_sample_mfd">
+<code class="sig-name descname">get_rupture_sample_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span></em>, <em class="sig-param"><span class="n">t0</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">normalize</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">cumulative</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.get_rupture_sample_mfd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.make_mag_bins">
+<code class="sig-name descname">make_mag_bins</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.make_mag_bins" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.sample_ruptures">
+<code class="sig-name descname">sample_ruptures</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">t0</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">clean</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">return_rups</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.sample_ruptures" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.bins.SpacemagBin.to_dict">
+<code class="sig-name descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils.io">
+<span id="openquake-hme-utils-io-module"></span><h2>openquake.hme.utils.io module<a class="headerlink" href="#module-openquake.hme.utils.io" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="openquake.hme.utils.io.make_mfd_plot">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">make_mfd_plot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sbin</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin">openquake.hme.utils.bins.SpacemagBin</a></span></em>, <em class="sig-param"><span class="n">model</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">model_format</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'C0-'</span></em>, <em class="sig-param"><span class="n">model_label</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'model'</span></em>, <em class="sig-param"><span class="n">observed</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">observed_time</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">observed_format</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'C1o-.'</span></em>, <em class="sig-param"><span class="n">observed_label</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'observed'</span></em>, <em class="sig-param"><span class="n">return_fig</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">return_string</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">save_fig</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>bool<span class="p">, </span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.make_mfd_plot" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>save_fig</strong> – Either the filename to save to, or specify <cite>False</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.io.process_source_logic_tree">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">process_source_logic_tree</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">base_dir</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">lt_file</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'ssmLT.xml'</span></em>, <em class="sig-param"><span class="n">branch</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_types</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Sequence<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tectonic_region_types</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Sequence<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.process_source_logic_tree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.io.read_branch_sources">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">read_branch_sources</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">base_dir</span></em>, <em class="sig-param"><span class="n">lt_file</span><span class="o">=</span><span class="default_value">'ssmLT.xml'</span></em>, <em class="sig-param"><span class="n">branch</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.read_branch_sources" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.io.sort_sources">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">sort_sources</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">branch_sources</span><span class="p">:</span> <span class="n">dict</span></em>, <em class="sig-param"><span class="n">source_types</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Sequence<span class="p">[</span>str<span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tectonic_region_types</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Sequence<span class="p">[</span>str<span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">branch</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; dict<a class="headerlink" href="#openquake.hme.utils.io.sort_sources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates lists of sources for each branch of interest, optionally filtering
+sources by <cite>source_type</cite> and <cite>tectonic_region_type</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_types</strong> – Types of sources to collect sources from. Any values in 
+(<cite>simple_fault1, `complex_fault</cite>, <cite>area</cite>, <cite>point</cite>, <cite>multipoint</cite>) 
+are allowed.  Must be passed as a sequence (i.e., a tuple or list).
+Specify <cite>None</cite> if all values are to be included.</p></li>
+<li><p><strong>tectonic_region_types</strong> – Types of tectonic regions to collect sources from. Any values allowed
+in OpenQuake are allowed here. Must be passed as a sequence (i.e., a
+tuple or list).  Specify <cite>None</cite> if all values are to be included.</p></li>
+<li><p><strong>branch</strong> – Branch to be evaluated; other branches will be skipped if this is not
+<cite>None</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary with one list of sources per branch considered.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.io.write_bin_gdf_to_csv">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">write_bin_gdf_to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">index</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.write_bin_gdf_to_csv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.io.write_mfd_plots_to_gdf">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">write_mfd_plots_to_gdf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.write_mfd_plots_to_gdf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils.model">
+<span id="openquake-hme-utils-model-module"></span><h2>openquake.hme.utils.model module<a class="headerlink" href="#module-openquake.hme.utils.model" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="openquake.hme.utils.model.getcoo">
+<code class="sig-prename descclassname">openquake.hme.utils.model.</code><code class="sig-name descname">getcoo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lon</span></em>, <em class="sig-param"><span class="n">lat</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.model.getcoo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.model.load">
+<code class="sig-prename descclassname">openquake.hme.utils.model.</code><code class="sig-name descname">load</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">what</span><span class="o">=</span><span class="default_value">'all'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.model.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>This loads a pickle file containing the list of earthquake sources
+representing an earthquake source model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – The name of the file where the to store the model</p></li>
+<li><p><strong>what</strong> – Can be ‘other’, ‘all’, ‘point’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of source instances</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.model.load_models">
+<code class="sig-prename descclassname">openquake.hme.utils.model.</code><code class="sig-name descname">load_models</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">modell</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.model.load_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>This loads a set of pickled models</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – The name of the folder containing the .pkl files</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary with models and corresponding info</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.model.read">
+<code class="sig-prename descclassname">openquake.hme.utils.model.</code><code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model_filename</span></em>, <em class="sig-param"><span class="n">get_info</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.model.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>This reads the nrml file containing the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_filename</strong> – The name (including path) to a nrml formatted earthquake source model</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of sources and information on the model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.model.store">
+<code class="sig-prename descclassname">openquake.hme.utils.model.</code><code class="sig-name descname">store</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">info</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.model.store" title="Permalink to this definition">¶</a></dt>
+<dd><p>This creates a pickle file containing the list of earthquake sources
+representing an earthquake source model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – The name of the file where the to store the model</p></li>
+<li><p><strong>model</strong> – A list of OpenQuake hazardlib source instances</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.model.storeNew">
+<code class="sig-prename descclassname">openquake.hme.utils.model.</code><code class="sig-name descname">storeNew</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">info</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.model.storeNew" title="Permalink to this definition">¶</a></dt>
+<dd><p>This creates a pickle file containing the list of earthquake sources
+representing an earthquake source model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – The name of the file where the to store the model</p></li>
+<li><p><strong>model</strong> – A list of OpenQuake hazardlib source instances</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils.moment_tensor">
+<span id="openquake-hme-utils-moment-tensor-module"></span><h2>openquake.hme.utils.moment_tensor module<a class="headerlink" href="#module-openquake.hme.utils.moment_tensor" title="Permalink to this headline">¶</a></h2>
+<p>Set of utility functions for moment tensor calculations</p>
+<dl class="py class">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor">
+<em class="property">class </em><code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">MomentTensor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">m</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">m_up_south_east</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">strike</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">dip</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">rake</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">scalar_moment</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.both_slip_vectors">
+<code class="sig-name descname">both_slip_vectors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.both_slip_vectors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get both possible slip directions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.both_strike_dip_rake">
+<code class="sig-name descname">both_strike_dip_rake</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.both_strike_dip_rake" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get both possible (strike,dip,rake) triplets.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.eigenvals">
+<code class="sig-name descname">eigenvals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.eigenvals" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.m">
+<code class="sig-name descname">m</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.m" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get plain moment tensor as 3x3 matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.m_plain_double_couple">
+<code class="sig-name descname">m_plain_double_couple</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.m_plain_double_couple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get plain double couple with same scalar moment as moment tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.m_up_south_east">
+<code class="sig-name descname">m_up_south_east</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.m_up_south_east" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.moment_magnitude">
+<code class="sig-name descname">moment_magnitude</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.moment_magnitude" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get moment magnitude of moment tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.null_axis">
+<code class="sig-name descname">null_axis</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.null_axis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.p_axis">
+<code class="sig-name descname">p_axis</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.p_axis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get direction of p axis.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.scalar_moment">
+<code class="sig-name descname">scalar_moment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.scalar_moment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the scalar moment of the moment tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.str_fault_planes">
+<code class="sig-name descname">str_fault_planes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.str_fault_planes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensor.t_axis">
+<code class="sig-name descname">t_axis</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensor.t_axis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get direction of t axis.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase">
+<em class="property">class </em><code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">MomentTensorTestCase</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">methodName</span><span class="o">=</span><span class="default_value">'runTest'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">unittest.case.TestCase</span></code></p>
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.assertAnglesSame">
+<code class="sig-name descname">assertAnglesSame</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">m1</span></em>, <em class="sig-param"><span class="n">m2</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.assertAnglesSame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.assertSame">
+<code class="sig-name descname">assertSame</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">eps</span></em>, <em class="sig-param"><span class="n">errstr</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.assertSame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.forwardBackward">
+<code class="sig-name descname">forwardBackward</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strike</span></em>, <em class="sig-param"><span class="n">dip</span></em>, <em class="sig-param"><span class="n">rake</span></em>, <em class="sig-param"><span class="n">scalar_moment</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.forwardBackward" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.testAnyAngles">
+<code class="sig-name descname">testAnyAngles</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.testAnyAngles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check some arbitrary angles.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.testChile">
+<code class="sig-name descname">testChile</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.testChile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.testMagnitudeMoment">
+<code class="sig-name descname">testMagnitudeMoment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.testMagnitudeMoment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.testNonPlainDoubleCouples">
+<code class="sig-name descname">testNonPlainDoubleCouples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.testNonPlainDoubleCouples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert random MTs to plain double couples and compare angles.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="openquake.hme.utils.moment_tensor.MomentTensorTestCase.testProblematicAngles">
+<code class="sig-name descname">testProblematicAngles</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.MomentTensorTestCase.testProblematicAngles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks angles close to fractions of pi, which are especially 
+problematic.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.cvec">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">cvec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">z</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.cvec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.eigh_check">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">eigh_check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.eigh_check" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.euler_to_matrix">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">euler_to_matrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">alpha</span></em>, <em class="sig-param"><span class="n">beta</span></em>, <em class="sig-param"><span class="n">gamma</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.euler_to_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the euler angles alpha,beta,gamma, create rotation matrix
+Given coordinate system (x,y,z) and rotated system (xs,ys,zs)
+the line of nodes is the intersection between the x-y and the xs-ys
+planes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha</strong> – The angle between the z-axis and the zs-axis.</p></li>
+<li><p><strong>beta</strong> – The angle between the x-axis and the line of nodes.</p></li>
+<li><p><strong>gamma</strong> – The angle between the line of nodes and the xs-axis.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Usage for moment tensors:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">m_unrot</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">matrix</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]])</span>
+<span class="n">euler_to_matrix</span><span class="p">(</span><span class="n">dip</span><span class="p">,</span><span class="n">strike</span><span class="p">,</span><span class="o">-</span><span class="n">rake</span><span class="p">,</span> <span class="n">rotmat</span><span class="p">)</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">rotmat</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">m_unrot</span> <span class="o">*</span> <span class="n">rotmat</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.magnitude_to_moment">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">magnitude_to_moment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnitude</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.magnitude_to_moment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.matrix_to_euler">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">matrix_to_euler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rotmat</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.matrix_to_euler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse of euler_to_matrix()</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.moment_to_magnitude">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">moment_to_magnitude</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">moment</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.moment_to_magnitude" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.other_plane">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">other_plane</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strike</span></em>, <em class="sig-param"><span class="n">dip</span></em>, <em class="sig-param"><span class="n">rake</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.other_plane" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.rvec">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">rvec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">z</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.rvec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.sm">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">sm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">m</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.sm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.symmat6">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">symmat6</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">vals</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.symmat6" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create symmetric 3x3 matrix from its 6 non-redundant values.
+vals = [ Axx, Ayy, Azz, Axy, Axz, Ayz ]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.moment_tensor.unique_euler">
+<code class="sig-prename descclassname">openquake.hme.utils.moment_tensor.</code><code class="sig-name descname">unique_euler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">alpha</span></em>, <em class="sig-param"><span class="n">beta</span></em>, <em class="sig-param"><span class="n">gamma</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.moment_tensor.unique_euler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uniquify euler angle triplet.
+Put euler angles into ranges compatible with (dip,strike,-rake) in
+seismology:
+alpha (dip) : [0, pi/2]
+beta (strike) : [0, 2*pi)
+gamma (-rake) : [-pi, pi)
+If alpha is near to zero, beta is replaced by beta+gamma and gamma is set to
+zero, to prevent that additional ambiguity.</p>
+<p>If alpha is near to pi/2, beta is put into the range [0,pi).</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils.plots">
+<span id="openquake-hme-utils-plots-module"></span><h2>openquake.hme.utils.plots module<a class="headerlink" href="#module-openquake.hme.utils.plots" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="openquake.hme.utils.plots.plot_S_test_map">
+<code class="sig-prename descclassname">openquake.hme.utils.plots.</code><code class="sig-name descname">plot_S_test_map</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">map_epsg</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.plots.plot_S_test_map" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.plots.plot_likelihood_map">
+<code class="sig-prename descclassname">openquake.hme.utils.plots.</code><code class="sig-name descname">plot_likelihood_map</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">plot_eqs</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">eq_gdf</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>geopandas.geodataframe.GeoDataFrame<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">map_epsg</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.plots.plot_likelihood_map" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.plots.plot_mfd">
+<code class="sig-prename descclassname">openquake.hme.utils.plots.</code><code class="sig-name descname">plot_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>dict<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">model_format</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'C0-'</span></em>, <em class="sig-param"><span class="n">model_label</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'model'</span></em>, <em class="sig-param"><span class="n">model_iters</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">500</span></em>, <em class="sig-param"><span class="n">observed</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>dict<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">observed_format</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'C3o-.'</span></em>, <em class="sig-param"><span class="n">observed_label</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'observed'</span></em>, <em class="sig-param"><span class="n">t_yrs</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">return_fig</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">return_string</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">save_fig</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>bool<span class="p">, </span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.plots.plot_mfd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a plot of empirical MFDs</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils.simple_rupture">
+<span id="openquake-hme-utils-simple-rupture-module"></span><h2>openquake.hme.utils.simple_rupture module<a class="headerlink" href="#module-openquake.hme.utils.simple_rupture" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture">
+<em class="property">class </em><code class="sig-prename descclassname">openquake.hme.utils.simple_rupture.</code><code class="sig-name descname">SimpleRupture</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strike</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dip</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">rake</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mag</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">hypocenter</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>openquake.hazardlib.geo.point.Point<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">occurrence_rate</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Simplified class for ruptures, containing only the necessary parameters
+for Hamlet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strike</strong> – Strike of rupture, in degrees.</p></li>
+<li><p><strong>dip</strong> – Dip of rupture, in degrees.</p></li>
+<li><p><strong>rake</strong> – Rake of rupture, in Aki and Richards convention.</p></li>
+<li><p><strong>mag</strong> – Magnitude of rupture.</p></li>
+<li><p><strong>hypocenter</strong> – Hypocenter of rupture (should be an 
+<code class="xref py py-class docutils literal notranslate"><span class="pre">openquake.hazardlib.geo.point.Point</span></code>) object.</p></li>
+<li><p><strong>occurrence_rate</strong> – Annual occurrence rate of rupture, as a floating-point value.</p></li>
+<li><p><strong>source</strong> – Name of seismic source (string), optional.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture.dip">
+<code class="sig-name descname">dip</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.dip" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture.hypocenter">
+<code class="sig-name descname">hypocenter</code><em class="property">: Optional<span class="p">[</span>openquake.hazardlib.geo.point.Point<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.hypocenter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture.mag">
+<code class="sig-name descname">mag</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.mag" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture.occurrence_rate">
+<code class="sig-name descname">occurrence_rate</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.occurrence_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture.rake">
+<code class="sig-name descname">rake</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.rake" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture.source">
+<code class="sig-name descname">source</code><em class="property">: Optional<span class="p">[</span>str<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.simple_rupture.SimpleRupture.strike">
+<code class="sig-name descname">strike</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.strike" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.simple_rupture.add_slots">
+<code class="sig-prename descclassname">openquake.hme.utils.simple_rupture.</code><code class="sig-name descname">add_slots</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.simple_rupture.add_slots" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils.stats">
+<span id="openquake-hme-utils-stats-module"></span><h2>openquake.hme.utils.stats module<a class="headerlink" href="#module-openquake.hme.utils.stats" title="Permalink to this headline">¶</a></h2>
+<p>This module provides statistical functions that are not specific to any set of
+tests.</p>
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.estimate_negative_binom_parameters">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">estimate_negative_binom_parameters</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">samples</span></em>, <em class="sig-param"><span class="n">rate</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mle</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; Tuple<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><a class="headerlink" href="#openquake.hme.utils.stats.estimate_negative_binom_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.jensen_shannon_distance">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">jensen_shannon_distance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.stats.jensen_shannon_distance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.jensen_shannon_divergence">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">jensen_shannon_divergence</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.stats.jensen_shannon_divergence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.kullback_leibler_divergence">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">kullback_leibler_divergence</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">q</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.stats.kullback_leibler_divergence" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Kullback-Leibler Divergence is a measure of the information loss in
+moving from a distribution P to a second distribution Q that may be a model
+or approximation.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.negative_binomial_distribution">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">negative_binomial_distribution</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_events</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">prob_success</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">r_dispersion</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>int<span class="p">, </span>float<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.utils.stats.negative_binomial_distribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the negative binomial probability for observing</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.poisson_likelihood">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">poisson_likelihood</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_events</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">rate</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">time_interval</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">not_modeled_val</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.utils.stats.poisson_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Poisson likelihood of observing <cite>num_events</cite> in a
+<cite>time_interval</cite> given the <cite>rate</cite> of those events in the units of the time
+interval (i.e., if the <cite>time_interval</cite> is in years, the rate is the annual
+occurrence rate).</p>
+<p>If <cite>rate</cite> &gt; 0, the Poisson likelihood is defined as</p>
+<p><span class="math notranslate nohighlight">\(L(n|rt) = (rt)^n \exp(-rt) / n!\)</span></p>
+<p>where <cite>n</cite> is <cite>num_events</cite>, <cite>r</cite> is <cite>rate</cite>, <cite>t</cite> is <cite>time_interval</cite>, and
+<cite>L(n|rt)</cite> is the Poisson likeihood.</p>
+<p>If <cite>rate</cite> = 0, then the <cite>not_modeled_val</cite> is returned.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.poisson_likelihood_zero_rate">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">poisson_likelihood_zero_rate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_events</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">not_modeled_val</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.utils.stats.poisson_likelihood_zero_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.poisson_log_likelihood">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">poisson_log_likelihood</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_events</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">rate</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">time_interval</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">not_modeled_val</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.utils.stats.poisson_log_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.stats.sample_event_times_in_interval">
+<code class="sig-prename descclassname">openquake.hme.utils.stats.</code><code class="sig-name descname">sample_event_times_in_interval</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">annual_occurrence_rate</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">t0</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">rand_seed</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; numpy.ndarray<a class="headerlink" href="#openquake.hme.utils.stats.sample_event_times_in_interval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the times of events</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils.utils">
+<span id="openquake-hme-utils-utils-module"></span><h2>openquake.hme.utils.utils module<a class="headerlink" href="#module-openquake.hme.utils.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="openquake.hme.utils.utils.Earthquake">
+<em class="property">class </em><code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">Earthquake</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">magnitude</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">longitude</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">latitude</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">depth</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>datetime.datetime<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">event_id</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span>float<span class="p">, </span>str<span class="p">, </span>int<span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt id="openquake.hme.utils.utils.Earthquake.depth">
+<code class="sig-name descname">depth</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake.depth" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.utils.Earthquake.event_id">
+<code class="sig-name descname">event_id</code><em class="property">: Optional<span class="p">[</span>Union<span class="p">[</span>float<span class="p">, </span>str<span class="p">, </span>int<span class="p">]</span><span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake.event_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.utils.Earthquake.latitude">
+<code class="sig-name descname">latitude</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake.latitude" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.utils.Earthquake.longitude">
+<code class="sig-name descname">longitude</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake.longitude" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.utils.Earthquake.magnitude">
+<code class="sig-name descname">magnitude</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake.magnitude" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.utils.Earthquake.source">
+<code class="sig-name descname">source</code><em class="property">: Optional<span class="p">[</span>str<span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake.source" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="openquake.hme.utils.utils.Earthquake.time">
+<code class="sig-name descname">time</code><em class="property">: Optional<span class="p">[</span>datetime.datetime<span class="p">]</span></em><em class="property"> = None</em><a class="headerlink" href="#openquake.hme.utils.utils.Earthquake.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="openquake.hme.utils.utils.TqdmLoggingHandler">
+<em class="property">class </em><code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">TqdmLoggingHandler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.TqdmLoggingHandler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">logging.Handler</span></code></p>
+<p>Class to help <cite>tqdm</cite> log to both a log file and print to the screen.</p>
+<dl class="py method">
+<dt id="openquake.hme.utils.utils.TqdmLoggingHandler.emit">
+<code class="sig-name descname">emit</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">record</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.TqdmLoggingHandler.emit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do whatever it takes to actually log the specified logging record.</p>
+<p>This version is intended to be implemented by subclasses and so
+raises a NotImplementedError.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.add_earthquakes_to_bins">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">add_earthquakes_to_bins</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">earthquake_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">bin_df</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">category</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'observed'</span></em>, <em class="sig-param"><span class="n">h3_res</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">3</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#openquake.hme.utils.utils.add_earthquakes_to_bins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a GeoPandas GeoDataFrame of observed earthquakes (i.e., an
+instrumental earthquake catalog) and adds them to the ruptures
+list that is an attribute of each <code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code> based on location and
+magnitude. The spatial binning is performed through a left join via
+GeoPandas, and should use RTree if available for speed. This function
+modifies both GeoDataFrames in memory and does not return any value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rupture_gdf</strong> – GeoDataFrame of ruptures; this should have two columns, one of them
+being the <cite>rupture</cite> column with the <code class="xref py py-class docutils literal notranslate"><span class="pre">Rupture</span></code> object, and the
+other being the <cite>geometry</cite> column, with a GeoPandas/Shapely geometry
+class.</p></li>
+<li><p><strong>bin_df</strong> – GeoDataFrame of the bins. This should have a <cite>geometry</cite> column with a
+GeoPandas/Shapely geometry and a <cite>SpacemagBin</cite> column that has a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code> object.</p></li>
+<li><p><strong>category</strong> – Type of earthquake catalog. Default value is <cite>observed</cite> which is,
+typically, the catalog used to make the model. If a separate testing
+catalog is to be considered, then this is added using the <cite>prospective</cite>
+value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><cite>None</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.add_ruptures_to_bins">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">add_ruptures_to_bins</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#openquake.hme.utils.utils.add_ruptures_to_bins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
+list that is an attribute of each
+<a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> based on location and
+magnitude. This function modifies both GeoDataFrames in memory and does not
+return any value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rupture_gdf</strong> – GeoDataFrame of ruptures; this should have two columns,
+one of them being the <cite>rupture</cite> column with the <code class="xref py py-class docutils literal notranslate"><span class="pre">Rupture</span></code> object,
+and the other being the <cite>geometry</cite> column, with a GeoPandas/Shapely
+geometry class.</p></li>
+<li><p><strong>bin_gdf</strong> – GeoDataFrame of the bins. This should have a <cite>geometry</cite>
+column with a GeoPandas/Shapely geometry and a <cite>SpacemagBin</cite> column that
+has a <a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><cite>None</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.deep_update">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">deep_update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source</span></em>, <em class="sig-param"><span class="n">overrides</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.deep_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update a nested dictionary or similar mapping.
+Modify <code class="docutils literal notranslate"><span class="pre">source</span></code> in place.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.flatten_list">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">flatten_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lol</span><span class="p">:</span> <span class="n">List<span class="p">[</span>list<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; list<a class="headerlink" href="#openquake.hme.utils.utils.flatten_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flattens a list of lists (lol).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">flatten_list</span><span class="p">([[</span><span class="s1">&#39;l&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="s1">&#39;l&#39;</span><span class="p">]])</span>
+<span class="go">[&#39;l&#39;, &#39;o&#39;, &#39;l&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.get_model_annual_eq_rate">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">get_model_annual_eq_rate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.utils.utils.get_model_annual_eq_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.get_model_mfd">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">get_model_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">cumulative</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; dict<a class="headerlink" href="#openquake.hme.utils.utils.get_model_mfd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.get_n_eqs_from_mfd">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">get_n_eqs_from_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mfd</span><span class="p">:</span> <span class="n">dict</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.get_n_eqs_from_mfd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.get_obs_mfd">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">get_obs_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">t_yrs</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">prospective</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">cumulative</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; dict<a class="headerlink" href="#openquake.hme.utils.utils.get_obs_mfd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.get_source_bins">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">get_source_bins</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em><span class="sig-paren">)</span> &#x2192; geopandas.geodataframe.GeoDataFrame<a class="headerlink" href="#openquake.hme.utils.utils.get_source_bins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a subset of all of the spatial bins, where each bin actually
+contains earthquake sources.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>bin_gdf</strong> – GeoDataFrame of bins</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>GeoDataFrame of bins with sources</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.get_total_obs_eqs">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">get_total_obs_eqs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">prospective</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span> &#x2192; list<a class="headerlink" href="#openquake.hme.utils.utils.get_total_obs_eqs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all of the observed earthquakes within the model domain.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.mag_to_mo">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">mag_to_mo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mag</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">c</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">9.05</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.mag_to_mo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scalar moment [in Nm] from moment magnitude</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The computed scalar seismic moment</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.make_SpacemagBins_from_bin_gdf">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">make_SpacemagBins_from_bin_gdf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">min_mag</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">6.0</span></em>, <em class="sig-param"><span class="n">max_mag</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">9.0</span></em>, <em class="sig-param"><span class="n">bin_width</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">0.2</span></em><span class="sig-paren">)</span> &#x2192; geopandas.geodataframe.GeoDataFrame<a class="headerlink" href="#openquake.hme.utils.utils.make_SpacemagBins_from_bin_gdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a GeoPandas GeoDataFrame with
+<a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> that forms the
+basis of most of the spatial hazard model testing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bin_filepath</strong> – Path to GIS polygon file that contains the spatial bins for analysis.</p></li>
+<li><p><strong>min_mag</strong> – Minimum earthquake magnitude for MFD-based analysis.</p></li>
+<li><p><strong>max_mag</strong> – Maximum earthquake magnitude for MFD-based analysis.</p></li>
+<li><p><strong>bin_width</strong> – Width of earthquake/MFD bins.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>GeoDataFrame with
+<a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> as a column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.make_SpacemagBins_from_bin_gis_file">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">make_SpacemagBins_from_bin_gis_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_filepath</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">min_mag</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">6.0</span></em>, <em class="sig-param"><span class="n">max_mag</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">9.0</span></em>, <em class="sig-param"><span class="n">bin_width</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">0.2</span></em><span class="sig-paren">)</span> &#x2192; geopandas.geodataframe.GeoDataFrame<a class="headerlink" href="#openquake.hme.utils.utils.make_SpacemagBins_from_bin_gis_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a GeoPandas GeoDataFrame with
+<a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> that forms the
+basis of most of the spatial hazard model testing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bin_filepath</strong> – Path to GIS polygon file that contains the spatial bins for analysis.</p></li>
+<li><p><strong>min_mag</strong> – Minimum earthquake magnitude for MFD-based analysis.</p></li>
+<li><p><strong>max_mag</strong> – Maximum earthquake magnitude for MFD-based analysis.</p></li>
+<li><p><strong>bin_width</strong> – Width of earthquake/MFD bins.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>GeoDataFrame with 
+<a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> as a column.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.make_bin_gdf_from_rupture_gdf">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">make_bin_gdf_from_rupture_gdf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">h3_res</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">3</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">n_procs</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">min_mag</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">6.0</span></em>, <em class="sig-param"><span class="n">max_mag</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">9.0</span></em>, <em class="sig-param"><span class="n">bin_width</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">0.2</span></em><span class="sig-paren">)</span> &#x2192; geopandas.geodataframe.GeoDataFrame<a class="headerlink" href="#openquake.hme.utils.utils.make_bin_gdf_from_rupture_gdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes all of the ruptures, finds the <cite>h3</cite> spatial bins for each, and then
+makes a new <cite>GeoDataFrame</cite> of all of the spatial bins, with
+<a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> initialized for each of the
+bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rupture_gdf</strong> – <cite>GeoDataFrame</cite> with all of the ruptures.</p></li>
+<li><p><strong>h3_res</strong> – Resolution for the <cite>h3</cite> bins (spatial cells). See
+<a class="reference external" href="https://uber.github.io/h3/#/">https://uber.github.io/h3/#/</a> for more information. Defaults to “3”,
+which seems good for earthquake analysis. Larger numbers are smaller
+grid cells.</p></li>
+<li><p><strong>parallel</strong> – Boolean flag determining whether to find the spatial indices of the
+ruptures in parallel or not. The parallel algorithm has a lot of
+overhead and will be slower with a relatively low number of
+ruptures (hundreds of thousands or so, depending on the computer).</p></li>
+<li><p><strong>n_procs</strong> – Number of simultaneous processes run if <cite>parallel</cite> is <cite>True</cite>. Defaults
+to os.cpu_count() - 1 for multicore systems.</p></li>
+<li><p><strong>min_mag</strong> – Minimum magnitude of the <a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a></p></li>
+<li><p><strong>max_mag</strong> – Maximum magnitude of the <a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a></p></li>
+<li><p><strong>bin_width</strong> – Width of the <a class="reference internal" href="#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> bins in
+magnitude units.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.make_earthquake_gdf_from_csv">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">make_earthquake_gdf_from_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">eq_csv</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">x_col</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'longitude'</span></em>, <em class="sig-param"><span class="n">y_col</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'latitude'</span></em>, <em class="sig-param"><span class="n">depth</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'depth'</span></em>, <em class="sig-param"><span class="n">magnitude</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'magnitude'</span></em>, <em class="sig-param"><span class="n">time</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span>List<span class="p">[</span>str<span class="p">]</span><span class="p">, </span>Tuple<span class="p">[</span>str<span class="p">]</span><span class="p">, </span>str<span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">event_id</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">epsg</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">4326</span></em><span class="sig-paren">)</span> &#x2192; geopandas.geodataframe.GeoDataFrame<a class="headerlink" href="#openquake.hme.utils.utils.make_earthquake_gdf_from_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads an earthquake catalog from a CSV file and returns a GeoDataFrame. The
+required columns are x and y coordinates, depth and magnitude; the time,
+source (i.e. the agency or catalog source for the earthquake data), and an
+event_id are optional. The coordinate system, as an EPSG code, is also
+required; this defaults to 4326 (WGS84) if not given.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eq_csv</strong> – file path to CSV</p></li>
+<li><p><strong>x_col</strong> – Name of column with the x coordinate.</p></li>
+<li><p><strong>y_col</strong> – Name of column with the y coordinate.</p></li>
+<li><p><strong>depth</strong> – Name of column with the depth values.</p></li>
+<li><p><strong>magnitude</strong> – Name of column with the magnitude values.</p></li>
+<li><p><strong>time</strong> – Name of column(s) with time values. If multiple values are
+used, they should be arranged in increasing resolution, i.e. year, then
+month, then day, then hour, etc. These will be parsed using <cite>dateutil</cite>
+if possible.  This parsing is brittle and will probably fail with
+multiple columns; it’s better to make a single, unambiguously formatted
+column first.</p></li>
+<li><p><strong>source</strong> – Optional column specifying the source of that earthquake.</p></li>
+<li><p><strong>event_id</strong> – Optional columns specifying an event_id for the earthquake.
+It’s helpful if it’s a unique value, of course, but this isn’t required
+at this step.</p></li>
+<li><p><strong>epsg</strong> – EPSG string specifying the coordinate system. Defaults to 4326
+or WGS84.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>GeoDataFrame of earthquakes, converted to EPSG:4326 (WGS84).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.mo_to_mag">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">mo_to_mag</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mo</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">c</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">9.05</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.mo_to_mag" title="Permalink to this definition">¶</a></dt>
+<dd><p>From moment magnitude to scalar moment [in Nm]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The computed magnitude</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.parallelize">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">parallelize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">cores</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="n">partitions</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">10</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.utils.parallelize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to execute the function <cite>func</cite> in parallel over the collection of
+<cite>data</cite> using the Python multiprocessing (<cite>imap</cite>) functionality.  The
+function splits the data into 10 times the number of (virtual) cores by
+default (though this can be changed), runs the <cite>func</cite> over each of those
+partitions, and then reassembles it. This assumes the data was (or will be)
+in a Pandas dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Collection of data which will be the argument to the function
+<cite>func</cite>. Should be a collection that is <cite>numpy</cite>-suitable such as an
+array, list, or Pandas dataframe.</p></li>
+<li><p><strong>func</strong> – Function object that will be run over the data.</p></li>
+<li><p><strong>partitions</strong> – Number of chunks that the data should be split into.  Defaults to 10
+times the number of virtual cores (minus 1) on the system.</p></li>
+<li><p><strong>kwargs</strong> – Keyword arguments to be passed to <cite>func</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Cores</dt>
+<dd class="field-even"><p>Number of virtual cores (i.e., simultaneous processes) to be run.
+Defaults to the number of cores detected by <cite>os.cpu_count()</cite> minus 1,
+unless the system only has 1 core, and then 1 core will be used.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Pandas DataFrame with all of the results from <cite>func</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.rupture_dict_from_logic_tree_dict">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">rupture_dict_from_logic_tree_dict</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logic_tree_dict</span><span class="p">:</span> <span class="n">dict</span></em>, <em class="sig-param"><span class="n">simple_ruptures</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">n_procs</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">1</span></em><span class="sig-paren">)</span> &#x2192; dict<a class="headerlink" href="#openquake.hme.utils.utils.rupture_dict_from_logic_tree_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dictionary of ruptures from a dictionary representation of a 
+logic tree (as produced by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">process_source_logic_tree()</span></code>). Each branch in the
+logic tree dict is a value (with the branch name as a key) and this
+structure is retained in the resulting rupture dict. However all of the
+ruptures from each source within a branch will be flattened to a single
+list.</p>
+<p>Use the <cite>source_types</cite> argument to specify which types of sources should be
+used to collect ruptures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>logic_tree_dict</strong> – Seismic source logic tree</p></li>
+<li><p><strong>simple_ruptures</strong> – Whether to use
+<code class="xref py py-class docutils literal notranslate"><span class="pre">openquake.hme.utils.simple_rupture.simple_rupture</span></code> to represent
+ruptures, instead of the full OpenQuake version.</p></li>
+<li><p><strong>parallel</strong> – Flag to use a parallel input method (parallelizing with each source
+branch). Defaults to <cite>True</cite>.</p></li>
+<li><p><strong>n_procs</strong> – Number of parallel processes. If <cite>None</cite> is passed, it defaults to
+<cite>os.cpu_count() -1</cite>. Only used if <cite>parallel</cite> is <cite>True</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Ruptures from the logic tree collected into each logic tree branch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.rupture_list_from_source_list">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">rupture_list_from_source_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_list</span><span class="p">:</span> <span class="n">list</span></em>, <em class="sig-param"><span class="n">simple_ruptures</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em><span class="sig-paren">)</span> &#x2192; list<a class="headerlink" href="#openquake.hme.utils.utils.rupture_list_from_source_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a list of ruptures from all of the sources within a single logic
+tree branch, adding the <cite>source_id</cite> of each source to the rupture as an
+attribute called <cite>source</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_list</strong> – List of sources containing ruptures.</p></li>
+<li><p><strong>simple_ruptures</strong> – Whether to use
+<a class="reference internal" href="#openquake.hme.utils.simple_rupture.SimpleRupture" title="openquake.hme.utils.simple_rupture.SimpleRupture"><code class="xref py py-class docutils literal notranslate"><span class="pre">openquake.hme.utils.simple_rupture.SimpleRupture</span></code></a> to represent
+ruptures, instead of the full OpenQuake version.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>All of the ruptures from all sources of <cite>sources_types</cite> in the logic
+tree branch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.rupture_list_from_source_list_parallel">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">rupture_list_from_source_list_parallel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_list</span><span class="p">:</span> <span class="n">list</span></em>, <em class="sig-param"><span class="n">simple_ruptures</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">n_procs</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">1</span></em><span class="sig-paren">)</span> &#x2192; list<a class="headerlink" href="#openquake.hme.utils.utils.rupture_list_from_source_list_parallel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a list of ruptures from all of the sources within list,
+adding the <cite>source_id</cite> of each source to the rupture as an
+attribute called <cite>source</cite>.</p>
+<p>Works in parallel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>simple_ruptures</strong> – Whether to use
+<code class="xref py py-class docutils literal notranslate"><span class="pre">openquake.hme.utils.simple_rupture.simple_rupture</span></code> to represent
+ruptures, instead of the full OpenQuake version.</p></li>
+<li><p><strong>n_procs</strong> – Number of parallel processes. If <cite>None</cite> is passed, it defaults to
+<cite>os.cpu_count() -1</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>All of the ruptures from all sources of <cite>sources_types</cite> in the logic
+tree branch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.rupture_list_to_gdf">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">rupture_list_to_gdf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture_list</span><span class="p">:</span> <span class="n">list</span></em>, <em class="sig-param"><span class="n">gdf</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span>pandas.core.frame.DataFrame<span class="p">, </span>geopandas.geodataframe.GeoDataFrame<span class="p">]</span><a class="headerlink" href="#openquake.hme.utils.utils.rupture_list_to_gdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a Pandas DataFrame or GeoPandas GeoDataFrame from a rupture list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rupture_list</strong> – List of <a class="reference internal" href="#openquake.hme.utils.simple_rupture.SimpleRupture" title="openquake.hme.utils.simple_rupture.SimpleRupture"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleRupture</span></code></a>.</p></li>
+<li><p><strong>gdf</strong> – Boolean flag to determine whether output is GeoDataFrame (True)
+or DataFrame (False).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>GeoDataFrame, with two columns, <cite>rupture</cite> which holds the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Rupture</span></code> object, and <cite>geometry</cite> which has the geometry as a
+Shapely <code class="xref py py-class docutils literal notranslate"><span class="pre">Point</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.sample_earthquakes">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">sample_earthquakes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>openquake.hazardlib.source.rupture.ParametricProbabilisticRupture<span class="p">, </span>openquake.hazardlib.source.rupture.NonParametricProbabilisticRupture<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">t0</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">rand_seed</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; List<span class="p">[</span><a class="reference internal" href="#openquake.hme.utils.utils.Earthquake" title="openquake.hme.utils.utils.Earthquake">openquake.hme.utils.utils.Earthquake</a><span class="p">]</span><a class="headerlink" href="#openquake.hme.utils.utils.sample_earthquakes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a random sample (in time) of earthquakes from a single rupture.
+Currently only uniformly random (Poissonian) earthquakes are supported.
+Other than the event time, the generated earthquakes should be identical.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rupture</strong> – Rupture from which the earthquakes will be generated.</p></li>
+<li><p><strong>interval_length</strong> – Length of time over which the earthquakes will be sampled.</p></li>
+<li><p><strong>t0</strong> – Start time of analysis (in years).  No real need to change this.</p></li>
+<li><p><strong>rand_seed</strong> – Seed for random time generation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of <a class="reference internal" href="#openquake.hme.utils.utils.Earthquake" title="openquake.hme.utils.utils.Earthquake"><code class="xref py py-class docutils literal notranslate"><span class="pre">Earthquake</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-openquake.hme.utils" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">openquake.hme.utils package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.bins">openquake.hme.utils.bins module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.io">openquake.hme.utils.io module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.model">openquake.hme.utils.model module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.moment_tensor">openquake.hme.utils.moment_tensor module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.plots">openquake.hme.utils.plots module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.simple_rupture">openquake.hme.utils.simple_rupture module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.stats">openquake.hme.utils.stats module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils.utils">openquake.hme.utils.utils module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/openquake.hme.utils.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">openquake.hme.utils package</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019-2020, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

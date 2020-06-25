@@ -1,0 +1,178 @@
+
+
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hamlet Architecture and Testing Workflow &#8212; Hamlet 0.2.0 documentation</title>
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Model Testing Frameworks" href="model_test_frameworks/model_test_frameworks.html" />
+    <link rel="prev" title="Getting started with Hamlet" href="getting_started.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="model_test_frameworks/model_test_frameworks.html" title="Model Testing Frameworks"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="getting_started.html" title="Getting started with Hamlet"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Hamlet Architecture and Testing Workflow</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="hamlet-architecture-and-testing-workflow">
+<h1>Hamlet Architecture and Testing Workflow<a class="headerlink" href="#hamlet-architecture-and-testing-workflow" title="Permalink to this headline">¶</a></h1>
+<p>Currently, Hamlet performs spatial-temporal hazard model checks and
+statistical evaluation of model consistency and performance against an observed
+earthquake catalog.</p>
+<p>Hamlet follows this work process:</p>
+<ol class="arabic simple">
+<li><p>Read in <a class="reference internal" href="yaml_config_file.html"><span class="doc">YAML configuration file</span></a>, that specifies:</p>
+<ul class="simple">
+<li><p>Which tests to be run</p>
+<ul>
+<li><p>What parameters for each test</p></li>
+</ul>
+</li>
+<li><p>What input files:</p>
+<ul>
+<li><p>Seismic Source Model files</p></li>
+<li><p>Seismic catalog (observed earthquakes)</p></li>
+<li><p>GIS file of spatial bins (optional)</p></li>
+</ul>
+</li>
+<li><p>What to output:</p>
+<ul>
+<li><p>Reports</p></li>
+<li><p>GIS files</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Reads and process SSM:</p>
+<ol class="arabic simple">
+<li><p>Loads sources from a single logic tree branch</p></li>
+<li><p>Sorts sources based on their type, with a list for each</p></li>
+</ol>
+</li>
+<li><p>Sorts the ruptures from all sources by magnitude and into spatial bins:</p>
+<ul class="simple">
+<li><p>Makes <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> class that holds
+ruptures, observed earthquakes, and both model and empirical
+Magnitude-Frequency distributions for each bin.</p></li>
+</ul>
+</li>
+<li><p>Runs the tests:</p>
+<ul class="simple">
+<li><p>Basic sanity checks (e.g., whether the observed earthquake maximum
+magnitude exceeds the model maximum magnitude in each spatial bin)</p></li>
+<li><p>Statistical evaluation (i.e., model likelihoods based on the calculated
+probabilities of observing the earthquakes in a catalog given the SSM)</p></li>
+<li><p>Multiple tests can be run sequentially, without reloading the SSM.</p></li>
+</ul>
+</li>
+<li><p>Print/write output.</p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>HTML reports summarizing the results</p></li>
+<li><p>GIS files with the test results for each bin</p></li>
+<li><p>CSV files of the total model and catalog (within the source bins) MFDs</p></li>
+</ul>
+</div></blockquote>
+<p>At this pre-release stage, most of the development has focused on writing the
+test framework, rather than creating a broad suite of tests. However, the
+framework is functional at this point, and the development of a test suite is
+the next priority.</p>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="getting_started.html"
+                        title="previous chapter">Getting started with Hamlet</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="model_test_frameworks/model_test_frameworks.html"
+                        title="next chapter">Model Testing Frameworks</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/architecture.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="model_test_frameworks/model_test_frameworks.html" title="Model Testing Frameworks"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="getting_started.html" title="Getting started with Hamlet"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Hamlet Architecture and Testing Workflow</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019-2020, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

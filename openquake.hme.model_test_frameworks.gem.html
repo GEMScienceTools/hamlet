@@ -1,0 +1,392 @@
+
+
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>openquake.hme.model_test_frameworks.gem package &#8212; Hamlet 0.2.0 documentation</title>
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">openquake.hme.model_test_frameworks.gem package</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="openquake-hme-model-test-frameworks-gem-package">
+<h1>openquake.hme.model_test_frameworks.gem package<a class="headerlink" href="#openquake-hme-model-test-frameworks-gem-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-openquake.hme.model_test_frameworks.gem.gem_stats">
+<span id="openquake-hme-model-test-frameworks-gem-gem-stats-module"></span><h2>openquake.hme.model_test_frameworks.gem.gem_stats module<a class="headerlink" href="#module-openquake.hme.model_test_frameworks.gem.gem_stats" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_stats.calc_mag_bin_empirical_likelihood">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_stats.</code><code class="sig-name descname">calc_mag_bin_empirical_likelihood</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n_eqs</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">bin_rate</span><span class="p">:</span> <span class="n">Dict<span class="p">[</span>int<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">not_modeled_val</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1e-05</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_stats.calc_mag_bin_empirical_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculation of the likelihood of observing a certain number of earthquakes
+in a magnitude bin based on an empirical distribution of earthquake
+occurrences, e.g. as aggregated from many iterations a Monte Carlo
+simulation, or another instance in which earthquake occurrence may not be
+Poissonian.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_eqs</strong> – Number of observed earthquakes in the magnitude bin (or, number of
+earthquakes for which one wants to calculate the likelihood of seeing in
+that bin).</p></li>
+<li><p><strong>bin_rate</strong> – the <cite>bin_rate</cite> parameter will be a dictionary, with integer
+keys representing the number of earthquakes and floating point values
+representing the rates of occurrence of each of those integers.</p></li>
+<li><p><strong>not_modeled_val</strong> – Likelihood value resulting from an instance in which no ruptures are
+present in the magnitude bin, but an earthquake has been observed. This
+value should be low, but because the total spatial bin likelihood is the
+product of each of the magnitude bin likelihoods, a value of zero for a
+single magnitude bin (which could be due to rounding or uncertainty in 
+an earthquake catalog, or some coarseness in source model construction) 
+will propagate create a likelihood of zero for the whole spatial bin and
+perhaps the model, depending on assumptions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Likelihood of observing a certain number of earthquakes given a rate of
+earthquake occurrence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_stats.calc_mag_bin_likelihood">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_stats.</code><code class="sig-name descname">calc_mag_bin_likelihood</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n_eqs</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">bin_rate</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>dict<span class="p">, </span>float<span class="p">]</span></span></em>, <em class="sig-param"><span class="n">dispersion</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_interval</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">not_modeled_val</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1e-05</span></em>, <em class="sig-param"><span class="n">likelihood_method</span><span class="o">=</span><span class="default_value">'poisson'</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_stats.calc_mag_bin_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shell function to calculate the likelihood of a magnitude bin given the
+observed earthquakes within the bin. Several methods exist for these
+calculations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_eqs</strong> – Number of observed earthquakes in the magnitude bin (or, number of
+earthquakes for which one wants to calculate the likelihood of seeing in
+that bin).</p></li>
+<li><p><strong>bin_rate</strong> – Expected rate(s) of earthquakes within that magnitude bin. The format of
+the rate will depend on the type of analysis: for an empirical
+calculation, the <cite>bin_rate</cite> parameter will be a dictionary, with integer
+keys representing the number of earthquakes and floating point values
+representing the rates of occurrence of each of those integers. For a
+poisson analysis, this should be a float representing the mean rate.</p></li>
+<li><p><strong>dispersion</strong> – The dispersion parameter for non-Poisson likelihoods (not yet 
+implemented).</p></li>
+<li><p><strong>time_interval</strong> – Duration of time in which observed earthquakes have accumulated (i.e.,
+the catalog completeness duration).</p></li>
+<li><p><strong>not_modeled_val</strong> – Likelihood value resulting from an instance in which no ruptures are
+present in the magnitude bin, but an earthquake has been observed. This
+value should be low, but because the total spatial bin likelihood is the
+product of each of the magnitude bin likelihoods, a value of zero for a
+single magnitude bin (which could be due to rounding or uncertainty in 
+an earthquake catalog, or some coarseness in source model construction) 
+will propagate create a likelihood of zero for the whole spatial bin and
+perhaps the model, depending on assumptions.</p></li>
+<li><p><strong>likelihood_method</strong> – Type of analysis that is to be done. Possible values are <cite>empirical</cite>,
+which uses empirical MFDs derived from e.g. Monte Carlo simulations, and
+<cite>poisson</cite>, which uses a single mean rate for each magnitude bin.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Likelihood of observing a certain number of earthquakes given a rate of
+earthquake occurrence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_stats.calc_mag_bin_poisson_likelihood">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_stats.</code><code class="sig-name descname">calc_mag_bin_poisson_likelihood</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n_eqs</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">bin_rate</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">time_interval</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">not_modeled_val</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1e-05</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_stats.calc_mag_bin_poisson_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculation of the likelihood of observing a certain number of earthquakes
+using a poisson calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_eqs</strong> – Number of observed earthquakes in the magnitude bin (or, number of
+earthquakes for which one wants to calculate the likelihood of seeing in
+that bin).</p></li>
+<li><p><strong>bin_rate</strong> – Mean rate of earthquake occurrence within a magnitude bin.</p></li>
+<li><p><strong>time_interval</strong> – Duration of time in which observed earthquakes have accumulated (i.e.,
+the catalog completeness duration).</p></li>
+<li><p><strong>not_modeled_val</strong> – Likelihood value resulting from an instance in which no ruptures are
+present in the magnitude bin, but an earthquake has been observed. This
+value should be low, but because the total spatial bin likelihood is the
+product of each of the magnitude bin likelihoods, a value of zero for a
+single magnitude bin (which could be due to rounding or uncertainty in 
+an earthquake catalog, or some coarseness in source model construction) 
+will propagate create a likelihood of zero for the whole spatial bin and
+perhaps the model, depending on assumptions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Likelihood of observing a certain number of earthquakes given a rate of
+earthquake occurrence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_stats.calc_mfd_log_likelihood_independent">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_stats.</code><code class="sig-name descname">calc_mfd_log_likelihood_independent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obs_eqs</span><span class="p">:</span> <span class="n">dict</span></em>, <em class="sig-param"><span class="n">mfd</span><span class="p">:</span> <span class="n">dict</span></em>, <em class="sig-param"><span class="n">dispersion</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>float<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_interval</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">not_modeled_val</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">1e-05</span></em>, <em class="sig-param"><span class="n">likelihood_method</span><span class="o">=</span><span class="default_value">'poisson'</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_stats.calc_mfd_log_likelihood_independent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculation of the log-likelihood of observing earthquakes of a range of
+sizes in a spatial bin (containing many magnitude bins).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_stats.calc_stochastic_moment_log_likelihood">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_stats.</code><code class="sig-name descname">calc_stochastic_moment_log_likelihood</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spacemag_bin</span><span class="p">:</span> <span class="n"><a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin">openquake.hme.utils.bins.SpacemagBin</a></span></em>, <em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">n_iters</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1000</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_stats.calc_stochastic_moment_log_likelihood" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.model_test_frameworks.gem.gem_test_functions">
+<span id="openquake-hme-model-test-frameworks-gem-gem-test-functions-module"></span><h2>openquake.hme.model_test_frameworks.gem.gem_test_functions module<a class="headerlink" href="#module-openquake.hme.model_test_frameworks.gem.gem_test_functions" title="Permalink to this headline">¶</a></h2>
+<p>Utility functions for running tests in the GEM model test framework.</p>
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_test_functions.get_mfd_freq_counts">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_test_functions.</code><code class="sig-name descname">get_mfd_freq_counts</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">eq_counts</span><span class="p">:</span> <span class="n">Sequence<span class="p">[</span>int<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Dict<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_test_functions.get_mfd_freq_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a dictionary of frequencies of observing different numbers of
+earthquakes, given an input sequence . Keys are the number of earthquakes,
+values are the frequencies.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">get_mfd_freq_counts</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span>
+<span class="go">{3: 0.25, 4: 0.375, 5: 0.25, 6: 0.125}</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>eq_counts</strong> – Sequence of earthquake counts.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary of earthquake count frequencies.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_test_functions.get_moment_from_mfd">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_test_functions.</code><code class="sig-name descname">get_moment_from_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mfd</span><span class="p">:</span> <span class="n">dict</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_test_functions.get_moment_from_mfd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_mfd">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_test_functions.</code><code class="sig-name descname">get_stochastic_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spacemag_bin</span><span class="p">:</span> <span class="n"><a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin">openquake.hme.utils.bins.SpacemagBin</a></span></em>, <em class="sig-param"><span class="n">n_iters</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span>float<span class="p">, </span>Dict<span class="p">[</span>float<span class="p">, </span>float<span class="p">]</span><span class="p">]</span><a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_mfd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds an empirical, incremental magnitude-frequency distribution by
+stochastically sampling earthquake ruptures from a <code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code>
+instance iteratively. The resulting MFD has the empirical frequencies of the
+number of earthquake occurrences for each magnitude bin over the time
+interval provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spacemag_bin</strong> – The <code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code> instance to be studied</p></li>
+<li><p><strong>n_iters</strong> – Number of Monte Carlo iterations</p></li>
+<li><p><strong>interval_length</strong> – Duration of each Monte Carlo sampling iteration
+(i.e., how many years of seismicity to generate in each iteration).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary with keys of earthquake magnitudes and values of a list
+of number of occurrences (counts) of that magnitude for each iteration.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_mfd_counts">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_test_functions.</code><code class="sig-name descname">get_stochastic_mfd_counts</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spacemag_bin</span><span class="p">:</span> <span class="n"><a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin">openquake.hme.utils.bins.SpacemagBin</a></span></em>, <em class="sig-param"><span class="n">n_iters</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; Dict<span class="p">[</span>float<span class="p">, </span>List<span class="p">[</span>int<span class="p">]</span><span class="p">]</span><a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_mfd_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds a dictionary of stochastic earthquake counts from a SpacemagBin by
+iteratively sampling the bin and recording the number of events of each
+magnitude.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spacemag_bin</strong> – The <code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code> instance to be studied</p></li>
+<li><p><strong>n_iters</strong> – Number of Monte Carlo iterations</p></li>
+<li><p><strong>interval_length</strong> – Duration of each Monte Carlo sampling iteration (i.e., how many years of
+seismicity to generate in each iteration).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dictionary with keys of earthquake magnitudes and values of a list of
+number of occurrences (counts) of that magnitude for each iteration.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_mfds_parallel">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_test_functions.</code><code class="sig-name descname">get_stochastic_mfds_parallel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">geo_series</span><span class="p">:</span> <span class="n">geopandas.geoseries.GeoSeries</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_mfds_parallel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_moment">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_test_functions.</code><code class="sig-name descname">get_stochastic_moment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spacemag_bin</span><span class="p">:</span> <span class="n"><a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin">openquake.hme.utils.bins.SpacemagBin</a></span></em>, <em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em><span class="sig-paren">)</span> &#x2192; float<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_moment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_moment_set">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_test_functions.</code><code class="sig-name descname">get_stochastic_moment_set</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">spacemag_bin</span><span class="p">:</span> <span class="n"><a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin">openquake.hme.utils.bins.SpacemagBin</a></span></em>, <em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">n_iters</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span> &#x2192; numpy.ndarray<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_test_functions.get_stochastic_moment_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.model_test_frameworks.gem.gem_tests">
+<span id="openquake-hme-model-test-frameworks-gem-gem-tests-module"></span><h2>openquake.hme.model_test_frameworks.gem.gem_tests module<a class="headerlink" href="#module-openquake.hme.model_test_frameworks.gem.gem_tests" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_tests.max_mag_check">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_tests.</code><code class="sig-name descname">max_mag_check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cfg</span><span class="p">:</span> <span class="n">dict</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>geopandas.geodataframe.GeoDataFrame<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_tests.max_mag_check" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_tests.mfd_empirical_likelihood_test">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_tests.</code><code class="sig-name descname">mfd_empirical_likelihood_test</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cfg</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>geopandas.geodataframe.GeoDataFrame<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_tests.mfd_empirical_likelihood_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the (log)likelihood of observing the earthquakes in the seismic
+catalog in each <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> as the
+geometric mean of the Poisson likelihoods of observing the earthquakes
+within each <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.MagBin" title="openquake.hme.utils.bins.MagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">MagBin</span></code></a> of the
+<a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a>.</p>
+<p>The likelihoods are calculated using the empirical likelihood of observing
+the number of events that occurred in each
+<a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.MagBin" title="openquake.hme.utils.bins.MagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">MagBin</span></code></a> given the occurrence rate for 
+that <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.MagBin" title="openquake.hme.utils.bins.MagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">MagBin</span></code></a>. This is done through a Monte
+Carlo simulation, which returns the fraction of the total Monte Carlo
+samples had the same number of events as observed.</p>
+<p>The likelihoods for each <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> are
+then log-transformed and appended as a new column to the <cite>bin_gdf</cite>
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code> hosting the bins.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_tests.mfd_likelihood_test">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_tests.</code><code class="sig-name descname">mfd_likelihood_test</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cfg</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>geopandas.geodataframe.GeoDataFrame<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_tests.mfd_likelihood_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the likelihood of the Seismic Source Model for each SpacemagBin.
+The likelihood calculation is (currently) treated as the geometric mean of
+the individual MagBin likelihoods, which themselves are the likelihood of
+observing the number of earthquakes within that spatial-magnitude bin given
+the total modeled earthquake rate (from all sources) within the
+spatial-magnitude bin.</p>
+<p>The likelihood calculation may be done using the Poisson distribution, if
+there is a basic assumption of Poissonian seismicity, or through a Monte
+Carlo-based calculation (currently also done through a Poisson sampling 
+t_yrs though more complex temporal occurrence models are
+possible, such as through a Epidemic-Type Aftershock Sequence).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_tests.mfd_poisson_likelihood_test">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_tests.</code><code class="sig-name descname">mfd_poisson_likelihood_test</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cfg</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>geopandas.geodataframe.GeoDataFrame<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_tests.mfd_poisson_likelihood_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the (log)likelihood of observing the earthquakes in the seismic
+catalog in each <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> as the
+geometric mean of the Poisson likelihoods of observing the earthquakes
+within each <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.MagBin" title="openquake.hme.utils.bins.MagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">MagBin</span></code></a> of the
+<a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a>.</p>
+<p>The likelihoods are calculated using the Poisson likelihood of observing
+the number of events that occurred in each
+<a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.MagBin" title="openquake.hme.utils.bins.MagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">MagBin</span></code></a> given the occurrence rate for 
+that <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.MagBin" title="openquake.hme.utils.bins.MagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">MagBin</span></code></a>.  See
+<a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.stats.poisson_likelihood" title="openquake.hme.utils.stats.poisson_likelihood"><code class="xref py py-func docutils literal notranslate"><span class="pre">poisson_likelihood()</span></code></a> for more information.</p>
+<p>The likelihoods for each <a class="reference internal" href="openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> are
+then log-transformed and appended as a new column to the <cite>bin_gdf</cite>
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GeoDataFrame</span></code> hosting the bins.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.model_test_frameworks.gem.gem_tests.model_mfd_test">
+<code class="sig-prename descclassname">openquake.hme.model_test_frameworks.gem.gem_tests.</code><code class="sig-name descname">model_mfd_test</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cfg</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>geopandas.geodataframe.GeoDataFrame<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#openquake.hme.model_test_frameworks.gem.gem_tests.model_mfd_test" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-openquake.hme.model_test_frameworks.gem">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-openquake.hme.model_test_frameworks.gem" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">openquake.hme.model_test_frameworks.gem package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.model_test_frameworks.gem.gem_stats">openquake.hme.model_test_frameworks.gem.gem_stats module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.model_test_frameworks.gem.gem_test_functions">openquake.hme.model_test_frameworks.gem.gem_test_functions module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.model_test_frameworks.gem.gem_tests">openquake.hme.model_test_frameworks.gem.gem_tests module</a></li>
+<li><a class="reference internal" href="#module-openquake.hme.model_test_frameworks.gem">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/openquake.hme.model_test_frameworks.gem.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">openquake.hme.model_test_frameworks.gem package</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019-2020, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>

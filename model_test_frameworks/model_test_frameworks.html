@@ -1,0 +1,229 @@
+
+
+<!doctype html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Testing Frameworks &#8212; Hamlet 0.2.0 documentation</title>
+    <link rel="stylesheet" href="../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script src="../_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Hamlet Architecture and Testing Workflow" href="../architecture.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../architecture.html" title="Hamlet Architecture and Testing Workflow"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Model Testing Frameworks</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="model-testing-frameworks">
+<h1>Model Testing Frameworks<a class="headerlink" href="#model-testing-frameworks" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="gem-tests-and-evaluations">
+<span id="gem-tests-evaluations"></span><h2>GEM Tests and Evaluations<a class="headerlink" href="#gem-tests-and-evaluations" title="Permalink to this headline">¶</a></h2>
+<p>These are developed by GEM, sometimes based on the literature, or sometimes
+based on our own ideas and implementations. See for
+more information, or <a class="reference internal" href="../openquake.hme.model_test_frameworks.gem.html#module-openquake.hme.model_test_frameworks.gem" title="openquake.hme.model_test_frameworks.gem"><code class="xref py py-mod docutils literal notranslate"><span class="pre">gem</span></code></a> for the
+function documentation. Sanity checks (as detailed below) are also available
+from the GEM testing framework, for convenience during the workflow.</p>
+<div class="section" id="magnitude-frequency-distribution-based-tests">
+<h3>Magnitude-Frequency Distribution based tests<a class="headerlink" href="#magnitude-frequency-distribution-based-tests" title="Permalink to this headline">¶</a></h3>
+<p>These tests evaluate a model based on the magnitude-frequency distribution (MFD)
+inside each grid cell, or in the model as a whole, (for the model component
+being tested).</p>
+<p id="gem-like-test"><em>Likelihood test</em></p>
+<p>Currently, there are two implementations of the MFD likelihood tests, one
+‘empirical’, based on Monte Carlo sampling of the source model in each bin, and
+one based on the frequencies in the MFD itself.</p>
+<p>In both of these tests, the likelihood of observing the seismicity in the
+catalog given the model MFD is calculated through the</p>
+<p>Parameters (all are optional, as default values are supplied):</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">likelihood_method</span></code></dt><dd><p>This is how the computations are performed.  <code class="docutils literal notranslate"><span class="pre">poisson</span></code> uses the Poisson
+likelihood, and <code class="docutils literal notranslate"><span class="pre">empirical</span></code> uses a Monte Carlo sampling of the MFD.  The
+default value is <code class="docutils literal notranslate"><span class="pre">poisson</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">investigation_time</span></code></dt><dd><p>This is how long the time period is for comparing the observed seismicity to
+the MFD. Unless you’re doing something very crafty, the value should be in
+years, and should be the length of the observed earthquake catalog.  In the
+future, a completeness table may be used instead of this parameter.  The
+default value is <code class="docutils literal notranslate"><span class="pre">1.</span></code></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">default_likelihood</span></code></dt><dd><p>This is the likelihood that results if no earthquake sources are present in
+the grid cell. If the cells are built using <cite>h3</cite> (the default option, if no
+GIS file for the test is supplied), this parameter will have no effect.  The
+default value is <code class="docutils literal notranslate"><span class="pre">1.</span></code></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">not_modeled_val</span></code></dt><dd><p>This is the likelihood that results if the rate of earthquake production in
+that magnitude bin is zero, but there are earthquakes within the magnitude
+bin. Standard (or naive) statistical theory suggests that this value should
+be zero, as it is in the RELM tests, but because this value is multiplied by
+all of the other magnitude bins inside each spatial bin/grid cell, a single
+zero value will make the whole model likelihood zero.  The default is
+<code class="docutils literal notranslate"><span class="pre">1e-5</span></code> which is a bit more pragmatic.</p>
+</dd>
+</dl>
+<p id="gem-model-mfd-test"><em>Model MFD Evaluation</em></p>
+<p>The Model MFD evaluation sums up the MFDs from each
+<a class="reference internal" href="../openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> and makes an MFD for the whole
+model, which is then compared to the observed MFD from the earthquake catalog.
+This is to produce a figure and currently does not yield any quantitative values
+or evaluate the entire model goodness of fit.</p>
+<p>Parameters (all are optional):</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">investigation_time</span></code></dt><dd><p>This is the duration of the comparison between the observed seismicity to
+the MFD. See <a class="reference internal" href="#gem-like-test"><span class="std std-ref">likelihood</span></a> above for more information.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">out_csv</span></code></dt><dd><p>This parameter specifies a filename. If this is given, a CSV table of the
+observed and modeled MFDs will be written.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">out_plot</span></code></dt><dd><p>This parameter specifies a filename. If this is given, a plot of the
+observed and modeled MFDs will be written. The file suffix will determine
+the plot format.  Common formats include <code class="docutils literal notranslate"><span class="pre">png</span></code>, <code class="docutils literal notranslate"><span class="pre">svg</span></code> and <code class="docutils literal notranslate"><span class="pre">pdf</span></code>.  See
+the <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> docs for more info.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="other-tests">
+<h3>Other tests<a class="headerlink" href="#other-tests" title="Permalink to this headline">¶</a></h3>
+<p>Several other tests are in development; these look at moment release in
+each grid cell, analyze the moment tensors, etc.</p>
+</div>
+</div>
+<div class="section" id="sanity-checks">
+<h2>Sanity Checks<a class="headerlink" href="#sanity-checks" title="Permalink to this headline">¶</a></h2>
+<p>Sanity checks are small evaluations to make sure that basic parameters of the
+model are internally consistent and match the observations at a gross level. An
+example is making sure that the MFDs in each grid cell are capable of producing
+earthquakes as large as the largest observed earthquakes.</p>
+<div class="section" id="tests">
+<h3>Tests<a class="headerlink" href="#tests" title="Permalink to this headline">¶</a></h3>
+<p id="max-mag-check"><em>Maximum Magnitude Check</em></p>
+<p>The Maximum Magnitude Check evaluates the observed seismicity and MFD inside
+each class:<cite>~openquake.hme.utils.bins.SpacemagBin</cite> to see whether the maximum
+magnitude of the MFD is larger than the observed earthquakes.</p>
+<p>Parameters:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">append_check</span></code></dt><dd><p>This is a Boolean (<code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>).  If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the row for each
+<a class="reference internal" href="../openquake.hme.utils.html#openquake.hme.utils.bins.SpacemagBin" title="openquake.hme.utils.bins.SpacemagBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code></a> in the dataframe used to
+store everything will have a column appended that gives <code class="docutils literal notranslate"><span class="pre">True</span></code> and
+<code class="docutils literal notranslate"><span class="pre">False</span></code> values for if the test passes or not (<code class="docutils literal notranslate"><span class="pre">True</span></code> is pass).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">warn</span></code></dt><dd><p>This is a Boolean (<code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>) that determines whether a
+warning is given on the command line (or in the log file) for each
+class:<cite>~openquake.hme.utils.bins.SpacemagBin</cite> that fails the test.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="relm-tests">
+<h2>RELM Tests<a class="headerlink" href="#relm-tests" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference external" href="http://cseptesting.org/documents/relm.php">RELM</a> (Regional Earthquake Likelihood Model) tests are quite similar in
+principle to the GEM Magnitude-Frequency evaluations, though there are some
+differences in the statistical assumptions used to aggregate the likelihood
+statistics from model sub-regions to the model as a whole.</p>
+<p>Some of the RELM test functions are implemented, but currently the RELM testing
+pipeline has not been built.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Model Testing Frameworks</a><ul>
+<li><a class="reference internal" href="#gem-tests-and-evaluations">GEM Tests and Evaluations</a><ul>
+<li><a class="reference internal" href="#magnitude-frequency-distribution-based-tests">Magnitude-Frequency Distribution based tests</a></li>
+<li><a class="reference internal" href="#other-tests">Other tests</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sanity-checks">Sanity Checks</a><ul>
+<li><a class="reference internal" href="#tests">Tests</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#relm-tests">RELM Tests</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../architecture.html"
+                        title="previous chapter">Hamlet Architecture and Testing Workflow</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/model_test_frameworks/model_test_frameworks.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../architecture.html" title="Hamlet Architecture and Testing Workflow"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Hamlet 0.2.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Model Testing Frameworks</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2019-2020, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+    </div>
+  </body>
+</html>
