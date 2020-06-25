@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 
 language: python
 
@@ -12,8 +12,8 @@ jobs:
     - stage: install
       script:
         - cat /etc/*-release
-        - apt-get update
-        - apt-get -y install libspatialindex-dev
+        - sudo apt-get update
+        - sudo apt-get -y install libspatialindex-dev
         - python3 -V # Print out python version for debugging
         - git clone --depth=1 https://github.com/gem/oq-engine.git
         - pip install -r oq-engine/requirements-py37-linux64.txt
@@ -45,5 +45,3 @@ jobs:
             - master
             - docs
         local_dir: build/html/
-      
-      
