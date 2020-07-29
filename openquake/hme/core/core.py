@@ -186,26 +186,6 @@ def load_ruptures_from_ssm(cfg: dict):
     rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
     logger.info("  done preparing rupture dataframe")
 
-    try:
-        logger.info(" writing ruptures to file ")
-        ruptures_out = pd.DataFrame.from_dict(
-            [rup_to_dict(rup) for rup in rupture_gdf["rupture"]]
-        )
-
-        try:
-            rupture_file = cfg["input"]["ssm"]["rupture_file"]
-            if not os.path.exists(rupture_file):
-                logger.info("writing ruptures")
-                rup_file_type = rupture_file.split(".")[-1]
-                if rup_file_type == "hdf5":
-                    ruptures_out.to_hdf(rupture_file, key="ruptures_out")
-                elif rup_file_type == "feather":
-                    ruptures_out.to_feather(rupture_file)
-        except KeyError:
-            pass
-    except:
-        pass
-
     return rupture_gdf
 
 
