@@ -1089,6 +1089,31 @@ Other than the event time, the generated earthquakes should be identical.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt id="openquake.hme.utils.utils.subset_source">
+<code class="sig-prename descclassname">openquake.hme.utils.utils.</code><code class="sig-name descname">subset_source</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">subset_file</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">buffer</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em><span class="sig-paren">)</span> &#x2192; geopandas.geodataframe.GeoDataFrame<a class="headerlink" href="#openquake.hme.utils.utils.subset_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a subset of the source model where each bin intersects (or is within)
+a geographic region. This is useful for testing a regional model’s
+performance in a single country, for example.</p>
+<p>Please note that the SpacemagBins are not cut at the intersection, so any
+SpacemagBin intersecting the border will be included completely.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bin_gdf</strong> – GeoDataFrame of bins</p></li>
+<li><p><strong>subset_file</strong> – File name/path for a vector GIS file with geographic feature(s)
+representing the study area. Should be derived from a Polygon or
+MultiPolygon-type GIS file, but Points or Polyline types may work
+too, especially with a buffer.</p></li>
+<li><p><strong>buffer</strong> – Spatial buffer (in degrees) to be applied to <cite>sub_gdf</cite> before
+subsetting. This allows for ruptures with hypocenters outside the
+<cite>sub_gdf</cite> areas that may still affect the study area to be included.
+Defaults to zero.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <div class="section" id="module-openquake.hme.utils">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-openquake.hme.utils" title="Permalink to this headline">¶</a></h2>
@@ -1155,7 +1180,7 @@ Other than the event time, the generated earthquakes should be identical.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019-2020, Richard Styron (GEM Foundation).
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.1.2.
     </div>
   </body>
 </html>
