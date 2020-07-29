@@ -218,33 +218,36 @@ def _process_rup(
     simple_ruptures=True,
 ):
 
-    if simple_ruptures is False:
+    try:
+        if simple_ruptures is False:
+            rup.source = source.source_id
+        elif isinstance(rup, ParametricProbabilisticRupture):
+            rup = SimpleRupture(
+                strike=rup.surface.get_strike(),
+                dip=rup.surface.get_dip(),
+                rake=rup.rake,
+                mag=rup.mag,
+                hypocenter=rup.hypocenter,
+                occurrence_rate=rup.occurrence_rate,
+                source=source.source_id,
+            )
+
+        elif isinstance(rup, NonParametricProbabilisticRupture):
+            occurrence_rate = sum(
+                i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
+            )
+            rup = SimpleRupture(
+                strike=rup.surface.get_strike(),
+                dip=rup.surface.get_dip(),
+                rake=rup.rake,
+                mag=rup.mag,
+                hypocenter=rup.hypocenter,
+                occurrence_rate=occurrence_rate,
+            )
+        return rup
+    except:
         rup.source = source.source_id
-    elif isinstance(rup, ParametricProbabilisticRupture):
-        rup = SimpleRupture(
-            strike=rup.surface.get_strike(),
-            dip=rup.surface.get_dip(),
-            rake=rup.rake,
-            mag=rup.mag,
-            hypocenter=rup.hypocenter,
-            occurrence_rate=rup.occurrence_rate,
-            source=source.source_id,
-        )
-
-    elif isinstance(rup, NonParametricProbabilisticRupture):
-        occurrence_rate = sum(
-            i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
-        )
-        rup = SimpleRupture(
-            strike=rup.surface.get_strike(),
-            dip=rup.surface.get_dip(),
-            rake=rup.rake,
-            mag=rup.mag,
-            hypocenter=rup.hypocenter,
-            occurrence_rate=occurrence_rate,
-        )
-
-    return rup
+        return rup
 
 
 def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
