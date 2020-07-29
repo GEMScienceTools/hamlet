@@ -115,7 +115,7 @@ def M_test(
         ]) / n_bins)
 
     pctile = (len(
-        stoch_geom_mean_likes[stoch_geom_mean_likes < obs_geom_mean_like]) /
+        stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like]) /
               test_config["n_iters"])
 
     test_pass = True if pctile >= test_config["critical_pct"] else False
@@ -167,7 +167,7 @@ def S_test(
             bin_pcts = []
             for i, obs_like in enumerate(obs_likes):
                 stoch_like = stoch_likes[:, i]
-                bin_pct = (len(stoch_like[stoch_like < obs_like]) /
+                bin_pct = (len(stoch_like[stoch_like <= obs_like]) /
                            test_config["n_iters"])
                 bin_pcts.append(bin_pct)
             bin_gdf["S_bin_pct"] = bin_pcts
@@ -178,7 +178,7 @@ def S_test(
             bin_gdf['N_obs'] = bin_gdf.SpacemagBin.apply(
                 lambda x: get_n_eqs_from_mfd(x.observed_earthquakes))
 
-    pctile = (len(stoch_like_totals[stoch_like_totals < obs_like_total]) /
+    pctile = (len(stoch_like_totals[stoch_like_totals <= obs_like_total]) /
               test_config["n_iters"])
 
     test_pass = True if pctile >= test_config["critical_pct"] else False
