@@ -61,8 +61,8 @@ input:
 
 report:
   basic:
-    outfile: outputs/sm1_poisson_report.html
+    outfile: outputs/sm1_poisson_subset_report.html
 
 output:
   bin_gdf:
-    file: outputs/sm1_bins.geojson
+    file: outputs/sm1_bins_subset.geojson
