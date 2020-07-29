@@ -56,6 +56,7 @@ cfg = {
             "mfd_bin_width": 0.2,
             "h3_res": 3,
         },
+        "subset": {"file": None},
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
