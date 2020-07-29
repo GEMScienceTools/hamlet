@@ -947,6 +947,43 @@ def get_source_bins(bin_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return source_bin_gdf
 
 
+def subset_source(
+    bin_gdf: gpd.GeoDataFrame, subset_file: str, buffer: float = 0.0
+) -> gpd.GeoDataFrame:
+    """
+    Takes a subset of the source model where each bin intersects (or is within)
+    a geographic region. This is useful for testing a regional model's
+    performance in a single country, for example.
+
+    Please note that the SpacemagBins are not cut at the intersection, so any
+    SpacemagBin intersecting the border will be included completely.
+
+    :param bin_gdf:
+        GeoDataFrame of bins
+
+    :param subset_file:
+        File name/path for a vector GIS file with geographic feature(s)
+        representing the study area. Should be derived from a Polygon or
+        MultiPolygon-type GIS file, but Points or Polyline types may work
+        too, especially with a buffer.
+
+    :param buffer:
+        Spatial buffer (in degrees) to be applied to `sub_gdf` before
+        subsetting. This allows for ruptures with hypocenters outside the
+        `sub_gdf` areas that may still affect the study area to be included.
+        Defaults to zero.
+    """
+    sub_gdf = gpd.read_file(subset_file)
+    sub_gdf.crs = bin_gdf.crs
+
+    if buffer != 0:
+        sub_gdf["geometry"] = sub_gdf["geometry"].buffer(buffer)
+
+    sj = gpd.sjoin(bin_gdf, sub_gdf)
+
+    return bin_gdf.loc[sj.index]
+
+
 def sample_earthquakes(
     rupture: Union[ParametricProbabilisticRupture, NonParametricProbabilisticRupture],
     interval_length: float,

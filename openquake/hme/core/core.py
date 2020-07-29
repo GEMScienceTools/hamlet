@@ -25,6 +25,7 @@ from openquake.hme.utils import (
     add_earthquakes_to_bins,
     make_earthquake_gdf_from_csv,
     make_bin_gdf_from_rupture_gdf,
+    subset_source,
 )
 from openquake.hme.reporting import generate_basic_report
 
@@ -217,6 +218,14 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
 
     logger.info("adding ruptures to bins")
     add_ruptures_to_bins(rupture_gdf, bin_gdf)
+
+    if cfg["input"]["subset"]["file"] is not None:
+        logger.info("   Subsetting bin_gdf")
+        bin_gdf = subset_source(
+            bin_gdf,
+            subset_file=cfg["input"]["subset"]["file"],
+            buffer=cfg["input"]["subset"]["buffer"],
+        )
 
     del rupture_gdf
 
