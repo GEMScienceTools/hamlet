@@ -44,6 +44,7 @@ cfg_defaults = {
     "input": {
         "bins": {"h3_res": 3},
         "ssm": {"branch": None, "tectonic_region_types": None, "source_types": None},
+        "subset": {"file": None, "buffer": 0.0},
     },
 }
 
@@ -144,33 +145,6 @@ def load_pro_eq_catalog(cfg: dict) -> GeoDataFrame:
     eq_gdf = make_earthquake_gdf_from_csv(pro_cat_file, **seis_cat_params)
 
     return eq_gdf
-
-
-def make_bin_gdf(cfg: dict) -> GeoDataFrame:
-    """
-    Makes a GeoDataFrame of :class:`~openquake.hme.utils.bins.SpacemagBin`s by
-    passing the required parameters from the configuration dictionary to the
-    :func:`~openquake.hme.utils.make_SpacemagBins_from_bin_gis_file` function.
-
-    :param cfg:
-        Configuration for the evaluations, such as that parsed from the YAML
-        config file.
-
-    :returns: A GeoDataFrame of the SpacemagBins.
-    """
-
-    logger.info("making bin GDF from GIS file")
-
-    bin_cfg: dict = cfg["input"]["bins"]
-
-    bin_gdf = make_SpacemagBins_from_bin_gis_file(
-        bin_cfg["bin_gis_file"],
-        min_mag=bin_cfg["mfd_bin_min"],
-        max_mag=bin_cfg["mfd_bin_max"],
-        bin_width=bin_cfg["mfd_bin_width"],
-    )
-
-    return bin_gdf
 
 
 def load_ruptures_from_ssm(cfg: dict):
