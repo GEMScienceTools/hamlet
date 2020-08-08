@@ -198,6 +198,8 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         Configuration for the evaluations, such as that parsed from the YAML
         config file.
     """
+    eq_gdf = load_obs_eq_catalog(cfg)
+
     rupture_gdf = load_ruptures_from_ssm(cfg)
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
@@ -234,8 +236,6 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
             sum(bin_gdf.memory_usage(index=True, deep=True)) * 1e-9
         )
     )
-
-    eq_gdf = load_obs_eq_catalog(cfg)
 
     logger.info("adding earthquakes to bins")
     add_earthquakes_to_bins(eq_gdf, bin_gdf, h3_res=cfg["input"]["bins"]["h3_res"])
