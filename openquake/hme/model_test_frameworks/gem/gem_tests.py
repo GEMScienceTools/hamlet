@@ -200,8 +200,16 @@ def model_mfd_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> None:
         )
 
 
+def moment_over_under_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None):
+
+    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
+
+    
+
+
+
 def max_mag_check(
-    cfg: dict, bin_gdf: Optional[GeoDataFrame] = None,
+    cfg: dict, 
 ):
 
     logging.info("Checking Maximum Magnitudes")
