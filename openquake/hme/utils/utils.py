@@ -280,16 +280,24 @@ def rupture_list_from_source_list(
         All of the ruptures from all sources of `sources_types` in the logic
         tree branch.
     """
-
+    rup_counts = [s.count_ruptures() for s in source_list]
+    n_rups = sum(rup_counts)
     rupture_list = []
+    pbar = tqdm(total=n_rups)
 
-    rups = [
-        _process_rup(r, source, simple_ruptures=simple_ruptures)
-        for source in source_list
-        for r in source.iter_ruptures()
-    ]
+    logging.info("{} ruptures".format(n_rups))
 
-    rupture_list.extend(rups)
+    for i, source in enumerate(source_list):
+        rups = list(tqdm(
+                map(
+                    partial(_process_rup, source=source,
+                            simple_ruptures=simple_ruptures),
+                    source.iter_ruptures()),
+                total=rup_counts[i], leave=False))
+        pbar.update(n=rup_counts[i])
+        rupture_list.extend(rups)
+
+    pbar.close()
 
     return rupture_list
 
@@ -300,33 +308,36 @@ def _process_rup(
     simple_ruptures=True,
 ):
 
-    if simple_ruptures is False:
+    try:
+        if simple_ruptures is False:
+            rup.source = source.source_id
+        elif isinstance(rup, ParametricProbabilisticRupture):
+            rup = SimpleRupture(
+                strike=rup.surface.get_strike(),
+                dip=rup.surface.get_dip(),
+                rake=rup.rake,
+                mag=rup.mag,
+                hypocenter=rup.hypocenter,
+                occurrence_rate=rup.occurrence_rate,
+                source=source.source_id,
+            )
+
+        elif isinstance(rup, NonParametricProbabilisticRupture):
+            occurrence_rate = sum(
+                i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
+            )
+            rup = SimpleRupture(
+                strike=rup.surface.get_strike(),
+                dip=rup.surface.get_dip(),
+                rake=rup.rake,
+                mag=rup.mag,
+                hypocenter=rup.hypocenter,
+                occurrence_rate=occurrence_rate,
+            )
+        return rup
+    except:
         rup.source = source.source_id
-    elif isinstance(rup, ParametricProbabilisticRupture):
-        rup = SimpleRupture(
-            strike=rup.surface.get_strike(),
-            dip=rup.surface.get_dip(),
-            rake=rup.rake,
-            mag=rup.mag,
-            hypocenter=rup.hypocenter,
-            occurrence_rate=rup.occurrence_rate,
-            source=source.source_id,
-        )
-
-    elif isinstance(rup, NonParametricProbabilisticRupture):
-        occurrence_rate = sum(
-            i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
-        )
-        rup = SimpleRupture(
-            strike=rup.surface.get_strike(),
-            dip=rup.surface.get_dip(),
-            rake=rup.rake,
-            mag=rup.mag,
-            hypocenter=rup.hypocenter,
-            occurrence_rate=occurrence_rate,
-        )
-
-    return rup
+        return rup
 
 
 def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
@@ -1027,6 +1038,43 @@ def get_source_bins(bin_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
     source_bin_gdf = bin_gdf.loc[source_list]
     return source_bin_gdf
+
+
+def subset_source(
+    bin_gdf: gpd.GeoDataFrame, subset_file: str, buffer: float = 0.0
+) -> gpd.GeoDataFrame:
+    """
+    Takes a subset of the source model where each bin intersects (or is within)
+    a geographic region. This is useful for testing a regional model's
+    performance in a single country, for example.
+
+    Please note that the SpacemagBins are not cut at the intersection, so any
+    SpacemagBin intersecting the border will be included completely.
+
+    :param bin_gdf:
+        GeoDataFrame of bins
+
+    :param subset_file:
+        File name/path for a vector GIS file with geographic feature(s)
+        representing the study area. Should be derived from a Polygon or
+        MultiPolygon-type GIS file, but Points or Polyline types may work
+        too, especially with a buffer.
+
+    :param buffer:
+        Spatial buffer (in degrees) to be applied to `sub_gdf` before
+        subsetting. This allows for ruptures with hypocenters outside the
+        `sub_gdf` areas that may still affect the study area to be included.
+        Defaults to zero.
+    """
+    sub_gdf = gpd.read_file(subset_file)
+    sub_gdf.crs = bin_gdf.crs
+
+    if buffer != 0:
+        sub_gdf["geometry"] = sub_gdf["geometry"].buffer(buffer)
+
+    sj = gpd.sjoin(bin_gdf, sub_gdf)
+
+    return bin_gdf.loc[sj.index]
 
 
 def sample_earthquakes(

@@ -16,6 +16,7 @@ def test_read_yaml_config():
     assert cfg == {
         "input": {
             "bins": {"h3_res": 3, "mfd_bin_max": 9.0},
+            "subset": {"file": None, "buffer": 0.0},
             "ssm": {
                 "branch": "b1",
                 "tectonic_region_types": ["Active Shallow Crust"],
