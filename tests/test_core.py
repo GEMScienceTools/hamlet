@@ -1,7 +1,7 @@
 import os
-import unittest
 
-from openquake.hme.core.core import read_yaml_config, get_test_lists_from_config
+from openquake.hme.core.core import (read_yaml_config,
+                                     get_test_lists_from_config)
 
 BASE_PATH = os.path.dirname(__file__)
 UNIT_TEST_DATA_DIR = os.path.join(BASE_PATH, "data", "unit_test_data")
@@ -15,7 +15,14 @@ def test_read_yaml_config():
     cfg = read_yaml_config(yml_2)
     assert cfg == {
         "input": {
-            "bins": {"h3_res": 3, "mfd_bin_max": 9.0},
+            "bins": {
+                "h3_res": 3,
+                "mfd_bin_max": 9.0
+            },
+            "subset": {
+                "file": None,
+                "buffer": 0.0
+            },
             "ssm": {
                 "branch": "b1",
                 "tectonic_region_types": ["Active Shallow Crust"],
@@ -23,12 +30,28 @@ def test_read_yaml_config():
                 "ssm_dir": "../../../../data/source_models/sm1/",
                 "ssm_lt_file": "ssmLT.xml",
             },
+            "rupture_file": {
+                "rupture_file_path": None,
+                "read_rupture_file": False,
+                "save_rupture_file": False
+            }
         },
-        "meta": {"description": "Fake yaml for testing"},
+        "meta": {
+            "description": "Fake yaml for testing"
+        },
         "config": {
             "model_framework": {
-                "gem": {"likelihood": {"p1": 1, "p2": 2}},
-                "sanity": {"max_check": {"warn": True}},
+                "gem": {
+                    "likelihood": {
+                        "p1": 1,
+                        "p2": 2
+                    }
+                },
+                "sanity": {
+                    "max_check": {
+                        "warn": True
+                    }
+                },
             }
         },
     }

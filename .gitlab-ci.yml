@@ -36,7 +36,7 @@ pages:
   script:
     - pip install sphinx
     - pip install recommonmark
-    - cd docs ; sphinx-apidoc -o source/ ../openquake/ ; make html
+    - cd doc_src ; sphinx-apidoc -o source/ ../openquake/ ; make html
     - mv build/html/ ../public/
 
   artifacts:

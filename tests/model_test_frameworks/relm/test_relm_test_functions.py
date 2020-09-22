@@ -56,6 +56,9 @@ cfg = {
             "mfd_bin_width": 0.2,
             "h3_res": 3,
         },
+        "subset": {
+            "file": None
+        },
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
@@ -65,8 +68,15 @@ cfg = {
         },
         "seis_catalog": {
             "seis_catalog_file": DATA_FILE,
-            "columns": {"event_id": "event_id"},
+            "columns": {
+                "event_id": "event_id"
+            },
         },
+        "rupture_file": {
+            "rupture_file_path": None,
+            "read_rupture_file": False,
+            "save_rupture_file": False
+        }
     },
 }
 
