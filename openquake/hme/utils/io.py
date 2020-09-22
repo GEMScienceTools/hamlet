@@ -3,7 +3,10 @@ import logging
 from typing import Union, Optional, Sequence
 
 import pandas as pd
+from tqdm import tqdm
 from geopandas import GeoDataFrame
+#from shapely.geometry import Point
+from openquake.hazardlib.geo.point import Point
 
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
@@ -15,6 +18,7 @@ from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
 from .bins import SpacemagBin
 from .model import read
 from .plots import plot_mfd
+from .utils import rupture_list_to_gdf
 from .simple_rupture import SimpleRupture, rup_to_dict
 
 
@@ -180,6 +184,10 @@ def read_rupture_file(rupture_file):
         ruptures = pd.read_hdf(rupture_file, key="ruptures")
     elif rup_file_type == "feather":
         ruptures = pd.read_feather(rupture_file)
+    elif rup_file_type == "csv":
+        ruptures = pd.read_csv(rupture_file)
+    else:
+        raise ValueError("Cannot read filetype {}".format(rup_file_type))
 
     logging.info("converting to SimpleRuptures")
 
@@ -194,7 +202,7 @@ def _rupture_from_df_row(row):
         dip=row["dip"],
         rake=row["rake"],
         mag=row["mag"],
-        hypocenter=OQPoint(row["lon"], row["lat"], row["depth"]),
+        hypocenter=Point(row["lon"], row["lat"], row["depth"]),
         occurrence_rate=row["occurrence_rate"],
         source=row["source"],
     )
@@ -207,9 +215,9 @@ def _rupture_from_namedtuple(row):
         dip=row.dip,
         rake=row.rake,
         mag=row.mag,
-        hypocenter=OQPoint(row.lon, row.lat, row.depth),
+        hypocenter=Point(row.lon, row.lat, row.depth),
         occurrence_rate=row.occurrence_rate,
-        source=row.source,
+        source=str(row.source),
     )
     return rup
 

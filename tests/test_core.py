@@ -1,5 +1,4 @@
 import os
-import unittest
 
 from openquake.hme.core.core import (read_yaml_config,
                                      get_test_lists_from_config)
