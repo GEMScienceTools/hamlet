@@ -1,7 +1,8 @@
 import os
 import unittest
 
-from openquake.hme.core.core import read_yaml_config, get_test_lists_from_config
+from openquake.hme.core.core import (read_yaml_config,
+                                     get_test_lists_from_config)
 
 BASE_PATH = os.path.dirname(__file__)
 UNIT_TEST_DATA_DIR = os.path.join(BASE_PATH, "data", "unit_test_data")
