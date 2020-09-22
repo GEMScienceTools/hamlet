@@ -18,15 +18,15 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
+from openquake.hme.utils.io import (process_source_logic_tree,
+                                    write_mfd_plots_to_gdf)
 from openquake.hme.utils import (
     deep_update,
-    make_SpacemagBins_from_bin_gis_file,
     rupture_dict_from_logic_tree_dict,
     rupture_list_to_gdf,
-    rup_to_dict,
-    rupdf_from_dict,
-    read_ruptures_from_dataframe,
+    #rup_to_dict,
+    #rup_df_from_dict,
+    #read_ruptures_from_dataframe,
     add_ruptures_to_bins,
     add_earthquakes_to_bins,
     make_earthquake_gdf_from_csv,
@@ -35,10 +35,12 @@ from openquake.hme.utils import (
 )
 from openquake.hme.reporting import generate_basic_report
 
-from openquake.hme.utils.io import write_bin_gdf_to_csv
+from openquake.hme.utils.io import (write_bin_gdf_to_csv, read_rupture_file,
+                                    write_ruptures_to_file)
 from openquake.hme.model_test_frameworks.gem.gem_tests import gem_test_dict
 from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict
-from openquake.hme.model_test_frameworks.sanity.sanity_checks import sanity_test_dict
+from openquake.hme.model_test_frameworks.sanity.sanity_checks import (
+    sanity_test_dict, )
 
 Openable = Union[str, bytes, int, "os.PathLike[Any]"]
 
@@ -60,6 +62,11 @@ cfg_defaults = {
             "branch": None,
             "tectonic_region_types": None,
             "source_types": None
+        },
+        "rupture_file": {
+            "rupture_file_path": None,
+            "read_rupture_file": False,
+            "save_rupture_file": False
         },
         "subset": {
             "file": None,
@@ -169,6 +176,23 @@ def load_pro_eq_catalog(cfg: dict) -> GeoDataFrame:
     return eq_gdf
 
 
+def load_ruptures_from_file(cfg: dict):
+    """
+    Reads a flat file with ruptures.
+    """
+
+    rup_file = cfg["input"]["rupture_file"]["rupture_file_path"]
+    logging.info("Reading ruptures from {}".format(rup_file))
+    if os.path.exists(rup_file):
+        rupture_gdf = read_rupture_file(rup_file)
+
+    else:
+        logging.warn("Rupture file does not exist; reading SSM.")
+        rupture_gdf = load_ruptures_from_ssm(cfg)
+
+    return rupture_gdf
+
+
 def load_ruptures_from_ssm(cfg: dict):
     """
     Reads a seismic source model, processes it, and returns a GeoDataFrame with
@@ -206,22 +230,6 @@ def load_ruptures_from_ssm(cfg: dict):
     rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
     logger.info("  done preparing rupture dataframe")
 
-    logger.info(" writing ruptures to file ")
-    ruptures_out = pd.DataFrame.from_dict(
-        [rup_to_dict(rup) for rup in rupture_gdf["rupture"]])
-
-    try:
-        rupture_file = cfg["input"]["ssm"]["rupture_file"]
-        if not os.path.exists(rupture_file):
-            logger.info("writing ruptures")
-            rup_file_type = rupture_file.split(".")[-1]
-            if rup_file_type == "hdf5":
-                ruptures_out.to_hdf(rupture_file, key="ruptures_out")
-            elif rup_file_type == "feather":
-                ruptures_out.to_feather(rupture_file)
-    except KeyError:
-        pass
-
     return rupture_gdf
 
 
@@ -235,23 +243,15 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         config file.
     """
 
-    rupture_file = cfg["input"]["ssm"]["rupture_file"]
-
-    if os.path.exists(rupture_file):
-        logger.info(f"Reading ruptures from {rupture_file}")
-        rup_file_type = rupture_file.split(".")[-1]
-        if rup_file_type == "hdf5":
-            ruptures = pd.read_hdf(rupture_file)
-        elif rup_file_type == "feather":
-            ruptures = pd.read_feather(rupture_file)
-        logger.info("converting to SimpleRuptures")
-        # rupture_gdf = rupdf_from_dict(ruptures)
-        rupture_gdf = read_ruptures_from_dataframe(
-            ruptures,
-            # parallel=cfg["config"]["parallel"]
-        )
+    if cfg["rupture_file"]["read_rupture_file"] is True:
+        rupture_gdf = load_ruptures_from_file(cfg)
     else:
         rupture_gdf = load_ruptures_from_ssm(cfg)
+
+    if cfg["rupture_file"]["save_rupture_file"] is True:
+        logging.info("Writing ruptures to file")
+        write_ruptures_to_file(rupture_gdf,
+                               cfg["rupture_file"]["rupture_file_path"])
 
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
