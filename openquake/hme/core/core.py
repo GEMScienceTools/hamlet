@@ -242,13 +242,14 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         Configuration for the evaluations, such as that parsed from the YAML
         config file.
     """
+    eq_gdf = load_obs_eq_catalog(cfg)
 
-    if cfg["rupture_file"]["read_rupture_file"] is True:
+    if cfg["input"]["rupture_file"]["read_rupture_file"] is True:
         rupture_gdf = load_ruptures_from_file(cfg)
     else:
         rupture_gdf = load_ruptures_from_ssm(cfg)
 
-    if cfg["rupture_file"]["save_rupture_file"] is True:
+    if cfg["input"]["rupture_file"]["save_rupture_file"] is True:
         logging.info("Writing ruptures to file")
         write_ruptures_to_file(rupture_gdf,
                                cfg["rupture_file"]["rupture_file_path"])

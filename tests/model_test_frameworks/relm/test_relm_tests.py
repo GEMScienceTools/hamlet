@@ -10,7 +10,6 @@ BASE_PATH = os.path.dirname(__file__)
 SM1_PATH = os.path.join(BASE_PATH, "..", "..", "data", "source_models", "sm1")
 DATA_FILE = os.path.join(SM1_PATH, "data", "phl_eqs.csv")
 
-
 # Doing this here because it takes several seconds and should be done once
 cfg = {
     "config": {
@@ -40,7 +39,9 @@ cfg = {
             "mfd_bin_width": 0.2,
             "h3_res": 3,
         },
-        "subset": {"file": None},
+        "subset": {
+            "file": None
+        },
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
@@ -56,6 +57,11 @@ cfg = {
                 "event_id": "eventID",
             },
         },
+        "rupture_file": {
+            "rupture_file_path": None,
+            "read_rupture_file": False,
+            "save_rupture_file": False
+        }
     },
 }
 
