@@ -198,16 +198,24 @@ def rupture_list_from_source_list(
         All of the ruptures from all sources of `sources_types` in the logic
         tree branch.
     """
-
+    rup_counts = [s.count_ruptures() for s in source_list]
+    n_rups = sum(rup_counts)
     rupture_list = []
+    pbar = tqdm(total=n_rups)
 
-    rups = [
-        _process_rup(r, source, simple_ruptures=simple_ruptures)
-        for source in source_list
-        for r in source.iter_ruptures()
-    ]
+    logging.info("{} ruptures".format(n_rups))
 
-    rupture_list.extend(rups)
+    for i, source in enumerate(source_list):
+        rups = list(tqdm(
+                map(
+                    partial(_process_rup, source=source,
+                            simple_ruptures=simple_ruptures),
+                    source.iter_ruptures()),
+                total=rup_counts[i], leave=False))
+        pbar.update(n=rup_counts[i])
+        rupture_list.extend(rups)
+
+    pbar.close()
 
     return rupture_list
 
