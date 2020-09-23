@@ -252,7 +252,7 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     if cfg["input"]["rupture_file"]["save_rupture_file"] is True:
         logging.info("Writing ruptures to file")
         write_ruptures_to_file(rupture_gdf,
-                               cfg["rupture_file"]["rupture_file_path"])
+                               cfg["input"]["rupture_file"]["rupture_file_path"])
 
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
