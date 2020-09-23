@@ -110,7 +110,8 @@ def get_stochastic_mfds_parallel(geo_series: GeoSeries, **kwargs):
 
 def get_stochastic_moment_set(spacemag_bin: SpacemagBin,
                               interval_length: float,
-                              n_iters: int) -> np.ndarray:
+                              n_iters: int,
+                              rand_seed=None) -> np.ndarray:
     """
     """
     return np.array([
@@ -120,12 +121,33 @@ def get_stochastic_moment_set(spacemag_bin: SpacemagBin,
 
 
 def get_stochastic_moment(spacemag_bin: SpacemagBin,
-                          interval_length: float) -> float:
-    smfd = spacemag_bin.get_rupture_sample_mfd(interval_length,
-                                               normalize=False)
+                          interval_length: float, rand_seed=None) -> float:
+    """
+    """
+    stoch_eq_dict = spacemag_bin.sample_ruptures(
+        interval_length=interval_length,
+        return_rups=True,
+        rand_seed=rand_seed
+    )
+    mo_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
+                     for bin_eqs in stoch_eq_dict.values()])
+    return mo_sum
 
-    return get_moment_from_mfd(smfd)
 
+def rank_obs_moment(spacemag_bin: SpacemagBin, interval_length: float, 
+                    n_iters: int) -> float:
+    """
+    """
+    obs_mo_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
+                        for bin_eqs in spacemag_bin.observed_earthquakes.values()])
+                        
+    stoch_mo_sums = get_stochastic_moment_set(spacemag_bin, interval_length,
+                                              n_iters)
+
+    n_less = len(stoch_mo_sums[stoch_mo_sums < obs_mo_sum])
+    #breakpoint()
+    return n_less / n_iters
+    
 
 def get_moment_from_mfd(mfd: dict) -> float:
     mo = sum(

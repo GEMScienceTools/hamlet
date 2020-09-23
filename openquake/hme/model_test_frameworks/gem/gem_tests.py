@@ -8,13 +8,12 @@ from geopandas import GeoDataFrame
 from openquake.hme.utils import get_source_bins
 from openquake.hme.utils.plots import plot_mfd
 from ..sanity.sanity_checks import max_check
-from .gem_test_functions import get_stochastic_mfd, get_stochastic_mfds_parallel
+from .gem_test_functions import (get_stochastic_mfd, get_stochastic_mfds_parallel,
+                                 rank_obs_moment)
 from .gem_stats import calc_mfd_log_likelihood_independent
 
 
-def mfd_likelihood_test(
-    cfg, bin_gdf: Optional[GeoDataFrame] = None,
-):
+def mfd_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame):
     """
     Calculates the likelihood of the Seismic Source Model for each SpacemagBin.
     The likelihood calculation is (currently) treated as the geometric mean of
@@ -42,7 +41,7 @@ def mfd_likelihood_test(
         return bin_gdf.log_like.describe().to_frame().to_html()
 
 
-def mfd_empirical_likelihood_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> None:
+def mfd_empirical_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
     """
     Calculates the (log)likelihood of observing the earthquakes in the seismic
     catalog in each :class:`~openquake.hme.utils.bins.SpacemagBin` as the
@@ -98,7 +97,7 @@ def mfd_empirical_likelihood_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) 
     bin_gdf["log_like"].update(source_bin_log_likes)
 
 
-def mfd_poisson_likelihood_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> None:
+def mfd_poisson_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
     """
     Calculates the (log)likelihood of observing the earthquakes in the seismic
     catalog in each :class:`~openquake.hme.utils.bins.SpacemagBin` as the
@@ -143,6 +142,17 @@ def mfd_poisson_likelihood_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) ->
 
     bin_gdf["log_like"] = test_config["default_likelihood"]
     bin_gdf["log_like"].update(source_bin_log_likes)
+
+
+def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
+
+    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
+
+    obs_moment_ranks = bin_gdf.SpacemagBin.apply(rank_obs_moment, 
+        args=(test_config['interval_length'], test_config['n_iters']))
+
+    bin_gdf['moment_rank_pctile'] = obs_moment_ranks
+
 
 
 def model_mfd_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> None:
@@ -200,16 +210,9 @@ def model_mfd_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> None:
         )
 
 
-def moment_over_under_test(cfg: dict, bin_gdf: Optional[GeoDataFrame] = None):
-
-    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
-
-    
-
-
-
 def max_mag_check(
-    cfg: dict, 
+    cfg: dict,
+    bin_gdf: GeoDataFrame
 ):
 
     logging.info("Checking Maximum Magnitudes")

@@ -46,10 +46,11 @@ class MagBin:
         if return_rate is True:
             return self.net_rupture_rate
 
-    def sample_ruptures(self, interval_length, t0=0.0, clean=True):
+    def sample_ruptures(self, interval_length, t0=0.0, clean=True, 
+                        rand_seed=None):
         eqs = utils.flatten_list(
             [
-                utils.sample_earthquakes(rup, interval_length, t0)
+                utils.sample_earthquakes(rup, interval_length, t0, rand_seed)
                 for rup in self.ruptures
             ]
         )
@@ -164,9 +165,11 @@ class SpacemagBin:
         t0: float = 0.0,
         clean: bool = True,
         return_rups: bool = False,
+        rand_seed=None
     ):
         for bc, mag_bin in self.mag_bins.items():
-            mag_bin.sample_ruptures(interval_length, t0=t0, clean=clean)
+            mag_bin.sample_ruptures(interval_length, t0=t0, clean=clean,
+                                    rand_seed=rand_seed)
             if clean is True:
                 self.stochastic_earthquakes[bc] = mag_bin.stochastic_earthquakes
             else:
@@ -204,10 +207,12 @@ class SpacemagBin:
             return self.cum_mfd
 
     def get_rupture_sample_mfd(
-        self, interval_length, t0=0.0, normalize=True, cumulative=False
+        self, interval_length, t0=0.0, normalize=True, cumulative=False,
+        rand_seed=None
     ):
 
-        self.sample_ruptures(interval_length=interval_length, t0=t0)
+        self.sample_ruptures(interval_length=interval_length, t0=t0,
+                             rand_seed=rand_seed)
 
         if normalize is True:
             denom = interval_length
