@@ -49,9 +49,9 @@ class TestPHL1(unittest.TestCase):
         self.rup_list = rupture_list_from_source_list(self.lt["b1"])
 
         self.rup_gdf = rupture_list_to_gdf(self.rup_list)
-        self.bin_gdf = make_bin_gdf_from_rupture_gdf(
-            self.rup_gdf, h3_res=3, parallel=False
-        )
+        self.bin_gdf = make_bin_gdf_from_rupture_gdf(self.rup_gdf,
+                                                     h3_res=3,
+                                                     parallel=False)
 
     def test_process_source_logic_tree(self):
 
@@ -79,8 +79,7 @@ class TestPHL1(unittest.TestCase):
     def test_rupture_list_from_lt_branch_parallel(self):
 
         self.rup_list_par = rupture_list_from_source_list_parallel(
-            self.lt["b1"], n_procs=4
-        )
+            self.lt["b1"], n_procs=4)
 
         self.assertIsInstance(self.rup_list_par, list)
         self.assertEqual(len(self.rup_list_par), 7797)
@@ -96,32 +95,33 @@ class TestPHL1(unittest.TestCase):
         self.assertEqual(r0.mag_r, 6)
 
     def test_make_bin_gdf_from_rupture_gdf(self):
-        bin_df = make_bin_gdf_from_rupture_gdf(self.rup_gdf, h3_res=3, parallel=False)
-        self.assertEqual(
-            bin_df.loc["836860fffffffff"].geometry.area, 1.0966917348958416
-        )
+        bin_df = make_bin_gdf_from_rupture_gdf(self.rup_gdf,
+                                               h3_res=3,
+                                               parallel=False)
+        np.testing.assert_almost_equal(
+            bin_df.loc["836860fffffffff"].geometry.area, 1.0966917348958416)
 
     def test_make_spatial_bins_from_file(self):
-        bin_df = make_SpacemagBins_from_bin_gis_file(
-            self.test_dir + "data/phl_f_bins.geojson"
-        )
+        bin_df = make_SpacemagBins_from_bin_gis_file(self.test_dir +
+                                                     "data/phl_f_bins.geojson")
         self.assertEqual(bin_df.loc[0].geometry.area, 0.07185377067626442)
 
     def test_add_ruptures_to_bins(self):
         add_ruptures_to_bins(self.rup_gdf, self.bin_gdf)
 
-        num_rups_first_bin = len(
-            self.bin_gdf.SpacemagBin.loc["836860fffffffff"].mag_bins[6.2].ruptures
-        )
+        num_rups_first_bin = len(self.bin_gdf.SpacemagBin.
+                                 loc["836860fffffffff"].mag_bins[6.2].ruptures)
 
         self.assertEqual(num_rups_first_bin, 561)
 
     def test_make_earthquake_gdf(self):
-        self.eq_df = make_earthquake_gdf_from_csv(self.test_dir + "data/phl_eqs.csv")
+        self.eq_df = make_earthquake_gdf_from_csv(self.test_dir +
+                                                  "data/phl_eqs.csv")
         self.assertEqual(self.eq_df.loc[0].magnitude, 7.4)
 
     def test_add_earthquakes_to_bins(self):
-        self.eq_df = make_earthquake_gdf_from_csv(self.test_dir + "data/phl_eqs.csv")
+        self.eq_df = make_earthquake_gdf_from_csv(self.test_dir +
+                                                  "data/phl_eqs.csv")
         add_earthquakes_to_bins(self.eq_df, self.bin_gdf)
         sbin = self.bin_gdf.loc["836860fffffffff"].SpacemagBin
         self.assertEqual(len(sbin.mag_bins[6.0].observed_earthquakes), 2)

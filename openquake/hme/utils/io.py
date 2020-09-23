@@ -3,7 +3,10 @@ import logging
 from typing import Union, Optional, Sequence
 
 import pandas as pd
+from tqdm import tqdm
 from geopandas import GeoDataFrame
+#from shapely.geometry import Point
+from openquake.hazardlib.geo.point import Point
 
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
@@ -15,6 +18,8 @@ from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
 from .bins import SpacemagBin
 from .model import read
 from .plots import plot_mfd
+from .utils import rupture_list_to_gdf
+from .simple_rupture import SimpleRupture, rup_to_dict
 
 
 def _source_to_series(source):
@@ -155,6 +160,82 @@ def process_source_logic_tree(base_dir: str,
         print(lt.keys())
 
     return lt
+
+
+def write_ruptures_to_file(rupture_gdf: GeoDataFrame, rupture_file_path: str):
+    ruptures_out = pd.DataFrame.from_dict(
+        [rup_to_dict(rup) for rup in rupture_gdf["rupture"]])
+
+    rup_file_type = rupture_file_path.split(".")[-1]
+    if rup_file_type == "hdf5":
+        ruptures_out.to_hdf(rupture_file_path, key="ruptures")
+    elif rup_file_type == "feather":
+        ruptures_out.to_feather(rupture_file_path)
+    elif rup_file_type == "csv":
+        ruptures_out.to_csv(rupture_file_path, index=False)
+    else:
+        raise ValueError("Cannot write to {} filetype".format(rup_file_type))
+
+
+def read_rupture_file(rupture_file):
+    rup_file_type = rupture_file.split(".")[-1]
+
+    if rup_file_type == "hdf5":
+        ruptures = pd.read_hdf(rupture_file, key="ruptures")
+    elif rup_file_type == "feather":
+        ruptures = pd.read_feather(rupture_file)
+    elif rup_file_type == "csv":
+        ruptures = pd.read_csv(rupture_file)
+    else:
+        raise ValueError("Cannot read filetype {}".format(rup_file_type))
+
+    logging.info("converting to SimpleRuptures")
+
+    rupture_gdf = read_ruptures_from_dataframe(ruptures)
+
+    return rupture_gdf
+
+
+def _rupture_from_df_row(row):
+    rup = SimpleRupture(
+        strike=row["strike"],
+        dip=row["dip"],
+        rake=row["rake"],
+        mag=row["mag"],
+        hypocenter=Point(row["lon"], row["lat"], row["depth"]),
+        occurrence_rate=row["occurrence_rate"],
+        source=row["source"],
+    )
+    return rup
+
+
+def _rupture_from_namedtuple(row):
+    rup = SimpleRupture(
+        strike=row.strike,
+        dip=row.dip,
+        rake=row.rake,
+        mag=row.mag,
+        hypocenter=Point(row.lon, row.lat, row.depth),
+        occurrence_rate=row.occurrence_rate,
+        source=str(row.source),
+    )
+    return rup
+
+
+def _process_ruptures_from_df(rup_df: pd.DataFrame):
+    rup_list = list(
+        tqdm(
+            map(_rupture_from_namedtuple,
+                rup_df.itertuples(index=False, name="rup")),
+            total=len(rup_df),
+        ))
+    rupture_df = rupture_list_to_gdf(rup_list)
+    return rupture_df
+
+
+def read_ruptures_from_dataframe(rup_df):
+    new_rup_df = _process_ruptures_from_df(rup_df)
+    return new_rup_df
 
 
 def make_mfd_plot(sbin: SpacemagBin,

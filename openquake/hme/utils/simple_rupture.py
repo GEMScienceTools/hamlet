@@ -82,3 +82,17 @@ class SimpleRupture:
             'occurrence_rate': self.occurrence_rate,
             'source': self.source
         }
+
+
+def rup_to_dict(rup: SimpleRupture):
+    return {
+        "strike": rup.strike,
+        "dip": rup.dip,
+        "rake": rup.rake,
+        "mag": rup.mag,
+        "lon": rup.hypocenter.x,
+        "lat": rup.hypocenter.y,
+        "depth": rup.hypocenter.z,
+        "occurrence_rate": rup.occurrence_rate,
+        "source": rup.source,
+    }
