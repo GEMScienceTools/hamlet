@@ -130,8 +130,8 @@ def render_likelihood(
     else:
         plot_eqs = False
 
-    if "map_epsg" in cfg["config"].keys():
-        map_epsg = cfg["config"]["map_epsg"]
+    if "map_epsg" in cfg["report"]["basic"].keys():
+        map_epsg = cfg["report"]["basic"]["map_epsg"]
     else:
         map_epsg = None
 
