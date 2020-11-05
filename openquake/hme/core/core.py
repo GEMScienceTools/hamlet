@@ -72,6 +72,7 @@ cfg_defaults = {
             "file": None,
             "buffer": 0.0
         },
+        "simple_ruptures": True
     },
 }
 
@@ -222,7 +223,8 @@ def load_ruptures_from_ssm(cfg: dict):
 
     logger.info("  making dictionary of ruptures")
     rupture_dict = rupture_dict_from_logic_tree_dict(
-        ssm_lt_ruptures, parallel=cfg["config"]["parallel"])
+        ssm_lt_ruptures, parallel=cfg["config"]["parallel"], 
+        simple_ruptures=cfg["input"]["simple_ruptures"])
 
     del ssm_lt_ruptures
 
@@ -252,7 +254,8 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     if cfg["input"]["rupture_file"]["save_rupture_file"] is True:
         logging.info("Writing ruptures to file")
         write_ruptures_to_file(rupture_gdf,
-                               cfg["input"]["rupture_file"]["rupture_file_path"])
+                               cfg["input"]["rupture_file"]["rupture_file_path"],
+                               cfg["input"]["simple_ruptures"])
 
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
