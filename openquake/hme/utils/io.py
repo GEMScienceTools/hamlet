@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from typing import Union, Optional, Sequence
 
@@ -8,6 +9,12 @@ from geopandas import GeoDataFrame
 #from shapely.geometry import Point
 from openquake.hazardlib.geo.point import Point
 
+from openquake.hazardlib.source.rupture import (
+    float5,
+    to_csv_array, 
+    ParametricProbabilisticRupture, 
+    NonParametricProbabilisticRupture)
+from openquake.hazardlib.geo.mesh import surface_to_array
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
                                         CharacteristicFaultSource,
@@ -161,8 +168,17 @@ def process_source_logic_tree(base_dir: str,
 
     return lt
 
+def write_ruptures_to_file(rupture_gdf: GeoDataFrame,
+                           rupture_file_path: str,
+                           simple_ruptures: bool = True):
+    if simple_ruptures is True:
+        write_simple_ruptures_to_file(rupture_gdf, rupture_file_path)
+    else:
+        write_oq_ruptures_to_file(rupture_gdf, rupture_file_path)
 
-def write_ruptures_to_file(rupture_gdf: GeoDataFrame, rupture_file_path: str):
+
+def write_simple_ruptures_to_file(rupture_gdf: GeoDataFrame, 
+                                  rupture_file_path: str):
     ruptures_out = pd.DataFrame.from_dict(
         [rup_to_dict(rup) for rup in rupture_gdf["rupture"]])
 
@@ -175,6 +191,41 @@ def write_ruptures_to_file(rupture_gdf: GeoDataFrame, rupture_file_path: str):
         ruptures_out.to_csv(rupture_file_path, index=False)
     else:
         raise ValueError("Cannot write to {} filetype".format(rup_file_type))
+
+
+def write_oq_ruptures_to_file(rupture_gdf: GeoDataFrame,
+                              rupture_file_path: str):
+    
+    outfile_type = rupture_file_path.split('.')[-1]
+    if outfile_type != 'json':
+        logging.warn("Writing JSON to {}".format(rupture_file_path))
+    
+    out_json = {
+        'ruptures':
+        [oq_rupture_to_json(rup) for rup in rupture_gdf['rupture']]
+    }
+
+    with open(rupture_file_path, 'w') as of:
+        json.dump(out_json, of)
+
+def oq_rupture_to_json(rupture: Union[ParametricProbabilisticRupture, 
+                                      NonParametricProbabilisticRupture]):
+
+    mesh = surface_to_array(rupture.surface)
+
+    rec = {}
+    rec['id'] = rupture.rup_id
+    rec['mag'] = rupture.mag
+    rec['rake'] = rupture.rake
+    rec['lon'] = rupture.hypocenter.x
+    rec['lat'] = rupture.hypocenter.y
+    rec['dep'] = rupture.hypocenter.z
+    rec['trt'] = rupture.tectonic_region_type
+    #rec['multiplicity'] = rup.multiplicity
+    rec['mesh'] = json.dumps(
+            [[[float5(z) for z in y] for y in x] for x in mesh])
+
+    return rec
 
 
 def read_rupture_file(rupture_file):
