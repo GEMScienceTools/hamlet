@@ -34,7 +34,8 @@ def test_read_yaml_config():
                 "rupture_file_path": None,
                 "read_rupture_file": False,
                 "save_rupture_file": False
-            }
+            },
+            "simple_ruptures": True
         },
         "meta": {
             "description": "Fake yaml for testing"

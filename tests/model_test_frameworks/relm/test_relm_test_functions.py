@@ -1,9 +1,11 @@
 import os
 import unittest
+from copy import deepcopy
 
 import numpy as np
 
-from openquake.hme.core.core import load_inputs
+from openquake.hme.utils import deep_update
+from openquake.hme.core.core import load_inputs, cfg_defaults
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     get_model_mfd,
     get_obs_mfd,
@@ -21,7 +23,7 @@ SM1_PATH = os.path.join(BASE_PATH, "..", "..", "data", "source_models", "sm1")
 DATA_FILE = os.path.join(SM1_PATH, "data", "phl_synth_catalog.csv")
 
 # Doing this here because it takes several seconds and should be done once
-cfg = {
+test_cfg = {
     "config": {
         "model_framework": {
             "relm": {
@@ -80,8 +82,10 @@ cfg = {
     },
 }
 
-bin_gdf, obs_seis_catalog = load_inputs(cfg)
+cfg = deepcopy(cfg_defaults)
+cfg = deep_update(cfg, test_cfg)
 
+bin_gdf, obs_seis_catalog = load_inputs(cfg)
 
 class test_relm_test_functions(unittest.TestCase):
     def setUp(self):
