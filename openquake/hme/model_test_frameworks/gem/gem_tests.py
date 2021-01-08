@@ -154,8 +154,7 @@ def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
     bin_gdf['moment_rank_pctile'] = obs_moment_ranks
 
 
-
-def model_mfd_test(cfg, bin_gdf: Optional[GeoDataFrame] = None,) -> None:
+def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
     # calculate observed, model mfd for all bins
     # add together
@@ -229,4 +228,5 @@ gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
     "model_mfd": model_mfd_test,
+    "moment_over_under": moment_over_under_eval
 }
