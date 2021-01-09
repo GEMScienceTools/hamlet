@@ -8,8 +8,12 @@ from geopandas import GeoDataFrame
 from openquake.hme.utils import get_source_bins
 from openquake.hme.utils.plots import plot_mfd
 from ..sanity.sanity_checks import max_check
-from .gem_test_functions import (get_stochastic_mfd, get_stochastic_mfds_parallel,
-                                 rank_obs_moment)
+from .gem_test_functions import (
+    get_stochastic_mfd, 
+    get_stochastic_mfds_parallel,
+    eval_obs_moment,
+    eval_obs_moment_model,
+    )
 from .gem_stats import calc_mfd_log_likelihood_independent
 
 
@@ -146,12 +150,39 @@ def mfd_poisson_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
 def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
 
+    logging.info("Running Over-Under evaluation")
+
     test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
 
-    obs_moment_ranks = bin_gdf.SpacemagBin.apply(rank_obs_moment, 
-        args=(test_config['interval_length'], test_config['n_iters']))
+    # these two tests can be combined by accessing the stochastic eqs
+    # in the bins -- this should be done for many tests.
 
-    bin_gdf['moment_rank_pctile'] = obs_moment_ranks
+    # evalutates the bins independently
+    # returns a Series of dicts
+    obs_moment_evals = bin_gdf.SpacemagBin.apply(eval_obs_moment, 
+        args=(test_config['investigation_time'], test_config['n_iters']))
+
+    # turns the Series of dicts into a DataFrame
+    obs_moment_evals = obs_moment_evals.apply(pd.Series)
+
+    # evaluates the whole model
+    model_moment_eval = eval_obs_moment_model(bin_gdf.SpacemagBin,
+                                              test_config['investigation_time'],
+                                              test_config['n_iters'])
+
+    bin_gdf['moment_rank_pctile'] = obs_moment_evals["obs_moment_rank"]
+    bin_gdf['moment_ratio'] = obs_moment_evals["moment_ratio"]
+
+    logging.info("Observed / mean stochastic moment: {}".format(
+        round(model_moment_eval["model_moment_ratio"], 3)
+    ))
+
+    logging.info(
+        "Observed moment release rank (higher rank is more moment): {}".format(
+        round(model_moment_eval["model_obs_moment_rank"], 3)
+    ))
+
+    return model_moment_eval
 
 
 def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:

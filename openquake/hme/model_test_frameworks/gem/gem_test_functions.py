@@ -1,7 +1,7 @@
 """
 Utility functions for running tests in the GEM model test framework.
 """
-from typing import Sequence, Dict, List
+from typing import Sequence, Dict, List, Optional
 
 import numpy as np
 from geopandas import GeoSeries
@@ -129,25 +129,86 @@ def get_stochastic_moment(spacemag_bin: SpacemagBin,
         return_rups=True,
         rand_seed=rand_seed
     )
-    mo_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
+    moment_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
                      for bin_eqs in stoch_eq_dict.values()])
-    return mo_sum
+    return moment_sum
 
 
 def rank_obs_moment(spacemag_bin: SpacemagBin, interval_length: float, 
-                    n_iters: int) -> float:
+                    n_iters: int, stoch_moment_sums: Optional[np.ndarray]) -> float:
     """
     """
-    obs_mo_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
+    obs_moment_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
                         for bin_eqs in spacemag_bin.observed_earthquakes.values()])
                         
-    stoch_mo_sums = get_stochastic_moment_set(spacemag_bin, interval_length,
-                                              n_iters)
-
-    n_less = len(stoch_mo_sums[stoch_mo_sums < obs_mo_sum])
-    #breakpoint()
+    if stoch_moment_sums is None:
+        stoch_moment_sums = get_stochastic_moment_set(spacemag_bin, 
+                                                     interval_length,
+                                                     n_iters)
+                                                     
+    n_less = len(stoch_moment_sums[stoch_moment_sums < obs_moment_sum])
     return n_less / n_iters
     
+
+def obs_stoch_moment_ratio(spacemag_bin: SpacemagBin, interval_length: float, 
+                    n_iters: int, stoch_moment_sums: Optional[np.ndarray]) -> float:
+    """
+    """
+    obs_moment_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
+                        for bin_eqs in spacemag_bin.observed_earthquakes.values()])
+                        
+    if stoch_moment_sums is None:
+        stoch_moment_sums = get_stochastic_moment_set(spacemag_bin, 
+                                                     interval_length,
+                                                     n_iters)
+                                                     
+    stoch_moment_mean = np.mean(stoch_moment_sums)
+
+    return obs_moment_sum / stoch_moment_mean
+
+
+def eval_obs_moment(spacemag_bin: SpacemagBin, interval_length: float,
+                    n_iters: int) -> dict:
+    """
+    """
+
+    stoch_moment_sums = get_stochastic_moment_set(spacemag_bin, interval_length,
+                                                  n_iters)
+
+    obs_moment_rank = rank_obs_moment(spacemag_bin, interval_length, n_iters,
+                                      stoch_moment_sums=stoch_moment_sums)
+
+    moment_ratio = obs_stoch_moment_ratio(spacemag_bin, interval_length, n_iters,
+                                      stoch_moment_sums=stoch_moment_sums)
+
+    return {"obs_moment_rank": obs_moment_rank, "moment_ratio": moment_ratio}
+    
+
+def eval_obs_moment_model(spacemag_bins, interval_length: float, n_iters: int):
+
+    cell_stoch_moment_sums = np.array([get_stochastic_moment_set(spacemag_bin, interval_length, 
+                                                  n_iters)
+                        for spacemag_bin in spacemag_bins])
+
+    obs_moment_sums = np.array([np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
+                        for bin_eqs in spacemag_bin.observed_earthquakes.values()])
+                for spacemag_bin in spacemag_bins])
+
+    model_stoch_moment_sums = cell_stoch_moment_sums.sum(axis=0)
+    model_stoch_moment_mean = np.mean(model_stoch_moment_sums)
+
+    obs_moment_sum = obs_moment_sums.sum()
+
+    obs_moment_rank = len(
+        model_stoch_moment_sums[model_stoch_moment_sums < obs_moment_sum]
+        ) / n_iters
+
+    moment_ratio = obs_moment_sum / model_stoch_moment_mean
+
+    return {"model_obs_moment_rank": obs_moment_rank, 
+            "model_moment_ratio": moment_ratio,
+            "stoch_moment_sums": model_stoch_moment_sums}
+
 
 def get_moment_from_mfd(mfd: dict) -> float:
     mo = sum(

@@ -15,6 +15,9 @@ config:
             max_mag_check:
                 append_check: True
                 warn: True
+            moment_over_under:
+                investigation_time: 40.
+                n_iters: 100
         relm:
             N_test:
                 conf_interval: 0.95
