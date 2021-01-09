@@ -11,7 +11,11 @@ import matplotlib.pyplot as plt
 from geopandas import GeoDataFrame
 from jinja2 import Environment, FileSystemLoader
 
-from openquake.hme.utils.plots import plot_likelihood_map, plot_S_test_map
+from openquake.hme.utils.plots import (
+    plot_likelihood_map, 
+    plot_S_test_map,
+    plot_over_under_map,
+)
 
 BASE_DATA_PATH = os.path.dirname(__file__)
 template_dir = os.path.join(BASE_DATA_PATH, "templates")
@@ -88,6 +92,11 @@ def render_result_text(
         if "likelihood" in results["gem"].keys():
             render_likelihood(
                 env=env, cfg=cfg, results=results, bin_gdf=bin_gdf, eq_gdf=eq_gdf
+            )
+        
+        if "moment_over_under" in results["gem"].keys():
+            render_moment_over_under(
+                env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
             )
 
         if "max_mag_check" in results["gem"].keys():
@@ -198,4 +207,24 @@ def render_S_test(
 
     results["relm"]["S_test"]["rendered_text"] = s_test.render(
         res=results["relm"]["S_test"]["val"], S_test_map_str=S_test_map_str
+    )
+
+
+def render_moment_over_under(
+    env: Environment, cfg: dict, results: dict, bin_gdf: GeoDataFrame,
+) -> None:
+
+    over_under = env.get_template("moment_over_under.html")
+    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
+
+    if "map_epsg" in cfg["report"]["basic"].keys():
+        map_epsg = cfg["report"]["basic"]["map_epsg"]
+    else:
+        map_epsg = None
+    
+    over_under_map_str = plot_over_under_map(bin_gdf, map_epsg)
+
+    results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
+        res=results["gem"]["moment_over_under"]["val"],
+        over_under_map_str=over_under_map_str
     )

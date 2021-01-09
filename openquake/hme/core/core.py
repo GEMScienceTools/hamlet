@@ -345,6 +345,10 @@ def run_tests(cfg: dict) -> None:
         "Done loading and preparing model in {0:.2f} s".format(t_done_load -
                                                                t_start))
 
+    # This block of code takes test_lists, which is a dictionary of the
+    # tests to be used (with keys of names (strings) and values of function 
+    # objects) and inverts it, so that test_inv is a dictionary with keys
+    # that are function objects, and the values are strings of the fn name.
     test_lists = get_test_lists_from_config(cfg)
     test_inv = {
         framework: {
@@ -356,6 +360,12 @@ def run_tests(cfg: dict) -> None:
 
     results = {}
 
+    # Now we loop over the tests in each framework. As we do each test, we
+    # store the test results in the 'results' dict; the test fn object (that is
+    # the variable in the loop) is called to run the test, and also used as the
+    # key for the test_inv dict which makes sure that the results are stored
+    # in the appropriate location. This can probably be simplified but the
+    # complexity seemed necessary when it was written.
     for framework, tests in test_lists.items():
         results[framework] = {}
         for test in tests:
