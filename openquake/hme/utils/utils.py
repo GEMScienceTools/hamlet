@@ -19,7 +19,6 @@ from h3 import h3
 from tqdm import tqdm, trange
 from shapely.geometry import Point, Polygon
 from openquake.hazardlib.geo.point import Point as OQPoint
-from openquake.hazardlib.source.rupture_collection import split
 from openquake.hazardlib.source import MultiPointSource, ComplexFaultSource
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture,
@@ -179,26 +178,6 @@ def rupture_dict_from_logic_tree_dict(
         }
 
 
-#def rup_df_from_dict(rup: dict):
-#    rupture_list = []
-#    for (i, r) in rup.iterrows():
-#        rupture_list.append(
-#            SimpleRupture(
-#                strike=r.strike,
-#                dip=r.dip,
-#                rake=r["rake"],
-#                mag=r["mag"],
-#                hypocenter=OQPoint(r["lon"], r["lat"], r["depth"]),
-#                occurrence_rate=r["occurrence_rate"],
-#                source=r.source,
-#            ))
-#
-#    df = pd.DataFrame(index=range(len(rupture_list)),
-#                      data=rupture_list,
-#                      columns=["rupture"])
-#    return df
-
-
 def rupture_list_from_source_list(source_list: list,
                                   simple_ruptures: bool = True) -> list:
     """
@@ -332,12 +311,6 @@ def _chunk_source_list(sources: list,
         if isinstance(s, MultiPointSource):
             for ps in s:
                 sources_temp.append(ps)
-
-        # very slow
-        # elif isinstance(s, ComplexFaultSource):
-        #    for chunk in split(s, chunksize=s.count_ruptures() // n_chunks):
-        #        sources_temp.append(chunk)
-
         else:
             sources_temp.append(s)
 
