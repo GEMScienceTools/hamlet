@@ -14,13 +14,21 @@ from openquake.hazardlib.source.rupture import (
     to_csv_array, 
     ParametricProbabilisticRupture, 
     NonParametricProbabilisticRupture)
-from openquake.hazardlib.geo.mesh import surface_to_array
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
                                         CharacteristicFaultSource,
                                         NonParametricSeismicSource,
                                         PointSource, MultiPointSource,
                                         SimpleFaultSource)
+
+
+try:
+    from openquake.hazardlib.geo.mesh import surface_to_array
+except ImportError:
+    from openquake.hazardlib.geo.mesh import surface_to_arrays
+    def surface_to_array(surface):
+        return surface_to_arrays(surface)[0]
+        
 
 from .bins import SpacemagBin
 from .model import read
