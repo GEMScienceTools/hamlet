@@ -19,6 +19,7 @@ from h3 import h3
 from tqdm import tqdm, trange
 from shapely.geometry import Point, Polygon
 from openquake.hazardlib.geo.point import Point as OQPoint
+# from openquake.hazardlib.source.rupture_collection import split # broken
 from openquake.hazardlib.source import MultiPointSource, ComplexFaultSource
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture,
