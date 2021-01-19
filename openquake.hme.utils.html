@@ -7,14 +7,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>openquake.hme.utils package &#8212; Hamlet 0.2.0 documentation</title>
-    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
     
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
     <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script src="_static/bizstyle.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -71,7 +70,7 @@
 
 <dl class="py method">
 <dt id="openquake.hme.utils.bins.MagBin.sample_ruptures">
-<code class="sig-name descname">sample_ruptures</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span></em>, <em class="sig-param"><span class="n">t0</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">clean</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin.sample_ruptures" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">sample_ruptures</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span></em>, <em class="sig-param"><span class="n">t0</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">clean</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">rand_seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.MagBin.sample_ruptures" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -109,7 +108,7 @@
 
 <dl class="py method">
 <dt id="openquake.hme.utils.bins.SpacemagBin.get_rupture_sample_mfd">
-<code class="sig-name descname">get_rupture_sample_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span></em>, <em class="sig-param"><span class="n">t0</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">normalize</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">cumulative</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.get_rupture_sample_mfd" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_rupture_sample_mfd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span></em>, <em class="sig-param"><span class="n">t0</span><span class="o">=</span><span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">normalize</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">cumulative</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">rand_seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.get_rupture_sample_mfd" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -119,7 +118,7 @@
 
 <dl class="py method">
 <dt id="openquake.hme.utils.bins.SpacemagBin.sample_ruptures">
-<code class="sig-name descname">sample_ruptures</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">t0</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">clean</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">return_rups</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.sample_ruptures" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">sample_ruptures</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">interval_length</span><span class="p">:</span> <span class="n">float</span></em>, <em class="sig-param"><span class="n">t0</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">0.0</span></em>, <em class="sig-param"><span class="n">clean</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">return_rups</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">rand_seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.bins.SpacemagBin.sample_ruptures" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -141,6 +140,11 @@
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.io.oq_rupture_to_json">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">oq_rupture_to_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>openquake.hazardlib.source.rupture.ParametricProbabilisticRupture<span class="p">, </span>openquake.hazardlib.source.rupture.NonParametricProbabilisticRupture<span class="p">]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.oq_rupture_to_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt id="openquake.hme.utils.io.process_source_logic_tree">
@@ -188,6 +192,11 @@ tuple or list).  Specify <cite>None</cite> if all values are to be included.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="openquake.hme.utils.io.surface_to_array">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">surface_to_array</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">surface</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.surface_to_array" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt id="openquake.hme.utils.io.write_bin_gdf_to_csv">
 <code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">write_bin_gdf_to_csv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">index</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.write_bin_gdf_to_csv" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -198,8 +207,18 @@ tuple or list).  Specify <cite>None</cite> if all values are to be included.</p>
 <dd></dd></dl>
 
 <dl class="py function">
+<dt id="openquake.hme.utils.io.write_oq_ruptures_to_file">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">write_oq_ruptures_to_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">rupture_file_path</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.write_oq_ruptures_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt id="openquake.hme.utils.io.write_ruptures_to_file">
-<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">write_ruptures_to_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">rupture_file_path</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.write_ruptures_to_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">write_ruptures_to_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">rupture_file_path</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">simple_ruptures</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.write_ruptures_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="openquake.hme.utils.io.write_simple_ruptures_to_file">
+<code class="sig-prename descclassname">openquake.hme.utils.io.</code><code class="sig-name descname">write_simple_ruptures_to_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rupture_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">rupture_file_path</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.io.write_simple_ruptures_to_file" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -519,6 +538,11 @@ zero, to prevent that additional ambiguity.</p>
 <dd><p>Makes a plot of empirical MFDs</p>
 </dd></dl>
 
+<dl class="py function">
+<dt id="openquake.hme.utils.plots.plot_over_under_map">
+<code class="sig-prename descclassname">openquake.hme.utils.plots.</code><code class="sig-name descname">plot_over_under_map</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bin_gdf</span><span class="p">:</span> <span class="n">geopandas.geodataframe.GeoDataFrame</span></em>, <em class="sig-param"><span class="n">map_epsg</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>int<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#openquake.hme.utils.plots.plot_over_under_map" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 <div class="section" id="module-openquake.hme.utils.simple_rupture">
 <span id="openquake-hme-utils-simple-rupture-module"></span><h2>openquake.hme.utils.simple_rupture module<a class="headerlink" href="#module-openquake.hme.utils.simple_rupture" title="Permalink to this headline">¶</a></h2>
@@ -544,37 +568,37 @@ for Hamlet.</p>
 </dl>
 <dl class="py attribute">
 <dt id="openquake.hme.utils.simple_rupture.SimpleRupture.dip">
-<code class="sig-name descname">dip</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.dip" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">dip</code><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.dip" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="openquake.hme.utils.simple_rupture.SimpleRupture.hypocenter">
-<code class="sig-name descname">hypocenter</code><em class="property">: Optional<span class="p">[</span>openquake.hazardlib.geo.point.Point<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.hypocenter" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">hypocenter</code><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.hypocenter" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="openquake.hme.utils.simple_rupture.SimpleRupture.mag">
-<code class="sig-name descname">mag</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.mag" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">mag</code><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.mag" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="openquake.hme.utils.simple_rupture.SimpleRupture.occurrence_rate">
-<code class="sig-name descname">occurrence_rate</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.occurrence_rate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">occurrence_rate</code><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.occurrence_rate" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="openquake.hme.utils.simple_rupture.SimpleRupture.rake">
-<code class="sig-name descname">rake</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.rake" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">rake</code><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.rake" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="openquake.hme.utils.simple_rupture.SimpleRupture.source">
-<code class="sig-name descname">source</code><em class="property">: Optional<span class="p">[</span>str<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.source" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">source</code><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.source" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt id="openquake.hme.utils.simple_rupture.SimpleRupture.strike">
-<code class="sig-name descname">strike</code><em class="property">: Optional<span class="p">[</span>float<span class="p">]</span></em><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.strike" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">strike</code><a class="headerlink" href="#openquake.hme.utils.simple_rupture.SimpleRupture.strike" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1200,7 +1224,7 @@ Defaults to zero.</p></li>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2019-2020, Richard Styron (GEM Foundation).
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
     </div>
   </body>
 </html>
