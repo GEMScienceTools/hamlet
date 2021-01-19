@@ -135,7 +135,8 @@ def get_stochastic_moment(spacemag_bin: SpacemagBin,
 
 
 def rank_obs_moment(spacemag_bin: SpacemagBin, interval_length: float, 
-                    n_iters: int, stoch_moment_sums: Optional[np.ndarray]) -> float:
+                    n_iters: int, stoch_moment_sums: Optional[np.ndarray]=None
+                    ) -> float:
     """
     """
     obs_moment_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])
@@ -151,7 +152,8 @@ def rank_obs_moment(spacemag_bin: SpacemagBin, interval_length: float,
     
 
 def obs_stoch_moment_ratio(spacemag_bin: SpacemagBin, interval_length: float, 
-                    n_iters: int, stoch_moment_sums: Optional[np.ndarray]) -> float:
+                    n_iters: int, stoch_moment_sums: Optional[np.ndarray]=None
+                    ) -> float:
     """
     """
     obs_moment_sum = np.sum([np.sum([mag_to_mo(rup.magnitude) for rup in bin_eqs])

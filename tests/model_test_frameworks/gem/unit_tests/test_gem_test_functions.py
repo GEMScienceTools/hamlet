@@ -150,6 +150,6 @@ class testStochasticMomentStuff(unittest.TestCase):
 
     def test_rank_obs_moment(self):
         obs_moment_pctile = gtf.rank_obs_moment(self.sb2, 40., 200)
-        breakpoint()
+
 
 
