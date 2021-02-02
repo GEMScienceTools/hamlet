@@ -6,7 +6,6 @@ from typing import Union, Optional, Sequence
 import pandas as pd
 from tqdm import tqdm
 from geopandas import GeoDataFrame
-#from shapely.geometry import Point
 from openquake.hazardlib.geo.point import Point
 
 from openquake.hazardlib.source.rupture import (
@@ -28,7 +27,7 @@ except ImportError:
     from openquake.hazardlib.geo.mesh import surface_to_arrays
     def surface_to_array(surface):
         return surface_to_arrays(surface)[0]
-        
+
 
 from .bins import SpacemagBin
 from .model import read
@@ -147,9 +146,8 @@ def read_branch_sources(base_dir,
     for branch_name, branch_filename in lt.branches.items():
         if branch_name == branch or branch is None:
             try:
-                d[branch_name] = [
-                    base_dir + val for val in branch_filename.value.split()
-                ]
+                d[branch_name] = [os.path.join(base_dir, v) for v in
+                                  branch_filename.value.split()]
             except:
                 print('error in ', branch_name)
                 pass
