@@ -47,9 +47,23 @@ principle to the GEM Magnitude-Frequency evaluations, though there are some
 differences in the statistical assumptions used to aggregate the likelihood
 statistics from model sub-regions to the model as a whole.
 
-Some of the RELM test functions are implemented, but currently the RELM testing
-pipeline has not been built.
+.. _N_test:
 
+*N test*
+
+    The N-test compares the total number of events in the catalog to the total
+    number of events in stochastic events sets generated from the source model.
+    This is the count of the lowest-magnitude bin or point in the
+    magnitude-frequency distribution.
+
+Parameters:
+
+
+.. _M_test:
+
+*M test*
+
+.. _S_test:
 
 
 .. _RELM: http://cseptesting.org/documents/relm.php

@@ -149,6 +149,12 @@ def mfd_poisson_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
 
 def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
+    """
+    The Moment Over-Under evaluation compares each cell's total seismic moment
+    forecast by the model to the observed moment release from the earthquake
+    catalog. The evaluation uses stochastic event sets so that the catalog is
+    more directly comparable to the forecast.
+    """
 
     logging.info("Running Over-Under evaluation")
 

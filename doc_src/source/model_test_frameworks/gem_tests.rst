@@ -88,8 +88,35 @@ Parameters (all are optional):
     the plot format.  Common formats include ``png``, ``svg`` and ``pdf``.  See
     the ``matplotlib`` docs for more info.
 
-Other tests
------------
 
-Several other tests are in development; these look at moment release in
-each grid cell, analyze the moment tensors, etc.
+.._max_mag_check:
+
+*Ensures that the model can produce the maximum observed seismcity in each cell*
+
+This test is borrowed from the Sanity checks. It simply checks to see whether
+the sources inside each cell are capable of producing earthquakes as large as
+the largest observed earthquakes. Note that there can be some issues with very
+large earthquakes (with ruptures larger than the cell size) as the hypocenter
+for an observed event may be in a different cell than the most compatible
+hypocenter from the sources.
+
+
+.. _gem-moment-over-under-eval:
+
+*Compares observed and stochastic moment release*
+
+This evaluation generates many synthetic catalogs (stochastic event sets) and
+compares the total moment release in each cell for each of the catalogs to the
+observed moment release. This evalution helps highlight areas that are more or
+less seismically productive than the observations may support.
+
+Parameters:
+
+``investigation_time``:  Duration of the catalog (and of the generated
+    stochastic event sets).
+
+``n_iters``: Number of iterations (stochastic event sets) generated. Note that
+    generating these catalogs is fairly time-intensive in the current
+    implementation. For large models, the number of iterations should be kept to
+    under 50-100 until performance is improved.
+
