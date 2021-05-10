@@ -71,7 +71,9 @@ cfg_defaults = {
 }
 
 
-def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
+def read_yaml_config(
+    yaml_config: Openable, fill_fields: bool = True, validate: bool = True
+) -> dict:
     """
     Reads a model test configuration file (YAML).
 
@@ -87,7 +89,8 @@ def read_yaml_config(yaml_config: Openable, fill_fields: bool = True) -> dict:
     with open(yaml_config) as config_file:
         cfg = deep_update(cfg, yaml.safe_load(config_file))
 
-    validate_cfg(cfg)
+    if validate:
+        validate_cfg(cfg)
 
     return cfg
 

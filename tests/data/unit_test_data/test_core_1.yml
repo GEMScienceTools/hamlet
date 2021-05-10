@@ -15,9 +15,9 @@ input:
   bins:
     mfd_bin_max: 9.0
   ssm:
-      ssm_dir: ../../../../data/source_models/sm1/
-      ssm_lt_file: ssmLT.xml
-      branch: b1
-      tectonic_region_types:
-          - Active Shallow Crust
-      source_types: null
+    ssm_dir: ../../../../data/source_models/sm1/
+    ssm_lt_file: ssmLT.xml
+    branch: b1
+    tectonic_region_types:
+      - Active Shallow Crust
+    source_types: null
