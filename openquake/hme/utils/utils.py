@@ -441,7 +441,9 @@ def rupture_list_to_gdf(
         Shapely :class:`~shapely.geometry.Point` object.
     """
     df = pd.DataFrame(
-        index=range(len(rupture_list)), data=rupture_list, columns=["rupture"]
+        index=range(len(rupture_list)),
+        data=pd.Series(rupture_list),
+        columns=["rupture"],
     )
 
     if gdf is True:
