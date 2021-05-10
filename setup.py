@@ -18,7 +18,7 @@ URL = "https://gitlab.com/cossatot/hamlet"
 EMAIL = "richard.styron@globbalquakemodel.org"
 AUTHOR = "Richard Styron, GEM Foundation"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 # What packages are required for this module to be executed?
 REQUIRED = [
@@ -107,7 +107,9 @@ setup(
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
     namespace_packages=["openquake"],
-    entry_points={"console_scripts": ["hamlet=openquake.hme.bin.hamlet:main"],},
+    entry_points={
+        "console_scripts": ["hamlet=openquake.hme.bin.hamlet:main"],
+    },
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
@@ -123,5 +125,7 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
     # $ setup.py publish support.
-    cmdclass={"upload": UploadCommand,},
+    cmdclass={
+        "upload": UploadCommand,
+    },
 )
