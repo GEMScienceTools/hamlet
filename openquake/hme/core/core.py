@@ -276,6 +276,7 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
 
     bin_gdf = make_bin_gdf_from_rupture_gdf(
         rupture_gdf,
+        parallel=cfg["config"]["parallel"],
         h3_res=cfg["input"]["bins"]["h3_res"],
         min_mag=cfg["input"]["bins"]["mfd_bin_min"],
         max_mag=cfg["input"]["bins"]["mfd_bin_max"],
