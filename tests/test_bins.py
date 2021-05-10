@@ -36,15 +36,14 @@ test_cfg = {
         "rand_seed": 69,
     },
     "input": {
+        "simple_ruptures": True,
         "bins": {
             "mfd_bin_min": 6.5,
             "mfd_bin_max": 8.5,
             "mfd_bin_width": 0.2,
             "h3_res": 3,
         },
-        "subset": {
-            "file": None
-        },
+        "subset": {"file": None},
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
@@ -63,8 +62,8 @@ test_cfg = {
         "rupture_file": {
             "rupture_file_path": None,
             "read_rupture_file": False,
-            "save_rupture_file": False
-        }
+            "save_rupture_file": False,
+        },
     },
 }
 
