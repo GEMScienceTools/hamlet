@@ -3,15 +3,17 @@ import logging
 
 from openquake.hme.core.core import run_tests, read_yaml_config
 
-logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
-                    level=logging.INFO,
-                    datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 
 def main(arg=None):
 
-    loger = logging.getLogger(__name__)
-    loger.setLevel(logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
     if arg is None:
         yaml_file = sys.argv[1]
@@ -19,5 +21,5 @@ def main(arg=None):
     run_tests(cfg)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
