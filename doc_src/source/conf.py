@@ -17,11 +17,14 @@
 # -- Project information -----------------------------------------------------
 
 project = "Hamlet"
-copyright = "2019-2020, Richard Styron (GEM Foundation)"
+copyright = "2019-2021, Richard Styron (GEM Foundation)"
 author = "Richard Styron (GEM Foundation)"
 
 # The full version, including alpha/beta/rc tags
-release = "0.4.0"
+# release = "0.4.0"
+from openquake.hme.__version__ import __version__
+
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 
