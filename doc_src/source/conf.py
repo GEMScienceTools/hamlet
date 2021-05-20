@@ -10,8 +10,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
+import os
+import sys
+
 # sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
@@ -22,8 +23,10 @@ author = "Richard Styron (GEM Foundation)"
 
 # The full version, including alpha/beta/rc tags
 # release = "0.4.0"
-from openquake.hme.__version__ import __version__
-
+about = {}
+version_path = os.path.join("..", "..", "openquake", "hme", "__version__.py")
+with open(os.path.join(here, *project_slug, "__version__.py")) as f:
+    exec(f.read(), about)
 release = __version__
 
 # -- General configuration ---------------------------------------------------
