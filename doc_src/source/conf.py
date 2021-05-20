@@ -27,7 +27,7 @@ about = {}
 version_path = os.path.join("..", "..", "openquake", "hme", "__version__.py")
 with open(version_path) as f:
     exec(f.read(), about)
-release = __version__
+release = about["__version__"]
 
 # -- General configuration ---------------------------------------------------
 
