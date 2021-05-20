@@ -25,7 +25,7 @@ author = "Richard Styron (GEM Foundation)"
 # release = "0.4.0"
 about = {}
 version_path = os.path.join("..", "..", "openquake", "hme", "__version__.py")
-with open(os.path.join(here, *project_slug, "__version__.py")) as f:
+with open(version_path) as f:
     exec(f.read(), about)
 release = __version__
 
