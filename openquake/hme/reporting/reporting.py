@@ -12,7 +12,7 @@ from geopandas import GeoDataFrame
 from jinja2 import Environment, FileSystemLoader
 
 from openquake.hme.utils.plots import (
-    plot_likelihood_map, 
+    plot_likelihood_map,
     plot_S_test_map,
     plot_over_under_map,
 )
@@ -93,14 +93,15 @@ def render_result_text(
             render_likelihood(
                 env=env, cfg=cfg, results=results, bin_gdf=bin_gdf, eq_gdf=eq_gdf
             )
-        
+
         if "moment_over_under" in results["gem"].keys():
-            render_moment_over_under(
-                env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
-            )
+            render_moment_over_under(env=env, cfg=cfg, results=results, bin_gdf=bin_gdf)
 
         if "max_mag_check" in results["gem"].keys():
             render_max_mag(env=env, cfg=cfg, results=results)
+
+        if "M_test" in results["gem"].keys():
+            render_M_test(env=env, cfg=cfg, results=results)
 
     if "relm" in results.keys():
         if "N_test" in results["relm"].keys():
@@ -163,8 +164,10 @@ def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
     if results["gem"]["max_mag_check"]["val"] == []:
         max_mag_results = "PASS: All bins produce seismicity greater than observed."
     else:
-        max_mag_results = "Bins {} have higher observed seismicity than they can produce.".format(
-            results["gem"]["max_mag_check"]["val"]
+        max_mag_results = (
+            "Bins {} have higher observed seismicity than they can produce.".format(
+                results["gem"]["max_mag_check"]["val"]
+            )
         )
 
     max_mag_template = env.get_template("max_mag_check.html")
@@ -188,7 +191,10 @@ def render_M_test(env: Environment, cfg: dict, results: dict) -> None:
 
 
 def render_S_test(
-    env: Environment, cfg: dict, results: dict, bin_gdf: GeoDataFrame,
+    env: Environment,
+    cfg: dict,
+    results: dict,
+    bin_gdf: GeoDataFrame,
 ) -> None:
 
     s_test = env.get_template("s_test.html")
@@ -211,7 +217,10 @@ def render_S_test(
 
 
 def render_moment_over_under(
-    env: Environment, cfg: dict, results: dict, bin_gdf: GeoDataFrame,
+    env: Environment,
+    cfg: dict,
+    results: dict,
+    bin_gdf: GeoDataFrame,
 ) -> None:
 
     over_under = env.get_template("moment_over_under.html")
@@ -221,10 +230,10 @@ def render_moment_over_under(
         map_epsg = cfg["report"]["basic"]["map_epsg"]
     else:
         map_epsg = None
-    
+
     over_under_map_str = plot_over_under_map(bin_gdf, map_epsg)
 
     results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
         res=results["gem"]["moment_over_under"]["val"],
-        over_under_map_str=over_under_map_str
+        over_under_map_str=over_under_map_str,
     )
