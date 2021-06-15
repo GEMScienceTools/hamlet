@@ -20,10 +20,83 @@ from openquake.hme.utils import (
 from openquake.hme.utils.stats import (
     negative_binomial_distribution,
     estimate_negative_binom_parameters,
+    poisson_log_likelihood,
 )
 from openquake.hme.model_test_frameworks.relm.relm_stats import (
     bin_observance_log_likelihood,
 )
+
+
+def m_test_function(
+    bin_gdf,
+    t_yrs: float,
+    n_iters: int,
+    prospective=False,
+    not_modeled_likelihood: float = 0.0,
+    critical_pct: float = 0.25,
+):
+
+    # get model and observed MFDs
+    mod_mfd = get_model_mfd(bin_gdf)
+    obs_mfd = get_obs_mfd(bin_gdf, t_yrs, prospective)
+
+    # calculate log-likelihoods
+    n_bins = len(mod_mfd.keys())
+
+    stochastic_eq_counts = {
+        bc: np.random.poisson((rate * t_yrs), size=n_iters)
+        for bc, rate in mod_mfd.items()
+    }
+
+    bin_log_likelihoods = {
+        bc: [
+            poisson_log_likelihood(
+                n_stoch, (mod_mfd[bc] * t_yrs), not_modeled_val=not_modeled_likelihood
+            )
+            for n_stoch in eq_counts
+        ]
+        for bc, eq_counts in stochastic_eq_counts.items()
+    }
+
+    stoch_geom_mean_likes = np.array(
+        [
+            np.exp(
+                np.sum([bll_mag[i] for bll_mag in bin_log_likelihoods.values()])
+                / n_bins
+            )
+            for i in range(n_iters)
+        ]
+    )
+
+    obs_geom_mean_like = np.exp(
+        np.sum(
+            [
+                poisson_log_likelihood(
+                    int(obs_mfd[bc] * t_yrs),
+                    rate * t_yrs,
+                )
+                for bc, rate in mod_mfd.items()
+            ]
+        )
+        / n_bins
+    )
+
+    pctile = (
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
+        / n_iters
+    )
+
+    test_pass = True if pctile >= critical_pct else False
+    test_res = "Pass" if test_pass else "Fail"
+
+    test_result = {
+        "critical_pct": critical_pct,
+        "percentile": pctile,
+        "test_pass": test_pass,
+        "test_res": test_res,
+    }
+
+    return test_result
 
 
 def s_test_gdf_series(bin_gdf: GeoDataFrame, test_config: dict, N_norm: float = 1.0):
@@ -60,7 +133,10 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
     # calculate L for iterated stochastic event sets
     stoch_Ls = np.array(
         [
-            like_fn(rate_mfd, empirical_mfd=stoch_rup_counts[i],)
+            like_fn(
+                rate_mfd,
+                empirical_mfd=stoch_rup_counts[i],
+            )
             for i in range(test_cfg["n_iters"])
         ]
     )

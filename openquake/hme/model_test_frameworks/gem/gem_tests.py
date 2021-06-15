@@ -9,11 +9,14 @@ from openquake.hme.utils import get_source_bins
 from openquake.hme.utils.plots import plot_mfd
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
-    get_stochastic_mfd, 
+    get_stochastic_mfd,
     get_stochastic_mfds_parallel,
     eval_obs_moment,
     eval_obs_moment_model,
-    )
+)
+
+from ..relm.relm_test_functions import m_test_function
+
 from .gem_stats import calc_mfd_log_likelihood_independent
 
 
@@ -28,7 +31,7 @@ def mfd_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame):
 
     The likelihood calculation may be done using the Poisson distribution, if
     there is a basic assumption of Poissonian seismicity, or through a Monte
-    Carlo-based calculation (currently also done through a Poisson sampling 
+    Carlo-based calculation (currently also done through a Poisson sampling
     t_yrs though more complex temporal occurrence models are
     possible, such as through a Epidemic-Type Aftershock Sequence).
     """
@@ -55,7 +58,7 @@ def mfd_empirical_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
     The likelihoods are calculated using the empirical likelihood of observing
     the number of events that occurred in each
-    :class:`~openquake.hme.utils.bins.MagBin` given the occurrence rate for 
+    :class:`~openquake.hme.utils.bins.MagBin` given the occurrence rate for
     that :class:`~openquake.hme.utils.bins.MagBin`. This is done through a Monte
     Carlo simulation, which returns the fraction of the total Monte Carlo
     samples had the same number of events as observed.
@@ -111,7 +114,7 @@ def mfd_poisson_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
     The likelihoods are calculated using the Poisson likelihood of observing
     the number of events that occurred in each
-    :class:`~openquake.hme.utils.bins.MagBin` given the occurrence rate for 
+    :class:`~openquake.hme.utils.bins.MagBin` given the occurrence rate for
     that :class:`~openquake.hme.utils.bins.MagBin`.  See
     :func:`~openquake.hme.utils.stats.poisson_likelihood` for more information.
 
@@ -165,28 +168,33 @@ def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
 
     # evalutates the bins independently
     # returns a Series of dicts
-    obs_moment_evals = bin_gdf.SpacemagBin.apply(eval_obs_moment, 
-        args=(test_config['investigation_time'], test_config['n_iters']))
+    obs_moment_evals = bin_gdf.SpacemagBin.apply(
+        eval_obs_moment,
+        args=(test_config["investigation_time"], test_config["n_iters"]),
+    )
 
     # turns the Series of dicts into a DataFrame
     obs_moment_evals = obs_moment_evals.apply(pd.Series)
 
     # evaluates the whole model
-    model_moment_eval = eval_obs_moment_model(bin_gdf.SpacemagBin,
-                                              test_config['investigation_time'],
-                                              test_config['n_iters'])
+    model_moment_eval = eval_obs_moment_model(
+        bin_gdf.SpacemagBin, test_config["investigation_time"], test_config["n_iters"]
+    )
 
-    bin_gdf['moment_rank_pctile'] = obs_moment_evals["obs_moment_rank"]
-    bin_gdf['moment_ratio'] = obs_moment_evals["moment_ratio"]
+    bin_gdf["moment_rank_pctile"] = obs_moment_evals["obs_moment_rank"]
+    bin_gdf["moment_ratio"] = obs_moment_evals["moment_ratio"]
 
-    logging.info("Observed / mean stochastic moment: {}".format(
-        round(model_moment_eval["model_moment_ratio"], 3)
-    ))
+    logging.info(
+        "Observed / mean stochastic moment: {}".format(
+            round(model_moment_eval["model_moment_ratio"], 3)
+        )
+    )
 
     logging.info(
         "Observed moment release rank (higher rank is more moment): {}".format(
-        round(model_moment_eval["model_obs_moment_rank"], 3)
-    ))
+            round(model_moment_eval["model_obs_moment_rank"], 3)
+        )
+    )
 
     return model_moment_eval
 
@@ -246,10 +254,7 @@ def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
         )
 
 
-def max_mag_check(
-    cfg: dict,
-    bin_gdf: GeoDataFrame
-):
+def max_mag_check(cfg: dict, bin_gdf: GeoDataFrame):
 
     logging.info("Checking Maximum Magnitudes")
 
@@ -261,9 +266,79 @@ def max_mag_check(
         return bad_bins
 
 
+def M_test(
+    cfg,
+    bin_gdf: Optional[GeoDataFrame] = None,
+) -> dict:
+    """
+    The M-Test is based on Zechar et al. (2010), though not identical. This
+    tests evaluates the consistency of the magnitude-frequency distribution of
+    the model vs. the observations, by evaluating the log-likelihood of the
+    observed earthquakes given the model (forecast), compared with the
+    log-likelihood of a large number of stochastic catalogs generated from the
+    same forecast. If the log-likelihood of the observed earthquake catalog is
+    less than the majority of the log-likelihoods of stochastic catalogs
+    (specified by the `critical_pct` argument), then the test fails.
+
+    The log-likelihoods are calculated first for each magnitude bin. The
+    log-likelihood for each magnitude bin is the log-likelihood of the observed
+    (or stochastic) number of earthquakes in that magnitude bin occurring
+    throughout the model domain, given the mean rupture rate for that magnitude
+    bin, using the Poisson distribution.
+
+    Then, the log-likelihoods of the observed catalog and the stochastic
+    catalogs are calculated as the geometric mean of the individual bin
+    likelihoods.
+
+    The differences between this implementation and that of Zechar et al. (2010)
+    is that 1) in this version we do not fix the total number of earthquakes
+    that occurs in each stochastic simulation (because that is somewhat
+    complicated to implement within Hamlet) and 2) we use the geometric mean
+    instead of the product of the magnitude bin likelihoods for the total
+    likelihood, because this lets us disregard the discretization of the MFD
+    when comparing between different models. Note that in terms of passing or
+    failing, (1) does not matter much if the model passes the N-test, and (2)
+    does not matter at all because the ranking of the observed and stochasitc
+    catalogs will remain the same.
+    """
+    logging.info("Running GEM M-Test")
+
+    test_config = cfg["config"]["model_framework"]["gem"]["M_test"]
+
+    if "prospective" not in test_config.keys():
+        prospective = False
+    else:
+        prospective = test_config["prospective"]
+
+    if "critical_pct" not in test_config:
+        critical_pct = 0.25
+    else:
+        critical_pct = test_config["critical_pct"]
+
+    if "not_modeled_likelihood" not in test_config:
+        not_modeled_likelihood = 1e-5
+
+    t_yrs = test_config["investigation_time"]
+
+    test_result = m_test_function(
+        bin_gdf,
+        t_yrs,
+        test_config["n_iters"],
+        prospective=prospective,
+        not_modeled_likelihood=0.0,
+        critical_pct=critical_pct,
+    )
+
+    logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))
+    logging.info("M-Test pct {}".format(test_result["percentile"]))
+    logging.info("M-Test {}".format(test_result["test_res"]))
+    return test_result
+
+
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
     "model_mfd": model_mfd_test,
-    "moment_over_under": moment_over_under_eval
+    "moment_over_under": moment_over_under_eval,
+    "M_test": M_test,
 }

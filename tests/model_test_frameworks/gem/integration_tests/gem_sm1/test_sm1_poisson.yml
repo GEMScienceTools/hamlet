@@ -18,6 +18,11 @@ config:
             moment_over_under:
                 investigation_time: 40.
                 n_iters: 100
+            M_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
         relm:
             N_test:
                 conf_interval: 0.95

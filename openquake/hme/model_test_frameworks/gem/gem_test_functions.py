@@ -6,7 +6,13 @@ from typing import Sequence, Dict, List, Optional, Union
 import numpy as np
 from geopandas import GeoSeries
 
-from openquake.hme.utils import SpacemagBin, parallelize, mag_to_mo
+from openquake.hme.utils import (
+    SpacemagBin,
+    parallelize,
+    mag_to_mo,
+    get_model_mfd,
+    get_obs_mfd,
+)
 
 
 def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
@@ -260,3 +266,61 @@ def get_moment_from_mfd(mfd: dict) -> float:
     mo = sum(mag_to_mo(np.array(list(mfd.keys()))) * np.array(list(mfd.values())))
 
     return mo
+
+
+def run_gem_M_test(bin_gdf, t_yrs, n_iters, prospective=False):
+    mod_mfd = get_model_mfd(bin_gdf)
+    obs_mfd = get_obs_mfd(bin_gdf, t_yrs, prospective)
+
+    n_bins = len(mod_mfd.keys())
+
+    stochastic_eq_counts = {
+        bc: np.random.poisson((rate * t_yrs), size=n_iters)
+        for bc, rate in mod_mfd.items()
+    }
+
+    bin_log_likelihoods = {
+        bc: [
+            poisson_log_likelihood(n_stoch, (mod_mfd[bc] * t_yrs))
+            for n_stoch in eq_counts
+        ]
+        for bc, eq_counts in stochastic_eq_counts.items()
+    }
+
+    stoch_geom_mean_likes = np.array(
+        [
+            np.exp(
+                np.sum([bll_mag[i] for bll_mag in bin_log_likelihoods.values()])
+                / n_bins
+            )
+            for i in range(test_config["n_iters"])
+        ]
+    )
+
+    obs_geom_mean_like = np.exp(
+        np.sum(
+            [
+                poisson_log_likelihood(
+                    int(obs_mfd[bc] * t_yrs),
+                    rate * t_yrs,
+                )
+                for bc, rate in mod_mfd.items()
+            ]
+        )
+        / n_bins
+    )
+
+    pctile = (
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
+        / test_config["n_iters"]
+    )
+
+    test_pass = True if pctile >= test_config["critical_pct"] else False
+    test_res = "Pass" if test_pass else "Fail"
+
+    test_result = {
+        "critical_pct": test_config["critical_pct"],
+        "percentile": pctile,
+        "test_pass": test_pass,
+        "test_res": test_res,
+    }
