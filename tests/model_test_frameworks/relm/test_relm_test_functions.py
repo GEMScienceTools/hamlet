@@ -58,9 +58,7 @@ test_cfg = {
             "mfd_bin_width": 0.2,
             "h3_res": 3,
         },
-        "subset": {
-            "file": None
-        },
+        "subset": {"file": None},
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
@@ -70,15 +68,13 @@ test_cfg = {
         },
         "seis_catalog": {
             "seis_catalog_file": DATA_FILE,
-            "columns": {
-                "event_id": "event_id"
-            },
+            "columns": {"event_id": "event_id"},
         },
         "rupture_file": {
             "rupture_file_path": None,
             "read_rupture_file": False,
-            "save_rupture_file": False
-        }
+            "save_rupture_file": False,
+        },
     },
 }
 
@@ -86,6 +82,7 @@ cfg = deepcopy(cfg_defaults)
 cfg = deep_update(cfg, test_cfg)
 
 bin_gdf, obs_seis_catalog = load_inputs(cfg)
+
 
 class test_relm_test_functions(unittest.TestCase):
     def setUp(self):
@@ -95,6 +92,7 @@ class test_relm_test_functions(unittest.TestCase):
 
     def test_s_test_bin(self):
         S_test_cfg = self.cfg["config"]["model_framework"]["relm"]["S_test"]
+        S_test_cfg["not_modeled_likelihood"] = 0.0
 
         sb = self.bin_gdf.loc["836860fffffffff"].SpacemagBin
 

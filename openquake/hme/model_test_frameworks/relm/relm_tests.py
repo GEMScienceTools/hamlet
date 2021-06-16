@@ -105,6 +105,7 @@ def S_test(
     t_yrs = test_config["investigation_time"]
     prospective = test_config.get("prospective", False)
     append_results = test_config.get("append")
+    test_config["not_modeled_likelihood"] = 0.0  # hardcoded for RELM
 
     test_results = s_test_function(
         bin_gdf,
