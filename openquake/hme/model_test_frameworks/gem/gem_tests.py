@@ -15,7 +15,7 @@ from .gem_test_functions import (
     eval_obs_moment_model,
 )
 
-from ..relm.relm_test_functions import m_test_function
+from ..relm.relm_test_functions import m_test_function, s_test_function
 
 from .gem_stats import calc_mfd_log_likelihood_independent
 
@@ -325,7 +325,7 @@ def M_test(
         t_yrs,
         test_config["n_iters"],
         prospective=prospective,
-        not_modeled_likelihood=0.0,
+        not_modeled_likelihood=not_modeled_likelihood,
         critical_pct=critical_pct,
     )
 
@@ -335,10 +335,41 @@ def M_test(
     return test_result
 
 
+def S_test(
+    cfg: dict,
+    bin_gdf: GeoDataFrame,
+) -> dict:
+    """"""
+    logging.info("Running GEM S-Test")
+
+    test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
+    t_yrs = test_config["investigation_time"]
+    prospective = test_config.get("prospective", False)
+    append_results = (test_config.get("append"), True)
+    not_modeled_likelihod = test_config.get("not_modeled_likelihood", 1e-5)
+
+    test_results = s_test_function(
+        bin_gdf,
+        t_yrs,
+        test_config["n_iters"],
+        test_config["likelihood_fn"],
+        prospective=prospective,
+        critical_pct=test_config["critical_pct"],
+        not_modeled_likelihood=not_modeled_likelihod,
+        append_results=append_results,
+    )
+
+    logging.info("S-Test {}".format(test_results["test_res"]))
+    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
+    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
+    return test_results
+
+
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
     "model_mfd": model_mfd_test,
     "moment_over_under": moment_over_under_eval,
     "M_test": M_test,
+    "S_test": S_test,
 }

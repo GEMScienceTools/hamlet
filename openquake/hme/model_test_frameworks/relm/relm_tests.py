@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 
 import numpy as np
+from numpy.lib.function_base import append
 import pandas as pd
 from geopandas import GeoDataFrame
 
@@ -15,6 +16,7 @@ from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     N_test_poisson,
     N_test_neg_binom,
+    s_test_function,
     subdivide_observed_eqs,
     get_model_annual_eq_rate,
     get_total_obs_eqs,
@@ -23,6 +25,7 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     # s_test_bin,
     s_test_gdf_series,
     m_test_function,
+    s_test_function,
 )
 
 
@@ -70,15 +73,9 @@ def M_test(
 
     test_config = cfg["config"]["model_framework"]["relm"]["M_test"]
 
-    if "prospective" not in test_config.keys():
-        prospective = False
-    else:
-        prospective = test_config["prospective"]
+    prospective = test_config.get("prospective", False)
 
-    if "critical_pct" not in test_config:
-        critical_pct = 0.25
-    else:
-        critical_pct = test_config["critical_pct"]
+    critical_pct = test_config.get("critical_pct", 0.25)
 
     t_yrs = test_config["investigation_time"]
 
@@ -99,69 +96,30 @@ def M_test(
 
 def S_test(
     cfg: dict,
-    bin_gdf: Optional[GeoDataFrame] = None,
+    bin_gdf: GeoDataFrame,
 ) -> dict:
     """"""
     logging.info("Running S-Test")
 
     test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
     t_yrs = test_config["investigation_time"]
+    prospective = test_config.get("prospective", False)
+    append_results = test_config.get("append")
 
-    if "prospective" not in test_config.keys():
-        prospective = False
-    else:
-        prospective = test_config["prospective"]
-
-    N_obs = len(get_total_obs_eqs(bin_gdf, prospective=prospective))
-    N_pred = get_model_annual_eq_rate(bin_gdf) * t_yrs
-    N_norm = N_obs / N_pred
-
-    bin_likes = s_test_gdf_series(bin_gdf, test_config, N_norm)
-
-    obs_likes = np.array([bl[0] for bl in bin_likes])
-    stoch_likes = np.vstack([bl[1] for bl in bin_likes]).T
-
-    obs_like_total = sum(obs_likes)
-    stoch_like_totals = np.sum(stoch_likes, axis=1)
-
-    if "append" in test_config.keys():
-        if test_config["append"] is True:
-            bin_pcts = []
-            for i, obs_like in enumerate(obs_likes):
-                stoch_like = stoch_likes[:, i]
-                bin_pct = (
-                    len(stoch_like[stoch_like <= obs_like]) / test_config["n_iters"]
-                )
-                bin_pcts.append(bin_pct)
-            bin_gdf["S_bin_pct"] = bin_pcts
-
-            bin_gdf["N_model"] = bin_gdf.SpacemagBin.apply(
-                lambda x: get_n_eqs_from_mfd(x.get_rupture_mfd()) * t_yrs
-            )
-
-            bin_gdf["N_obs"] = bin_gdf.SpacemagBin.apply(
-                lambda x: get_n_eqs_from_mfd(x.observed_earthquakes)
-            )
-
-    pctile = (
-        len(stoch_like_totals[stoch_like_totals <= obs_like_total])
-        / test_config["n_iters"]
+    test_results = s_test_function(
+        bin_gdf,
+        t_yrs,
+        test_config["n_iters"],
+        test_config["likelihood_fn"],
+        prospective=prospective,
+        critical_pct=test_config["critical_pct"],
+        append_results=append_results,
     )
 
-    test_pass = True if pctile >= test_config["critical_pct"] else False
-    test_res = "Pass" if test_pass else "Fail"
-
-    test_result = {
-        "critical_pct": test_config["critical_pct"],
-        "percentile": pctile,
-        "test_pass": test_pass,
-        "test_res": test_res,
-    }
-
-    logging.info("S-Test {}".format(test_res))
-    logging.info("S-Test crit pct: {}".format(test_result["critical_pct"]))
-    logging.info("S-Test model pct: {}".format(pctile))
-    return test_result
+    logging.info("S-Test {}".format(test_results["test_res"]))
+    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
+    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
+    return test_results
 
 
 def N_test(

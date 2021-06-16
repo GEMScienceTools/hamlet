@@ -101,7 +101,10 @@ def render_result_text(
             render_max_mag(env=env, cfg=cfg, results=results)
 
         if "M_test" in results["gem"].keys():
-            render_M_test(env=env, cfg=cfg, results=results)
+            render_gem_M_test(env=env, cfg=cfg, results=results)
+
+        if "M_test" in results["gem"].keys():
+            render_gem_S_test(env=env, cfg=cfg, results=results, bin_gdf=bin_gdf)
 
     if "relm" in results.keys():
         if "N_test" in results["relm"].keys():
@@ -190,6 +193,13 @@ def render_M_test(env: Environment, cfg: dict, results: dict) -> None:
     )
 
 
+def render_gem_M_test(env: Environment, cfg: dict, results: dict) -> None:
+    n_test = env.get_template("gem_m_test.html")
+    results["gem"]["M_test"]["rendered_text"] = n_test.render(
+        res=results["gem"]["M_test"]["val"]
+    )
+
+
 def render_S_test(
     env: Environment,
     cfg: dict,
@@ -213,6 +223,32 @@ def render_S_test(
 
     results["relm"]["S_test"]["rendered_text"] = s_test.render(
         res=results["relm"]["S_test"]["val"], S_test_map_str=S_test_map_str
+    )
+
+
+def render_gem_S_test(
+    env: Environment,
+    cfg: dict,
+    results: dict,
+    bin_gdf: GeoDataFrame,
+) -> None:
+
+    s_test = env.get_template("gem_s_test.html")
+
+    test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
+
+    if "map_epsg" in cfg["report"]["basic"].keys():
+        map_epsg = cfg["report"]["basic"]["map_epsg"]
+    else:
+        map_epsg = None
+    if "append" in test_config.keys():
+        if test_config["append"] is True:
+            S_test_map_str = plot_S_test_map(bin_gdf, map_epsg)
+        else:
+            S_test_map_str = ""
+
+    results["gem"]["S_test"]["rendered_text"] = s_test.render(
+        res=results["gem"]["S_test"]["val"], S_test_map_str=S_test_map_str
     )
 
 

@@ -23,6 +23,13 @@ config:
                 critical_pct: 0.25
                 investigation_time: 40.
                 n_iters: 1000
+            S_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
+                append: True
+                likelihood_fn: mfd
         relm:
             N_test:
                 conf_interval: 0.95

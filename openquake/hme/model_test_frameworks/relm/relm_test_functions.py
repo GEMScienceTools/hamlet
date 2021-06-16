@@ -16,6 +16,7 @@ from openquake.hme.utils import (
     get_obs_mfd,
     get_model_annual_eq_rate,
     get_total_obs_eqs,
+    get_n_eqs_from_mfd,
 )
 from openquake.hme.utils.stats import (
     negative_binomial_distribution,
@@ -99,6 +100,65 @@ def m_test_function(
     return test_result
 
 
+def s_test_function(
+    bin_gdf: GeoDataFrame,
+    t_yrs: float,
+    n_iters: int,
+    likelihood_fn: str,
+    prospective: bool = False,
+    critical_pct: float = 0.25,
+    not_modeled_likelihood: float = 0.0,
+    append_results: bool = False,
+):
+    N_obs = len(get_total_obs_eqs(bin_gdf, prospective=prospective))
+    N_pred = get_model_annual_eq_rate(bin_gdf) * t_yrs
+    N_norm = N_obs / N_pred
+
+    bin_like_cfg = {
+        "investigation_time": t_yrs,
+        "likelihood_fn": likelihood_fn,
+        "not_modeled_likelihood": not_modeled_likelihood,
+        "n_iters": n_iters,
+    }
+    bin_likes = s_test_gdf_series(bin_gdf, bin_like_cfg, N_norm)
+
+    obs_likes = np.array([bl[0] for bl in bin_likes])
+    stoch_likes = np.vstack([bl[1] for bl in bin_likes]).T
+
+    obs_like_total = sum(obs_likes)
+    stoch_like_totals = np.sum(stoch_likes, axis=1)
+
+    if append_results:
+        bin_pcts = []
+        for i, obs_like in enumerate(obs_likes):
+            stoch_like = stoch_likes[:, i]
+            bin_pct = len(stoch_like[stoch_like <= obs_like]) / n_iters
+            bin_pcts.append(bin_pct)
+        bin_gdf["S_bin_pct"] = bin_pcts
+
+        bin_gdf["N_model"] = bin_gdf.SpacemagBin.apply(
+            lambda x: get_n_eqs_from_mfd(x.get_rupture_mfd()) * t_yrs
+        )
+
+        bin_gdf["N_obs"] = bin_gdf.SpacemagBin.apply(
+            lambda x: get_n_eqs_from_mfd(x.observed_earthquakes)
+        )
+
+    pctile = len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
+
+    test_pass = True if pctile >= critical_pct else False
+    test_res = "Pass" if test_pass else "Fail"
+
+    test_result = {
+        "critical_pct": critical_pct,
+        "percentile": pctile,
+        "test_pass": test_pass,
+        "test_res": test_res,
+    }
+
+    return test_result
+
+
 def s_test_gdf_series(bin_gdf: GeoDataFrame, test_config: dict, N_norm: float = 1.0):
     return [
         s_test_bin(row.SpacemagBin, test_config, N_norm)
@@ -106,9 +166,14 @@ def s_test_gdf_series(bin_gdf: GeoDataFrame, test_config: dict, N_norm: float = 
     ]
 
 
-def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
+def s_test_bin(
+    sbin: SpacemagBin,
+    test_cfg: dict,
+    N_norm: float = 1.0,
+):
     t_yrs = test_cfg["investigation_time"]
     like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]
+    not_modeled_likelihood = test_cfg["not_modeled_likelihood"]
 
     # calculate the rate
     rate_mfd = sbin.get_rupture_mfd()
@@ -116,7 +181,9 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
 
     # calculate the observed L
     obs_eqs = sbin.observed_earthquakes
-    obs_L = like_fn(rate_mfd, binned_events=obs_eqs)
+    obs_L = like_fn(
+        rate_mfd, binned_events=obs_eqs, not_modeled_likelihood=not_modeled_likelihood
+    )
 
     # report zero likelihood bins
     if np.isneginf(obs_L):
@@ -136,6 +203,7 @@ def s_test_bin(sbin: SpacemagBin, test_cfg: dict, N_norm: float = 1.0):
             like_fn(
                 rate_mfd,
                 empirical_mfd=stoch_rup_counts[i],
+                not_modeled_likelihood=not_modeled_likelihood,
             )
             for i in range(test_cfg["n_iters"])
         ]
@@ -152,6 +220,7 @@ def mfd_log_likelihood(
     rate_mfd: dict,
     binned_events: Optional[dict] = None,
     empirical_mfd: Optional[dict] = None,
+    not_modeled_likelihood: float = 0.0,
 ) -> float:
     """
     Calculates the log-likelihood of the observations (either `binned_events`
@@ -169,7 +238,7 @@ def mfd_log_likelihood(
 
     return np.sum(
         [
-            bin_observance_log_likelihood(n_obs, rate_mfd[mag])
+            bin_observance_log_likelihood(n_obs, rate_mfd[mag], not_modeled_likelihood)
             for mag, n_obs in num_obs_events.items()
         ]
     )
@@ -179,6 +248,7 @@ def total_event_likelihood(
     rate_mfd: dict,
     binned_events: Optional[dict] = None,
     empirical_mfd: Optional[dict] = None,
+    not_modeled_likelihood: float = 0.0,
 ) -> float:
     """
     Calculates the log-likelihood of the observations (either `binned_events`
@@ -197,7 +267,9 @@ def total_event_likelihood(
     total_model_rate = sum(rate_mfd.values())
     total_num_events = sum(num_obs_events.values())
 
-    return bin_observance_log_likelihood(total_num_events, total_model_rate)
+    return bin_observance_log_likelihood(
+        total_num_events, total_model_rate, not_modeled_val=not_modeled_likelihood
+    )
 
 
 S_TEST_FN = {"n_eqs": total_event_likelihood, "mfd": mfd_log_likelihood}
