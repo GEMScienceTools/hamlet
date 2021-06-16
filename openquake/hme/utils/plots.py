@@ -1,5 +1,6 @@
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
+import h3
 import numpy as np
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -149,13 +150,21 @@ def plot_likelihood_map(
     return fig_svg
 
 
-def plot_S_test_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
+def plot_S_test_map(
+    bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None, bad_bins: list = list()
+):
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+
+    if len(bad_bins) > 0:
+        bad_bin_gdf = GeoDataFrame(bin_gdf.loc[bad_bins])
 
     if map_epsg is None:
         bin_gdf.plot(
             column="S_bin_pct", ax=ax, vmin=0.0, vmax=1.0, cmap="OrRd_r", legend=True
         )
+        if len(bad_bins) > 0:
+            bad_bin_gdf.plot(ax=ax, color="blue")
+
     else:
         bin_gdf.to_crs(epsg=map_epsg).plot(
             column="S_bin_pct", ax=ax, vmin=0.0, vmax=1.0, cmap="OrRd_r", legend=True
@@ -187,17 +196,25 @@ def plot_over_under_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
     # get colorbar bounds so that 1 is in the middle
     max_ratio = bin_gdf.moment_ratio.max()
     min_ratio = bin_gdf.moment_ratio.min()
-    max_r_dist = np.max(np.abs([(1 - max_ratio), (1-min_ratio)]))
+    max_r_dist = np.max(np.abs([(1 - max_ratio), (1 - min_ratio)]))
 
     if map_epsg is None:
         bin_gdf.plot(
-            column="moment_ratio", ax=axs[0], 
-            vmin=1-max_r_dist, vmax=1+max_r_dist, cmap="PRGn", legend=True
+            column="moment_ratio",
+            ax=axs[0],
+            vmin=1 - max_r_dist,
+            vmax=1 + max_r_dist,
+            cmap="PRGn",
+            legend=True,
         )
     else:
         bin_gdf.to_crs(epsg=map_epsg).plot(
-            column="moment_ratio", ax=axs[0], 
-            vmin=1-max_r_dist, vmax=1+max_r_dist, cmap="PRGn", legend=True
+            column="moment_ratio",
+            ax=axs[0],
+            vmin=1 - max_r_dist,
+            vmax=1 + max_r_dist,
+            cmap="PRGn",
+            legend=True,
         )
 
     x_lims = axs[0].get_xlim()
@@ -216,13 +233,21 @@ def plot_over_under_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
     # plot rank
     if map_epsg is None:
         bin_gdf.plot(
-            column="moment_rank_pctile", ax=axs[1], 
-            vmin=0., vmax=1., cmap="PiYG", legend=True
+            column="moment_rank_pctile",
+            ax=axs[1],
+            vmin=0.0,
+            vmax=1.0,
+            cmap="PiYG",
+            legend=True,
         )
     else:
         bin_gdf.to_crs(epsg=map_epsg).plot(
-            column="moment_rank_pctile", ax=axs[1], 
-            vmin=0., vmax=1., cmap="PiYG", legend=True
+            column="moment_rank_pctile",
+            ax=axs[1],
+            vmin=0.0,
+            vmax=1.0,
+            cmap="PiYG",
+            legend=True,
         )
 
     world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
@@ -233,8 +258,9 @@ def plot_over_under_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
     axs[1].set_xlim(x_lims)
     axs[1].set_ylim(y_lims)
 
-    axs[1].set_title("Rank of observed moment release compared\n"
-                    + "to stochastic event sets")
+    axs[1].set_title(
+        "Rank of observed moment release compared\n" + "to stochastic event sets"
+    )
 
     plt.switch_backend("svg")
     fig_str = io.StringIO()

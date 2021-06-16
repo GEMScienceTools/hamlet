@@ -217,7 +217,11 @@ def render_S_test(
         map_epsg = None
     if "append" in test_config.keys():
         if test_config["append"] is True:
-            S_test_map_str = plot_S_test_map(bin_gdf, map_epsg)
+            S_test_map_str = plot_S_test_map(
+                bin_gdf,
+                map_epsg=map_epsg,
+                bad_bins=results["relm"]["S_test"]["val"]["bad_bins"],
+            )
         else:
             S_test_map_str = ""
 
@@ -243,7 +247,11 @@ def render_gem_S_test(
         map_epsg = None
     if "append" in test_config.keys():
         if test_config["append"] is True:
-            S_test_map_str = plot_S_test_map(bin_gdf, map_epsg)
+            S_test_map_str = plot_S_test_map(
+                bin_gdf,
+                map_epsg=map_epsg,
+                bad_bins=results["gem"]["S_test"]["val"]["bad_bins"],
+            )
         else:
             S_test_map_str = ""
 

@@ -2,13 +2,15 @@
 Utility functions for running tests in the RELM model test framework.
 """
 import logging
-from typing import Sequence, Dict, List, Optional
+from itertools import chain
+from typing import Sequence, Optional
 from datetime import datetime, timedelta
 
+import h3
 import numpy as np
-from tqdm import tqdm
+from numpy.lib.arraysetops import unique
 from scipy.stats import poisson, nbinom
-from geopandas import GeoSeries, GeoDataFrame
+from geopandas import GeoDataFrame
 
 from openquake.hme.utils.bins import SpacemagBin
 from openquake.hme.utils import (
@@ -124,6 +126,7 @@ def s_test_function(
 
     obs_likes = np.array([bl[0] for bl in bin_likes])
     stoch_likes = np.vstack([bl[1] for bl in bin_likes]).T
+    bad_bins = unique(list(chain(*[bl[2] for bl in bin_likes])))
 
     obs_like_total = sum(obs_likes)
     stoch_like_totals = np.sum(stoch_likes, axis=1)
@@ -154,6 +157,7 @@ def s_test_function(
         "percentile": pctile,
         "test_pass": test_pass,
         "test_res": test_res,
+        "bad_bins": bad_bins,
     }
 
     return test_result
@@ -174,6 +178,9 @@ def s_test_bin(
     t_yrs = test_cfg["investigation_time"]
     like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]
     not_modeled_likelihood = test_cfg["not_modeled_likelihood"]
+    not_modeled_log_like = (
+        -np.inf if not_modeled_likelihood == 0.0 else np.log(not_modeled_likelihood)
+    )
 
     # calculate the rate
     rate_mfd = sbin.get_rupture_mfd()
@@ -181,18 +188,25 @@ def s_test_bin(
 
     # calculate the observed L
     obs_eqs = sbin.observed_earthquakes
-    obs_L = like_fn(
-        rate_mfd, binned_events=obs_eqs, not_modeled_likelihood=not_modeled_likelihood
+    obs_L, likes = like_fn(
+        rate_mfd,
+        binned_events=obs_eqs,
+        not_modeled_likelihood=not_modeled_likelihood,
+        return_likes=True,
     )
 
-    # report zero likelihood bins
-    if np.isneginf(obs_L):
-        logging.warn(f"{sbin.bin_id} has zero likelihood")
-        obs_mfd = sbin.get_empirical_mfd(cumulative=False)
-        for mag, rate in rate_mfd.items():
-            if rate == 0.0 and obs_mfd[mag] > 0.0:
-                logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
-
+    # handle bins with eqs but no rups
+    bad_bins = []
+    for like in likes:
+        if like == not_modeled_log_like:
+            bad_bins.append(sbin.bin_id)
+            bin_ctr = h3.h3_to_geo(sbin.bin_id)
+            bin_ctr = (round(bin_ctr[0], 3), round(bin_ctr[1], 3))
+            logging.warn(f"{sbin.bin_id} {bin_ctr} has zero likelihood")
+            obs_mfd = sbin.get_empirical_mfd(cumulative=False)
+            for mag, rate in rate_mfd.items():
+                if rate == 0.0 and obs_mfd[mag] > 0.0:
+                    logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
     stoch_rup_counts = [
         get_poisson_counts_from_mfd(rate_mfd).copy() for i in range(test_cfg["n_iters"])
     ]
@@ -209,7 +223,7 @@ def s_test_bin(
         ]
     )
 
-    return obs_L, stoch_Ls
+    return obs_L, stoch_Ls, bad_bins
 
 
 def get_poisson_counts_from_mfd(mfd: dict):
@@ -221,6 +235,7 @@ def mfd_log_likelihood(
     binned_events: Optional[dict] = None,
     empirical_mfd: Optional[dict] = None,
     not_modeled_likelihood: float = 0.0,
+    return_likes: bool = False,
 ) -> float:
     """
     Calculates the log-likelihood of the observations (either `binned_events`
@@ -236,12 +251,15 @@ def mfd_log_likelihood(
     else:
         num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
 
-    return np.sum(
-        [
-            bin_observance_log_likelihood(n_obs, rate_mfd[mag], not_modeled_likelihood)
-            for mag, n_obs in num_obs_events.items()
-        ]
-    )
+    likes = [
+        bin_observance_log_likelihood(n_obs, rate_mfd[mag], not_modeled_likelihood)
+        for mag, n_obs in num_obs_events.items()
+    ]
+
+    if return_likes:
+        return np.sum(likes), likes
+    else:
+        return np.sum(likes)
 
 
 def total_event_likelihood(
