@@ -156,7 +156,12 @@ def plot_S_test_map(
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
     if len(bad_bins) > 0:
-        bad_bin_gdf = GeoDataFrame(bin_gdf.loc[bad_bins])
+        # sometimes at this point the bin_index is no longer the index,
+        # not clear why...
+        if "bin_index" in bin_gdf.columns:
+            bad_bin_gdf = bin_gdf[bin_gdf.bin_index.isin(bad_bins)]
+        else:
+            bad_bin_gdf = GeoDataFrame(bin_gdf.loc[bad_bins])
 
     if map_epsg is None:
         bin_gdf.plot(
