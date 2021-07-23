@@ -42,7 +42,7 @@ class TestPHL1(unittest.TestCase):
     def setUpClass(self):
         self.test_dir = test_data_dir + "/"
 
-        self.lt = process_source_logic_tree(self.test_dir)
+        self.lt, self.weights = process_source_logic_tree(self.test_dir)
 
         self.rup_dict = rupture_dict_from_logic_tree_dict(self.lt)
 

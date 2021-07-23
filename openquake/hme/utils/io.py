@@ -157,7 +157,7 @@ def read_branch_sources(base_dir,
                 pass
 
     if len(weights.keys()) == 1:
-        weights[list(branch_sources.keys())[1]] = 1.
+        weights[list(branch_sources.keys())[0]] = 1.
 
     return branch_sources, weights
 
