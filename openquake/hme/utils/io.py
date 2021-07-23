@@ -142,17 +142,24 @@ def read_branch_sources(base_dir,
                         branch: Optional[str] = None):
     lt = SourceModelLogicTree(os.path.join(base_dir, lt_file))
 
-    d = {}
+    #breakpoint()
+
+    branch_sources = {}
+    weights = {}
     for branch_name, branch_filename in lt.branches.items():
         if branch_name == branch or branch is None:
             try:
-                d[branch_name] = [os.path.join(base_dir, v) for v in
+                branch_sources[branch_name] = [os.path.join(base_dir, v) for v in
                                   branch_filename.value.split()]
+                weights[branch_name] = lt.branches[branch_name].weight
             except:
                 print('error in ', branch_name)
                 pass
 
-    return d
+    if len(weights.keys()) == 1:
+        weights[list(branch_sources.keys())[1]] = 1.
+
+    return branch_sources, weights
 
 
 def process_source_logic_tree(base_dir: str,
@@ -163,7 +170,7 @@ def process_source_logic_tree(base_dir: str,
                               verbose: bool = False):
     if verbose:
         print('reading source branches')
-    branch_sources = (read_branch_sources(base_dir, lt_file=lt_file))
+    branch_sources, weights = (read_branch_sources(base_dir, lt_file=lt_file))
     lt = sort_sources(branch_sources,
                       source_types=source_types,
                       tectonic_region_types=tectonic_region_types,
@@ -172,7 +179,10 @@ def process_source_logic_tree(base_dir: str,
     if verbose:
         print(lt.keys())
 
-    return lt
+    if branch != None:
+        weights = {branch: 1.0}
+
+    return lt, weights
 
 def write_ruptures_to_file(rupture_gdf: GeoDataFrame,
                            rupture_file_path: str,

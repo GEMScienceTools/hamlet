@@ -459,6 +459,32 @@ def rupture_list_to_gdf(
         return df
 
 
+def scale_rup_rate(rup, rate_scale: float):
+    rup.occurrence_rate *= rate_scale
+
+
+def rupture_dict_to_gdf(
+    rupture_dict, weights, gdf: bool = False, parallel: bool = True
+) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+
+    logging.info("weights: " + str(weights))
+
+    gdfs = []
+    for branch, branch_sources in rupture_dict.items():
+        branch_gdf = rupture_list_to_gdf(branch_sources, parallel=parallel, 
+                                         gdf=gdf)
+
+        branch_gdf['rupture'].apply(scale_rup_rate, args=(weights[branch],))
+
+        gdfs.append(branch_gdf)
+
+    if len(gdfs) == 1:
+        return gdfs[0]
+    else:
+        gdf = pd.concat(gdfs, axis=0)
+        return gdf
+
+
 def _h3_bin_from_rupture(
     rupture: Union[
         SimpleRupture, NonParametricProbabilisticRupture, ParametricProbabilisticRupture

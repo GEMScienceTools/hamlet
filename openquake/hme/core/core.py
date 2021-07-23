@@ -26,6 +26,7 @@ from openquake.hme.utils import (
     deep_update,
     rupture_dict_from_logic_tree_dict,
     rupture_list_to_gdf,
+    rupture_dict_to_gdf,
     # rup_to_dict,
     # rup_df_from_dict,
     # read_ruptures_from_dataframe,
@@ -226,7 +227,7 @@ def load_ruptures_from_ssm(cfg: dict):
     source_cfg: dict = cfg["input"]["ssm"]
 
     logger.info("  processing logic tree")
-    ssm_lt_ruptures = process_source_logic_tree(
+    ssm_lt_sources, weights = process_source_logic_tree(
         source_cfg["ssm_dir"],
         lt_file=source_cfg["ssm_lt_file"],
         source_types=source_cfg["source_types"],
@@ -236,15 +237,17 @@ def load_ruptures_from_ssm(cfg: dict):
 
     logger.info("  making dictionary of ruptures")
     rupture_dict = rupture_dict_from_logic_tree_dict(
-        ssm_lt_ruptures,
+        ssm_lt_sources,
         parallel=cfg["config"]["parallel"],
         simple_ruptures=cfg["input"]["simple_ruptures"],
     )
 
-    del ssm_lt_ruptures
+    del ssm_lt_sources
 
     logger.info("  making geodataframe from ruptures")
-    rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
+    #rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
+    rupture_gdf = rupture_dict_to_gdf(rupture_dict, weights,
+        parallel=cfg["config"]["parallel"])
     logger.info("  done preparing rupture dataframe")
 
     return rupture_gdf
