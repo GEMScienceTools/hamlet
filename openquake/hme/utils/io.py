@@ -142,8 +142,6 @@ def read_branch_sources(base_dir,
                         branch: Optional[str] = None):
     lt = SourceModelLogicTree(os.path.join(base_dir, lt_file))
 
-    #breakpoint()
-
     branch_sources = {}
     weights = {}
     for branch_name, branch_filename in lt.branches.items():
@@ -158,6 +156,8 @@ def read_branch_sources(base_dir,
 
     if len(weights.keys()) == 1:
         weights[list(branch_sources.keys())[0]] = 1.
+    
+    logging.info("weights: " + str(weights))
 
     return branch_sources, weights
 

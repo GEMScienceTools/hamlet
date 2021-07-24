@@ -467,8 +467,6 @@ def rupture_dict_to_gdf(
     rupture_dict, weights, gdf: bool = False, parallel: bool = True
 ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
 
-    logging.info("weights: " + str(weights))
-
     gdfs = []
     for branch, branch_sources in rupture_dict.items():
         branch_gdf = rupture_list_to_gdf(branch_sources, parallel=parallel, 
