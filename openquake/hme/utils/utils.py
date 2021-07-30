@@ -239,6 +239,8 @@ def _process_rup(
     try:
         if simple_ruptures is False:
             rup.source = source.source_id
+            if isinstance(rup, NonParametricProbabilisticRupture):
+                rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
         elif isinstance(rup, ParametricProbabilisticRupture):
             rup = SimpleRupture(
                 strike=rup.surface.get_strike(),
@@ -251,9 +253,7 @@ def _process_rup(
             )
 
         elif isinstance(rup, NonParametricProbabilisticRupture):
-            occurrence_rate = sum(
-                i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
-            )
+            occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
             rup = SimpleRupture(
                 strike=rup.surface.get_strike(),
                 dip=rup.surface.get_dip(),
@@ -265,7 +265,18 @@ def _process_rup(
         return rup
     except:
         rup.source = source.source_id
+        if isinstance(rup, NonParametricProbabilisticRupture):
+            rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
         return rup
+
+
+def get_nonparametric_rupture_occurrence_rate(
+    rup: NonParametricProbabilisticRupture
+)-> float:
+    occurrence_rate = sum(
+                i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
+            )
+    return occurrence_rate
 
 
 def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
