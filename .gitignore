@@ -113,3 +113,4 @@ notebooks/
 gem_sm1_likelihood_bins.geojson
 outputs/
 src/
+dev_scripts/
