@@ -517,7 +517,7 @@ def _h3_bin_from_rupture(
 def make_bin_gdf_from_rupture_gdf(
     rupture_gdf: gpd.GeoDataFrame,
     h3_res: int = 3,
-    parallel: bool = True,
+    parallel: bool = False,
     n_procs: Optional[int] = None,
     min_mag: Optional[float] = 6.0,
     max_mag: Optional[float] = 9.0,
