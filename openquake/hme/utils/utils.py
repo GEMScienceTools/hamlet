@@ -32,7 +32,7 @@ from openquake.hazardlib.source.rupture import (
 from .simple_rupture import SimpleRupture
 from .bins import SpacemagBin
 from .stats import (
-    sample_event_times_in_interval, 
+    sample_event_times_in_interval,
     sample_event_times_in_interval_array,
     sample_num_events_in_interval,
     sample_num_events_in_interval_array,
@@ -219,7 +219,9 @@ def rupture_list_from_source_list(
             tqdm(
                 map(
                     partial(
-                        _process_rup, source=source, simple_ruptures=simple_ruptures
+                        _process_rup,
+                        source=source,
+                        simple_ruptures=simple_ruptures,
                     ),
                     source.iter_ruptures(),
                 ),
@@ -236,7 +238,9 @@ def rupture_list_from_source_list(
 
 
 def _process_rup(
-    rup: Union[ParametricProbabilisticRupture, NonParametricProbabilisticRupture],
+    rup: Union[
+        ParametricProbabilisticRupture, NonParametricProbabilisticRupture
+    ],
     source,
     simple_ruptures=True,
 ):
@@ -245,7 +249,9 @@ def _process_rup(
         if simple_ruptures is False:
             rup.source = source.source_id
             if isinstance(rup, NonParametricProbabilisticRupture):
-                rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
+                rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(
+                    rup
+                )
         elif isinstance(rup, ParametricProbabilisticRupture):
             rup = SimpleRupture(
                 strike=rup.surface.get_strike(),
@@ -276,11 +282,11 @@ def _process_rup(
 
 
 def get_nonparametric_rupture_occurrence_rate(
-    rup: NonParametricProbabilisticRupture
-)-> float:
+    rup: NonParametricProbabilisticRupture,
+) -> float:
     occurrence_rate = sum(
-                i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
-            )
+        i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
+    )
     return occurrence_rate
 
 
@@ -288,7 +294,9 @@ def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
 
     ruptures = list(
         map(
-            partial(_process_rup, source=source, simple_ruptures=simple_ruptures),
+            partial(
+                _process_rup, source=source, simple_ruptures=simple_ruptures
+            ),
             source.iter_ruptures(),
         )
     )
@@ -316,7 +324,9 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 
     rups = (
         [
-            _process_source(source, simple_ruptures=sc["simple_ruptures"], pbar=pbar)
+            _process_source(
+                source, simple_ruptures=sc["simple_ruptures"], pbar=pbar
+            )
             for source in sc["source_chunk"]
         ],
     )
@@ -328,7 +338,9 @@ def _process_source_chunk(source_chunk_w_args) -> list:
     return rups
 
 
-def _chunk_source_list(sources: list, n_chunks: int = _n_procs) -> Tuple[list, list]:
+def _chunk_source_list(
+    sources: list, n_chunks: int = _n_procs
+) -> Tuple[list, list]:
 
     sources_temp = []
     for s in sources:
@@ -369,7 +381,9 @@ def _chunk_source_list(sources: list, n_chunks: int = _n_procs) -> Tuple[list, l
 
 
 def rupture_list_from_source_list_parallel(
-    source_list: list, simple_ruptures: bool = True, n_procs: Optional[int] = _n_procs
+    source_list: list,
+    simple_ruptures: bool = True,
+    n_procs: Optional[int] = _n_procs,
 ) -> list:
     """
     Creates a list of ruptures from all of the sources within list,
@@ -414,13 +428,17 @@ def rupture_list_from_source_list_parallel(
 
         pbar = tqdm([n for n in range(n_procs)])
 
-        for rups in pool.imap_unordered(_process_source_chunk, chunks_with_args):
+        for rups in pool.imap_unordered(
+            _process_source_chunk, chunks_with_args
+        ):
             rupture_list.extend(rups)
             rups = ""
 
         pbar.write("\n" * n_procs)
         pbar.close()
-        logging.info("    finishing multiprocess source processing, cleaning up.")
+        logging.info(
+            "    finishing multiprocess source processing, cleaning up."
+        )
 
     while isinstance(rupture_list[0], list):
         rupture_list = flatten_list(rupture_list)
@@ -433,7 +451,9 @@ def _add_rupture_geom(df):
     dataframe.
     """
     return df.apply(
-        lambda z: Point(z.rupture.hypocenter.longitude, z.rupture.hypocenter.latitude),
+        lambda z: Point(
+            z.rupture.hypocenter.longitude, z.rupture.hypocenter.latitude
+        ),
         axis=1,
     )
 
@@ -485,10 +505,11 @@ def rupture_dict_to_gdf(
 
     gdfs = []
     for branch, branch_sources in rupture_dict.items():
-        branch_gdf = rupture_list_to_gdf(branch_sources, parallel=parallel, 
-                                         gdf=gdf)
+        branch_gdf = rupture_list_to_gdf(
+            branch_sources, parallel=parallel, gdf=gdf
+        )
 
-        branch_gdf['rupture'].apply(scale_rup_rate, args=(weights[branch],))
+        branch_gdf["rupture"].apply(scale_rup_rate, args=(weights[branch],))
 
         gdfs.append(branch_gdf)
 
@@ -501,7 +522,9 @@ def rupture_dict_to_gdf(
 
 def _h3_bin_from_rupture(
     rupture: Union[
-        SimpleRupture, NonParametricProbabilisticRupture, ParametricProbabilisticRupture
+        SimpleRupture,
+        NonParametricProbabilisticRupture,
+        ParametricProbabilisticRupture,
     ],
     h3_res: int = 3,
 ) -> str:
@@ -600,7 +623,9 @@ def make_bin_gdf_from_rupture_gdf(
     ]
 
     bin_gdf = gpd.GeoDataFrame(
-        index=hex_codes, geometry=polies, crs={"init": "epsg:4326", "no_defs": True}
+        index=hex_codes,
+        geometry=polies,
+        crs={"init": "epsg:4326", "no_defs": True},
     )
     bin_gdf = make_SpacemagBins_from_bin_gdf(
         bin_gdf, min_mag=min_mag, max_mag=max_mag, bin_width=bin_width
@@ -764,8 +789,12 @@ def make_earthquake_gdf_from_csv(
     if epsg != 4326:
         eq_gdf = eq_gdf.to_crs(epsg=4326)
 
-    eq_gdf["longitude"] = [eq["geometry"].xy[0][0] for i, eq in eq_gdf.iterrows()]
-    eq_gdf["latitude"] = [eq["geometry"].xy[1][0] for i, eq in eq_gdf.iterrows()]
+    eq_gdf["longitude"] = [
+        eq["geometry"].xy[0][0] for i, eq in eq_gdf.iterrows()
+    ]
+    eq_gdf["latitude"] = [
+        eq["geometry"].xy[1][0] for i, eq in eq_gdf.iterrows()
+    ]
 
     return eq_gdf
 
@@ -782,13 +811,17 @@ def trim_eq_catalog(
 
     # (start time, stop time)
     if (start_date is not None) and (stop_date is not None):
-        logging.info("Trimming EQ catalog from {} to {}".format(start_date, stop_date))
+        logging.info(
+            "Trimming EQ catalog from {} to {}".format(start_date, stop_date)
+        )
         start_date = pd.to_datetime(start_date)
         stop_date = pd.to_datetime(stop_date)
 
     elif (start_date is not None) and (duration is not None):
         logging.info(
-            "Trimming EQ catalog from {} to {} years".format(start_date, duration)
+            "Trimming EQ catalog from {} to {} years".format(
+                start_date, duration
+            )
         )
         stop_date = start_date + duration_delta
         start_date = pd.to_datetime(start_date)
@@ -799,14 +832,18 @@ def trim_eq_catalog(
         start_date = pd.to_datetime(start_date)
         stop_date = pd.to_datetime(stop_date)
         logging.info(
-            "Trimming EQ catalog from {} back {} years".format(stop_date, duration)
+            "Trimming EQ catalog from {} back {} years".format(
+                stop_date, duration
+            )
         )
 
     else:
         err_msg = "Need 2 of (start_date, stop_date, duration) to trim catalog"
         raise ValueError(err_msg)
 
-    out_gdf = eq_gdf.loc[(eq_gdf.time > start_date) & (eq_gdf.time <= stop_date)]
+    out_gdf = eq_gdf.loc[
+        (eq_gdf.time > start_date) & (eq_gdf.time <= stop_date)
+    ]
 
     return out_gdf
 
@@ -886,9 +923,12 @@ def add_earthquakes_to_bins(
         `None`.
     """
 
-    earthquake_gdf["Eq"] = earthquake_gdf.apply(_make_earthquake_from_row, axis=1)
+    earthquake_gdf["Eq"] = earthquake_gdf.apply(
+        _make_earthquake_from_row, axis=1
+    )
     earthquake_gdf["bin_id"] = [
-        h3.geo_to_h3(eq.latitude, eq.longitude, h3_res) for eq in earthquake_gdf.Eq
+        h3.geo_to_h3(eq.latitude, eq.longitude, h3_res)
+        for eq in earthquake_gdf.Eq
     ]
 
     for i, eq in earthquake_gdf.iterrows():
@@ -897,21 +937,29 @@ def add_earthquakes_to_bins(
 
             if eq.magnitude < spacemag_bin.min_mag - spacemag_bin.bin_width / 2:
                 pass
-            elif eq.magnitude > (spacemag_bin.max_mag + spacemag_bin.bin_width / 2):
+            elif eq.magnitude > (
+                spacemag_bin.max_mag + spacemag_bin.bin_width / 2
+            ):
                 pass
             else:
-                nearest_bc = _nearest_bin(eq.Eq.magnitude, spacemag_bin.mag_bin_centers)
+                nearest_bc = _nearest_bin(
+                    eq.Eq.magnitude, spacemag_bin.mag_bin_centers
+                )
 
                 if category == "observed":
-                    spacemag_bin.mag_bins[nearest_bc].observed_earthquakes.append(
+                    spacemag_bin.mag_bins[
+                        nearest_bc
+                    ].observed_earthquakes.append(eq["Eq"])
+                    spacemag_bin.observed_earthquakes[nearest_bc].append(
                         eq["Eq"]
                     )
-                    spacemag_bin.observed_earthquakes[nearest_bc].append(eq["Eq"])
                 elif category == "prospective":
-                    spacemag_bin.mag_bins[nearest_bc].prospective_earthquakes.append(
+                    spacemag_bin.mag_bins[
+                        nearest_bc
+                    ].prospective_earthquakes.append(eq["Eq"])
+                    spacemag_bin.prospective_earthquakes[nearest_bc].append(
                         eq["Eq"]
                     )
-                    spacemag_bin.prospective_earthquakes[nearest_bc].append(eq["Eq"])
         except:
             pass
 
@@ -991,7 +1039,9 @@ def make_SpacemagBins_from_bin_gdf(
 
     # create serialization functions and add to instantiated GeoDataFrame
     def to_dict():
-        out_dict = {i: bin_gdf.loc[i, "SpacemagBin"].to_dict() for i in bin_gdf.index}
+        out_dict = {
+            i: bin_gdf.loc[i, "SpacemagBin"].to_dict() for i in bin_gdf.index
+        }
 
         return out_dict
 
@@ -1084,32 +1134,37 @@ def subset_source(
 
 
 def make_earthquake_sample_from_rupture(
-    rupture: Union[ParametricProbabilisticRupture, 
-                   NonParametricProbabilisticRupture,
-                   SimpleRupture],
-    time: float = 0.
+    rupture: Union[
+        ParametricProbabilisticRupture,
+        NonParametricProbabilisticRupture,
+        SimpleRupture,
+    ],
+    time: float = 0.0,
 ) -> Earthquake:
-    
+
     try:
         source = rupture.source
     except AttributeError:
         source = None
 
     eq = Earthquake(
-            magnitude=rupture.mag,
-            latitude=rupture.hypocenter.latitude,
-            longitude=rupture.hypocenter.longitude,
-            depth=rupture.hypocenter.depth,
-            source=source,
-            time=time)
+        magnitude=rupture.mag,
+        latitude=rupture.hypocenter.latitude,
+        longitude=rupture.hypocenter.longitude,
+        depth=rupture.hypocenter.depth,
+        source=source,
+        time=time,
+    )
 
     return eq
 
 
 def sample_earthquakes(
-    rupture: Union[ParametricProbabilisticRupture, 
-                  NonParametricProbabilisticRupture,
-                  SimpleRupture],
+    rupture: Union[
+        ParametricProbabilisticRupture,
+        NonParametricProbabilisticRupture,
+        SimpleRupture,
+    ],
     interval_length: float,
     get_event_times: Optional[bool] = False,
     t0: float = 0.0,
@@ -1140,7 +1195,8 @@ def sample_earthquakes(
         event_times = sample_event_times_in_interval(
             rupture.occurrence_rate, interval_length, t0, rand_seed
         )
-        eqs = [make_earthquake_sample_from_rupture(rupture, et)
+        eqs = [
+            make_earthquake_sample_from_rupture(rupture, et)
             for et in event_times
         ]
     else:
@@ -1149,9 +1205,13 @@ def sample_earthquakes(
 
 
 def sample_earthquakes_from_ruptures(
-    ruptures: List[Union[ParametricProbabilisticRupture, 
-                         NonParametricProbabilisticRupture,
-                         SimpleRupture]],
+    ruptures: List[
+        Union[
+            ParametricProbabilisticRupture,
+            NonParametricProbabilisticRupture,
+            SimpleRupture,
+        ]
+    ],
     interval_length: float,
     get_event_times: Optional[bool] = False,
     t0: float = 0.0,
@@ -1163,25 +1223,29 @@ def sample_earthquakes_from_ruptures(
             np.array([r.occurrence_rate for r in ruptures]),
             interval_length,
             t0=t0,
-            rand_seed=rand_seed
+            rand_seed=rand_seed,
         )
 
         eqs = [
-                [make_earthquake_sample_from_rupture(rup, et)
-                 for et in event_times_for_all[i]]
-                for i, rup in enumerate(ruptures)
+            [
+                make_earthquake_sample_from_rupture(rup, et)
+                for et in event_times_for_all[i]
             ]
+            for i, rup in enumerate(ruptures)
+        ]
     else:
         num_events = sample_num_events_in_interval_array(
             np.array([r.occurrence_rate for r in ruptures]),
             interval_length,
-            rand_seed=rand_seed
+            rand_seed=rand_seed,
         )
 
         eqs = [
-            [make_earthquake_sample_from_rupture(rup, 0)
-             for n in range(num_events[i])]
-             for i, rup in enumerate(ruptures)
+            [
+                make_earthquake_sample_from_rupture(rup, 0)
+                for n in range(num_events[i])
+            ]
+            for i, rup in enumerate(ruptures)
         ]
 
     return eqs
@@ -1285,7 +1349,9 @@ def get_model_annual_eq_rate(bin_gdf: gpd.GeoDataFrame) -> float:
     return annual_rup_rate
 
 
-def get_total_obs_eqs(bin_gdf: gpd.GeoDataFrame, prospective: bool = False) -> list:
+def get_total_obs_eqs(
+    bin_gdf: gpd.GeoDataFrame, prospective: bool = False
+) -> list:
     """
     Returns a list of all of the observed earthquakes within the model domain.
     """
