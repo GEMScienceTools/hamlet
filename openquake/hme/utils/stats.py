@@ -28,6 +28,41 @@ def sample_event_times_in_interval(
     return event_times
 
 
+def sample_event_times_in_interval_array(
+    annual_occurrence_rates: np.ndarray,
+    interval_length: float,
+    t0: float = 0.0,
+    rand_seed: Optional[int] = None,
+) -> np.ndarray:
+    """
+    Returns the times of events from an array of event rates.
+    """
+
+    if rand_seed is not None:
+        rng = np.random.default_rng(rand_seed)
+    else:
+        rng = np.random.default_rng()
+
+    n_events = rng.poisson(annual_occurrence_rates * interval_length)
+
+    total_n_events = sum(n_events)
+
+    event_times = rng.uniform(low=t0, high=t0+ interval_length, 
+                              size=total_n_events)
+
+    event_times_list = []
+    event_ind = 0
+    for n in n_events:
+        if n == 0:
+            this_n_events = []
+        else:
+            this_n_events = event_times[event_ind:event_ind+n]
+        event_times_list.append(this_n_events)
+        event_ind += n
+
+    return event_times_list
+
+
 def poisson_likelihood(
     num_events: int,
     rate: float,

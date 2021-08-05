@@ -1,6 +1,7 @@
 """
 Utility functions for running tests in the GEM model test framework.
 """
+import logging
 from typing import Sequence, Dict, List, Optional, Union
 
 import numpy as np
@@ -182,8 +183,6 @@ def obs_stoch_moment_ratio(
 
     if stoch_moment_mean == 0.0:
         if obs_moment_sum != 0.0:
-            import logging
-
             logging.warn("No stochastic moment release")
         else:
             obs_moment_sum = 1.0

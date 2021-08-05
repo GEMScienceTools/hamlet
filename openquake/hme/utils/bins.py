@@ -46,7 +46,7 @@ class MagBin:
         if return_rate is True:
             return self.net_rupture_rate
 
-    def sample_ruptures(self, interval_length, t0=0.0, clean=True, 
+    def sample_ruptures_old(self, interval_length, t0=0.0, clean=True, 
                         rand_seed=None):
         eqs = utils.flatten_list(
             [
@@ -54,6 +54,17 @@ class MagBin:
                 for rup in self.ruptures
             ]
         )
+
+        if clean is True:
+            self.stochastic_earthquakes = eqs
+        else:
+            self.stochastic_earthquakes.append(eqs)
+
+    def sample_ruptures(self, interval_length, t0=0.0, clean=True, 
+                        rand_seed=None):
+        
+        eqs = utils.flatten_list(utils.sample_earthquakes_from_ruptures(self.ruptures,
+            interval_length, t0=t0, rand_seed=rand_seed))
 
         if clean is True:
             self.stochastic_earthquakes = eqs

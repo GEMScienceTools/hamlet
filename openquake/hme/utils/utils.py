@@ -31,7 +31,10 @@ from openquake.hazardlib.source.rupture import (
 
 from .simple_rupture import SimpleRupture
 from .bins import SpacemagBin
-from .stats import sample_event_times_in_interval
+from .stats import (
+    sample_event_times_in_interval, 
+    sample_event_times_in_interval_array,
+)
 
 _n_procs = max(1, os.cpu_count() - 1)
 # _n_procs = 2  # parallel testing
@@ -1078,8 +1081,33 @@ def subset_source(
     return bin_gdf.loc[sj.index]
 
 
+def make_earthquake_sample_from_rupture(
+    rupture: Union[ParametricProbabilisticRupture, 
+                   NonParametricProbabilisticRupture,
+                   SimpleRupture],
+    time: float = 0.
+) -> Earthquake:
+    
+    try:
+        source = rupture.source
+    except AttributeError:
+        source = None
+
+    eq = Earthquake(
+            magnitude=rupture.mag,
+            latitude=rupture.hypocenter.latitude,
+            longitude=rupture.hypocenter.longitude,
+            depth=rupture.hypocenter.depth,
+            source=source,
+            time=time)
+
+    return eq
+
+
 def sample_earthquakes(
-    rupture: Union[ParametricProbabilisticRupture, NonParametricProbabilisticRupture],
+    rupture: Union[ParametricProbabilisticRupture, 
+                  NonParametricProbabilisticRupture,
+                  SimpleRupture],
     interval_length: float,
     t0: float = 0.0,
     rand_seed: Optional[int] = None,
@@ -1108,22 +1136,35 @@ def sample_earthquakes(
     event_times = sample_event_times_in_interval(
         rupture.occurrence_rate, interval_length, t0, rand_seed
     )
-    try:
-        source = rupture.source
-    except AttributeError:
-        source = None
 
-    eqs = [
-        Earthquake(
-            magnitude=rupture.mag,
-            latitude=rupture.hypocenter.latitude,
-            longitude=rupture.hypocenter.longitude,
-            depth=rupture.hypocenter.depth,
-            source=source,
-            time=et,
-        )
+    eqs = [make_earthquake_sample_from_rupture(rupture, et)
         for et in event_times
     ]
+    return eqs
+
+
+def sample_earthquakes_from_ruptures(
+    ruptures: List[Union[ParametricProbabilisticRupture, 
+                         NonParametricProbabilisticRupture,
+                         SimpleRupture]],
+    interval_length: float,
+    t0: float = 0.0,
+    rand_seed: Optional[int] = None,
+) -> List[Earthquake]:
+
+    event_times_for_all = sample_event_times_in_interval_array(
+        np.array([r.occurrence_rate for r in ruptures]),
+        interval_length,
+        t0=t0,
+        rand_seed=rand_seed
+    )
+
+    eqs = [
+            [make_earthquake_sample_from_rupture(rup, et)
+             for et in event_times_for_all[i]]
+            for i, rup in enumerate(ruptures)
+        ]
+
     return eqs
 
 
