@@ -34,6 +34,8 @@ from .bins import SpacemagBin
 from .stats import (
     sample_event_times_in_interval, 
     sample_event_times_in_interval_array,
+    sample_num_events_in_interval,
+    sample_num_events_in_interval_array,
 )
 
 _n_procs = max(1, os.cpu_count() - 1)
@@ -1109,6 +1111,7 @@ def sample_earthquakes(
                   NonParametricProbabilisticRupture,
                   SimpleRupture],
     interval_length: float,
+    get_event_times: Optional[bool] = False,
     t0: float = 0.0,
     rand_seed: Optional[int] = None,
 ) -> List[Earthquake]:
@@ -1133,13 +1136,15 @@ def sample_earthquakes(
         List of :class:`Earthquake`.
     """
 
-    event_times = sample_event_times_in_interval(
-        rupture.occurrence_rate, interval_length, t0, rand_seed
-    )
-
-    eqs = [make_earthquake_sample_from_rupture(rupture, et)
-        for et in event_times
-    ]
+    if get_event_times:
+        event_times = sample_event_times_in_interval(
+            rupture.occurrence_rate, interval_length, t0, rand_seed
+        )
+        eqs = [make_earthquake_sample_from_rupture(rupture, et)
+            for et in event_times
+        ]
+    else:
+        raise NotImplementedError
     return eqs
 
 
@@ -1148,21 +1153,35 @@ def sample_earthquakes_from_ruptures(
                          NonParametricProbabilisticRupture,
                          SimpleRupture]],
     interval_length: float,
+    get_event_times: Optional[bool] = False,
     t0: float = 0.0,
     rand_seed: Optional[int] = None,
 ) -> List[Earthquake]:
 
-    event_times_for_all = sample_event_times_in_interval_array(
-        np.array([r.occurrence_rate for r in ruptures]),
-        interval_length,
-        t0=t0,
-        rand_seed=rand_seed
-    )
+    if get_event_times:
+        event_times_for_all = sample_event_times_in_interval_array(
+            np.array([r.occurrence_rate for r in ruptures]),
+            interval_length,
+            t0=t0,
+            rand_seed=rand_seed
+        )
 
-    eqs = [
-            [make_earthquake_sample_from_rupture(rup, et)
-             for et in event_times_for_all[i]]
-            for i, rup in enumerate(ruptures)
+        eqs = [
+                [make_earthquake_sample_from_rupture(rup, et)
+                 for et in event_times_for_all[i]]
+                for i, rup in enumerate(ruptures)
+            ]
+    else:
+        num_events = sample_num_events_in_interval_array(
+            np.array([r.occurrence_rate for r in ruptures]),
+            interval_length,
+            rand_seed=rand_seed
+        )
+
+        eqs = [
+            [make_earthquake_sample_from_rupture(rup, 0)
+             for n in range(num_events[i])]
+             for i, rup in enumerate(ruptures)
         ]
 
     return eqs

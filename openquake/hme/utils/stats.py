@@ -8,6 +8,25 @@ from typing import Optional, Union, Tuple
 import numpy as np
 
 
+
+def sample_num_events_in_interval(
+    annual_occurrence_rate: float,
+    interval_length: float,
+    rand_seed: Optional[int] = None,
+) -> np.ndarray:
+    """
+    Returns the number of events in an interval, sampled from the
+    Poisson distribution for the occurrence rate and interval length.
+    """
+
+    if rand_seed is not None:
+        np.random.seed(rand_seed)
+
+    n_events = np.random.poisson(annual_occurrence_rate * interval_length)
+
+    return n_events
+
+
 def sample_event_times_in_interval(
     annual_occurrence_rate: float,
     interval_length: float,
@@ -19,13 +38,31 @@ def sample_event_times_in_interval(
 
     """
 
-    if rand_seed is not None:
-        np.random.seed(rand_seed)
-
-    n_events = np.random.poisson(annual_occurrence_rate * interval_length)
+    n_events = sample_num_events_in_interval(annual_occurrence_rate,
+                                             interval_length, 
+                                             rand_seed=rand_seed)
 
     event_times = np.random.uniform(low=t0, high=t0 + interval_length, size=n_events)
     return event_times
+
+
+def sample_num_events_in_interval_array(
+    annual_occurrence_rates: np.ndarray,
+    interval_length: float,
+    rand_seed: Optional[int] = None,
+) -> np.ndarray:
+    """
+    Returns the times of events from an array of event rates.
+    """
+
+    if rand_seed is not None:
+        rng = np.random.default_rng(rand_seed)
+    else:
+        rng = np.random.default_rng()
+
+    n_events = rng.poisson(annual_occurrence_rates * interval_length)
+
+    return n_events
 
 
 def sample_event_times_in_interval_array(

@@ -64,7 +64,7 @@ class MagBin:
                         rand_seed=None):
         
         eqs = utils.flatten_list(utils.sample_earthquakes_from_ruptures(self.ruptures,
-            interval_length, t0=t0, rand_seed=rand_seed))
+            interval_length, get_event_times=False, rand_seed=rand_seed))
 
         if clean is True:
             self.stochastic_earthquakes = eqs
