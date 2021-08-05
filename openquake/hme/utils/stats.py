@@ -7,6 +7,7 @@ from typing import Optional, Union, Tuple
 
 import numpy as np
 
+from math import gamma
 
 
 def sample_num_events_in_interval(
@@ -38,11 +39,13 @@ def sample_event_times_in_interval(
 
     """
 
-    n_events = sample_num_events_in_interval(annual_occurrence_rate,
-                                             interval_length, 
-                                             rand_seed=rand_seed)
+    n_events = sample_num_events_in_interval(
+        annual_occurrence_rate, interval_length, rand_seed=rand_seed
+    )
 
-    event_times = np.random.uniform(low=t0, high=t0 + interval_length, size=n_events)
+    event_times = np.random.uniform(
+        low=t0, high=t0 + interval_length, size=n_events
+    )
     return event_times
 
 
@@ -84,8 +87,9 @@ def sample_event_times_in_interval_array(
 
     total_n_events = sum(n_events)
 
-    event_times = rng.uniform(low=t0, high=t0+ interval_length, 
-                              size=total_n_events)
+    event_times = rng.uniform(
+        low=t0, high=t0 + interval_length, size=total_n_events
+    )
 
     event_times_list = []
     event_ind = 0
@@ -93,7 +97,7 @@ def sample_event_times_in_interval_array(
         if n == 0:
             this_n_events = []
         else:
-            this_n_events = event_times[event_ind:event_ind+n]
+            this_n_events = event_times[event_ind : event_ind + n]
         event_times_list.append(this_n_events)
         event_ind += n
 
