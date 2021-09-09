@@ -54,7 +54,9 @@ def m_test_function(
     bin_log_likelihoods = {
         bc: [
             poisson_log_likelihood(
-                n_stoch, (mod_mfd[bc] * t_yrs), not_modeled_val=not_modeled_likelihood
+                n_stoch,
+                (mod_mfd[bc] * t_yrs),
+                not_modeled_val=not_modeled_likelihood,
             )
             for n_stoch in eq_counts
         ]
@@ -126,7 +128,7 @@ def s_test_function(
 
     obs_likes = np.array([bl[0] for bl in bin_likes])
     stoch_likes = np.vstack([bl[1] for bl in bin_likes]).T
-    bad_bins = unique(list(chain(*[bl[2] for bl in bin_likes])))
+    bad_bins = list(unique(list(chain(*[bl[2] for bl in bin_likes]))))
 
     obs_like_total = sum(obs_likes)
     stoch_like_totals = np.sum(stoch_likes, axis=1)
@@ -147,7 +149,9 @@ def s_test_function(
             lambda x: get_n_eqs_from_mfd(x.observed_earthquakes)
         )
 
-    pctile = len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
+    pctile = (
+        len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
+    )
 
     test_pass = True if pctile >= critical_pct else False
     test_res = "Pass" if test_pass else "Fail"
@@ -155,7 +159,7 @@ def s_test_function(
     test_result = {
         "critical_pct": critical_pct,
         "percentile": pctile,
-        "test_pass": test_pass,
+        "test_pass": bool(test_pass),
         "test_res": test_res,
         "bad_bins": bad_bins,
     }
@@ -163,7 +167,9 @@ def s_test_function(
     return test_result
 
 
-def s_test_gdf_series(bin_gdf: GeoDataFrame, test_config: dict, N_norm: float = 1.0):
+def s_test_gdf_series(
+    bin_gdf: GeoDataFrame, test_config: dict, N_norm: float = 1.0
+):
     return [
         s_test_bin(row.SpacemagBin, test_config, N_norm)
         for i, row in bin_gdf.iterrows()
@@ -179,7 +185,9 @@ def s_test_bin(
     like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]
     not_modeled_likelihood = test_cfg["not_modeled_likelihood"]
     not_modeled_log_like = (
-        -np.inf if not_modeled_likelihood == 0.0 else np.log(not_modeled_likelihood)
+        -np.inf
+        if not_modeled_likelihood == 0.0
+        else np.log(not_modeled_likelihood)
     )
 
     # calculate the rate
@@ -208,7 +216,8 @@ def s_test_bin(
                 if rate == 0.0 and obs_mfd[mag] > 0.0:
                     logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
     stoch_rup_counts = [
-        get_poisson_counts_from_mfd(rate_mfd).copy() for i in range(test_cfg["n_iters"])
+        get_poisson_counts_from_mfd(rate_mfd).copy()
+        for i in range(test_cfg["n_iters"])
     ]
 
     # calculate L for iterated stochastic event sets
@@ -245,14 +254,18 @@ def mfd_log_likelihood(
     """
     if binned_events is not None:
         if empirical_mfd is None:
-            num_obs_events = {mag: len(obs_eq) for mag, obs_eq in binned_events.items()}
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
         else:
             raise ValueError("Either use empirical_mfd or binned_events")
     else:
         num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
 
     likes = [
-        bin_observance_log_likelihood(n_obs, rate_mfd[mag], not_modeled_likelihood)
+        bin_observance_log_likelihood(
+            n_obs, rate_mfd[mag], not_modeled_likelihood
+        )
         for mag, n_obs in num_obs_events.items()
     ]
 
@@ -276,7 +289,9 @@ def total_event_likelihood(
     """
     if binned_events is not None:
         if empirical_mfd is None:
-            num_obs_events = {mag: len(obs_eq) for mag, obs_eq in binned_events.items()}
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
         else:
             raise ValueError("Either use empirical_mfd or binned_events")
     else:
@@ -286,7 +301,9 @@ def total_event_likelihood(
     total_num_events = sum(num_obs_events.values())
 
     return bin_observance_log_likelihood(
-        total_num_events, total_model_rate, not_modeled_val=not_modeled_likelihood
+        total_num_events,
+        total_model_rate,
+        not_modeled_val=not_modeled_likelihood,
     )
 
 
@@ -340,7 +357,8 @@ def N_test_poisson(
         "conf_interval": (conf_min, conf_max),
         "inv_time_rate": rupture_rate,
         "n_obs_earthquakes": num_obs_events,
-        "pass": test_pass,
+        "test_res": test_res,
+        "test_pass": bool(test_pass),
     }
 
     return test_result
@@ -361,7 +379,9 @@ def N_test_neg_binom(
         )
         return N_test_poisson(num_obs_events, rupture_rate, conf_interval)
 
-    conf_min, conf_max = nbinom(r_dispersion, prob_success).interval(conf_interval)
+    conf_min, conf_max = nbinom(r_dispersion, prob_success).interval(
+        conf_interval
+    )
     test_pass = conf_min <= num_obs_events <= conf_max
 
     test_res = "Pass" if test_pass else "Fail"
@@ -372,7 +392,8 @@ def N_test_neg_binom(
         "conf_interval": (conf_min, conf_max),
         "inv_time_rate": rupture_rate,
         "n_obs_earthquakes": num_obs_events,
-        "pass": test_pass,
+        "test_res": test_res,
+        "test_pass": bool(test_pass),
     }
 
     return test_result

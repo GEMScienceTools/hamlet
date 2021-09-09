@@ -149,7 +149,9 @@ def N_test(
     test_rup_rate = annual_rup_rate * test_config["investigation_time"]
 
     if test_config["prob_model"] == "poisson":
-        test_result = N_test_poisson(n_obs, test_rup_rate, test_config["conf_interval"])
+        test_result = N_test_poisson(
+            n_obs, test_rup_rate, test_config["conf_interval"]
+        )
 
     elif test_config["prob_model"] == "neg_binom":
         n_eqs_in_subs = subdivide_observed_eqs(
@@ -174,16 +176,17 @@ def N_test(
         )
 
     else:
-        raise ValueError(f"{test_config['prob_model']} not a valid probability model")
+        raise ValueError(
+            f"{test_config['prob_model']} not a valid probability model"
+        )
 
-    if test_result["pass"] == True:
-        test_pass = "Pass"
-    else:
-        test_pass = "Fail"
-
-    logging.info("N-Test number obs eqs: {}".format(n_obs))
-    logging.info("N-Test number pred eqs: {}".format(test_rup_rate))
-    logging.info("N-Test {}".format(test_pass))
+    logging.info(
+        "N-Test number obs eqs: {}".format(test_result["n_obs_earthquakes"])
+    )
+    logging.info(
+        "N-Test number pred eqs: {}".format(test_result["inv_time_rate"])
+    )
+    logging.info("N-Test {}".format(test_result["test_pass"]))
 
     return test_result
 
