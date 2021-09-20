@@ -6,7 +6,11 @@ import numpy as np
 
 from openquake.hme.utils import deep_update
 from openquake.hme.core.core import load_inputs, cfg_defaults
-from openquake.hme.model_test_frameworks.relm.relm_tests import S_test, N_test, M_test
+from openquake.hme.model_test_frameworks.relm.relm_tests import (
+    S_test,
+    N_test,
+    M_test,
+)
 
 BASE_PATH = os.path.dirname(__file__)
 SM1_PATH = os.path.join(BASE_PATH, "..", "..", "data", "source_models", "sm1")
@@ -41,9 +45,7 @@ test_cfg = {
             "mfd_bin_width": 0.2,
             "h3_res": 3,
         },
-        "subset": {
-            "file": None
-        },
+        "subset": {"file": None},
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
@@ -62,8 +64,8 @@ test_cfg = {
         "rupture_file": {
             "rupture_file_path": None,
             "read_rupture_file": False,
-            "save_rupture_file": False
-        }
+            "save_rupture_file": False,
+        },
     },
 }
 
@@ -103,4 +105,4 @@ class test_relm_tests(unittest.TestCase):
         assert N_test_res["conf_interval"] == (2.0, 12.0)
         np.testing.assert_almost_equal(N_test_res["inv_time_rate"], rate)
         assert N_test_res["n_obs_earthquakes"] == 3
-        assert N_test_res["pass"]
+        assert N_test_res["test_pass"]

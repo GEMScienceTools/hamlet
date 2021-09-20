@@ -91,11 +91,17 @@ def render_result_text(
 
         if "likelihood" in results["gem"].keys():
             render_likelihood(
-                env=env, cfg=cfg, results=results, bin_gdf=bin_gdf, eq_gdf=eq_gdf
+                env=env,
+                cfg=cfg,
+                results=results,
+                bin_gdf=bin_gdf,
+                eq_gdf=eq_gdf,
             )
 
         if "moment_over_under" in results["gem"].keys():
-            render_moment_over_under(env=env, cfg=cfg, results=results, bin_gdf=bin_gdf)
+            render_moment_over_under(
+                env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
+            )
 
         if "max_mag_check" in results["gem"].keys():
             render_max_mag(env=env, cfg=cfg, results=results)
@@ -104,7 +110,9 @@ def render_result_text(
             render_gem_M_test(env=env, cfg=cfg, results=results)
 
         if "M_test" in results["gem"].keys():
-            render_gem_S_test(env=env, cfg=cfg, results=results, bin_gdf=bin_gdf)
+            render_gem_S_test(
+                env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
+            )
 
     if "relm" in results.keys():
         if "N_test" in results["relm"].keys():
@@ -135,8 +143,10 @@ def render_likelihood(
     eq_gdf: Optional[GeoDataFrame] = None,
 ) -> None:
 
-    total_log_like = np.sum(bin_gdf["log_like"]) / bin_gdf.shape[0]
-    total_log_like = "{0:2f}".format(total_log_like)
+    # total_log_like = np.sum(bin_gdf["log_like"]) / bin_gdf.shape[0]
+    total_log_like = "{0:2f}".format(
+        results["gem"]["likelihood"]["val"]["total_log_likelihood"]
+    )
 
     if "plot_eqs" in cfg["report"]["basic"].keys():
         plot_eqs = cfg["report"]["basic"]["plot_eqs"]
@@ -165,12 +175,12 @@ def render_likelihood(
 def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
 
     if results["gem"]["max_mag_check"]["val"] == []:
-        max_mag_results = "PASS: All bins produce seismicity greater than observed."
-    else:
         max_mag_results = (
-            "Bins {} have higher observed seismicity than they can produce.".format(
-                results["gem"]["max_mag_check"]["val"]
-            )
+            "PASS: All bins produce seismicity greater than observed."
+        )
+    else:
+        max_mag_results = "Bins {} have higher observed seismicity than they can produce.".format(
+            results["gem"]["max_mag_check"]["val"]
         )
 
     max_mag_template = env.get_template("max_mag_check.html")

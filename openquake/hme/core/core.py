@@ -13,12 +13,16 @@ from copy import deepcopy
 from typing import Union, Optional, Tuple
 import pdb
 
+import json
 import yaml
 import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils.io import process_source_logic_tree, write_mfd_plots_to_gdf
+from openquake.hme.utils.io import (
+    process_source_logic_tree,
+    write_mfd_plots_to_gdf,
+)
 
 from openquake.hme.utils.validate_inputs import validate_cfg
 
@@ -52,7 +56,11 @@ from openquake.hme.model_test_frameworks.sanity.sanity_checks import (
 
 Openable = Union[str, bytes, int, "os.PathLike[Any]"]
 
-test_dict = {"gem": gem_test_dict, "relm": relm_test_dict, "sanity": sanity_test_dict}
+test_dict = {
+    "gem": gem_test_dict,
+    "relm": relm_test_dict,
+    "sanity": sanity_test_dict,
+}
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -60,7 +68,11 @@ logger.addHandler(logging.NullHandler())
 cfg_defaults = {
     "input": {
         "bins": {"h3_res": 3},
-        "ssm": {"branch": None, "tectonic_region_types": None, "source_types": None},
+        "ssm": {
+            "branch": None,
+            "tectonic_region_types": None,
+            "source_types": None,
+        },
         "rupture_file": {
             "rupture_file_path": None,
             "read_rupture_file": False,
@@ -144,12 +156,17 @@ def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
 
     eq_gdf = make_earthquake_gdf_from_csv(seis_cat_file, **seis_cat_params)
 
-    if any([d in seis_cat_cfg for d in ["stop_date", "start_date", "duration"]]):
+    if any(
+        [d in seis_cat_cfg for d in ["stop_date", "start_date", "duration"]]
+    ):
         start_date = seis_cat_cfg.get("start_date")
         stop_date = seis_cat_cfg.get("stop_date")
         duration = seis_cat_cfg.get("duration")
         eq_gdf = trim_eq_catalog(
-            eq_gdf, start_date=start_date, stop_date=stop_date, duration=duration
+            eq_gdf,
+            start_date=start_date,
+            stop_date=stop_date,
+            duration=duration,
         )
 
     return eq_gdf
@@ -185,7 +202,10 @@ def load_pro_eq_catalog(cfg: dict) -> GeoDataFrame:
         stop_date = pro_cat_cfg.get("stop_date")
         duration = pro_cat_cfg.get("duration")
         eq_gdf = trim_eq_catalog(
-            eq_gdf, start_date=start_date, stop_date=stop_date, duration=duration
+            eq_gdf,
+            start_date=start_date,
+            stop_date=stop_date,
+            duration=duration,
         )
 
     return eq_gdf
@@ -245,9 +265,10 @@ def load_ruptures_from_ssm(cfg: dict):
     del ssm_lt_sources
 
     logger.info("  making geodataframe from ruptures")
-    #rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
-    rupture_gdf = rupture_dict_to_gdf(rupture_dict, weights,
-        parallel=cfg["config"]["parallel"])
+    # rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
+    rupture_gdf = rupture_dict_to_gdf(
+        rupture_dict, weights, parallel=cfg["config"]["parallel"]
+    )
     logger.info("  done preparing rupture dataframe")
 
     return rupture_gdf
@@ -315,7 +336,9 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     )
 
     logger.info("adding earthquakes to bins")
-    add_earthquakes_to_bins(eq_gdf, bin_gdf, h3_res=cfg["input"]["bins"]["h3_res"])
+    add_earthquakes_to_bins(
+        eq_gdf, bin_gdf, h3_res=cfg["input"]["bins"]["h3_res"]
+    )
 
     if "prospective_catalog" in cfg["input"].keys():
         logger.info("adding prospective earthquakes to bins")
@@ -367,7 +390,9 @@ def run_tests(cfg: dict) -> None:
 
     t_done_load = time.time()
     logger.info(
-        "Done loading and preparing model in {0:.2f} s".format(t_done_load - t_start)
+        "Done loading and preparing model in {0:.2f} s".format(
+            t_done_load - t_start
+        )
     )
 
     # This block of code takes test_lists, which is a dictionary of the
@@ -377,7 +402,9 @@ def run_tests(cfg: dict) -> None:
     test_lists = get_test_lists_from_config(cfg)
     test_inv = {
         framework: {
-            fn: name for name, fn in test_dict[framework].items() if fn in fw_tests
+            fn: name
+            for name, fn in test_dict[framework].items()
+            if fn in fw_tests
         }
         for framework, fw_tests in test_lists.items()
     }
@@ -398,7 +425,9 @@ def run_tests(cfg: dict) -> None:
             }
 
     t_done_eval = time.time()
-    logger.info("Done evaluating model in {0:.2f} s".format(t_done_eval - t_done_load))
+    logger.info(
+        "Done evaluating model in {0:.2f} s".format(t_done_eval - t_done_load)
+    )
 
     if "output" in cfg.keys():
         write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
@@ -407,9 +436,13 @@ def run_tests(cfg: dict) -> None:
         write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
 
     t_out_done = time.time()
-    logger.info("Done writing outputs in {0:.2f} s".format(t_out_done - t_done_eval))
     logger.info(
-        "Done with everything in {0:.2f} m".format((t_out_done - t_start) / 60.0)
+        "Done writing outputs in {0:.2f} s".format(t_out_done - t_done_eval)
+    )
+    logger.info(
+        "Done with everything in {0:.2f} m".format(
+            (t_out_done - t_start) / 60.0
+        )
     )
 
 
@@ -419,7 +452,10 @@ output processing
 
 
 def write_outputs(
-    cfg: dict, bin_gdf: GeoDataFrame, eq_gdf: GeoDataFrame, write_index: bool = False
+    cfg: dict,
+    bin_gdf: GeoDataFrame,
+    eq_gdf: GeoDataFrame,
+    write_index: bool = False,
 ) -> None:
     """
     Writes output GIS files and plots (i.e., maps or MFD plots.)

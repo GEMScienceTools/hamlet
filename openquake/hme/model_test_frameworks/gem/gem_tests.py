@@ -44,8 +44,16 @@ def mfd_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame):
     elif like_config["likelihood_method"] == "poisson":
         mfd_poisson_likelihood_test(cfg, bin_gdf)
 
-    if "report" in cfg.keys():
-        return bin_gdf.log_like.describe().to_frame().to_html()
+    total_log_like = np.sum(bin_gdf["log_like"]) / bin_gdf.shape[0]
+
+    # if "report" in cfg.keys():
+    #    return bin_gdf.log_like.describe().to_frame().to_html()
+    results = bin_gdf.log_like.describe().to_dict()
+    results["total_log_likelihood"] = (
+        np.sum(bin_gdf["log_like"]) / bin_gdf.shape[0]
+    )
+
+    return results
 
 
 def mfd_empirical_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
@@ -178,7 +186,9 @@ def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
 
     # evaluates the whole model
     model_moment_eval = eval_obs_moment_model(
-        bin_gdf.SpacemagBin, test_config["investigation_time"], test_config["n_iters"]
+        bin_gdf.SpacemagBin,
+        test_config["investigation_time"],
+        test_config["n_iters"],
     )
 
     bin_gdf["moment_rank_pctile"] = obs_moment_evals["obs_moment_rank"]
@@ -225,7 +235,9 @@ def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
         for bin_center, rate in bin_obs_mfd.items():
             obs_mfd[bin_center] += rate
 
-    mfd_df = pd.DataFrame.from_dict(mod_mfd, orient="index", columns=["mod_mfd"])
+    mfd_df = pd.DataFrame.from_dict(
+        mod_mfd, orient="index", columns=["mod_mfd"]
+    )
     mfd_df["mod_mfd_cum"] = np.cumsum(mfd_df["mod_mfd"].values[::-1])[::-1]
 
     mfd_df["obs_mfd"] = obs_mfd.values()

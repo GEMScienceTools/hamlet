@@ -66,7 +66,7 @@ def M_test(
     likelihood, because this lets us disregard the discretization of the MFD
     when comparing between different models. Note that in terms of passing or
     failing, (1) does not matter much if the model passes the N-test, and (2)
-    does not matter at all because the ranking of the observed and stochasitc
+    does not matter at all because the ranking of the observed and stochastic
     catalogs will remain the same.
     """
     logging.info("Running CSEP/RELM M-Test")

@@ -129,7 +129,7 @@ class test_relm_test_functions(unittest.TestCase):
         assert N_test_res["conf_interval"] == (0.0, 3.0)
         np.testing.assert_almost_equal(N_test_res["inv_time_rate"], rate)
         assert N_test_res["n_obs_earthquakes"] == 3
-        assert N_test_res["pass"]
+        assert N_test_res["test_pass"]
 
     @unittest.skip("not yet implemented")
     def test_N_test_neg_binom(self):
