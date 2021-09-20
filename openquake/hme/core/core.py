@@ -435,6 +435,9 @@ def run_tests(cfg: dict) -> None:
     if "report" in cfg.keys():
         write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
 
+    if "json" in cfg.keys():
+        write_json(cfg, results)
+
     t_out_done = time.time()
     logger.info(
         "Done writing outputs in {0:.2f} s".format(t_out_done - t_done_eval)
@@ -449,6 +452,20 @@ def run_tests(cfg: dict) -> None:
 """
 output processing
 """
+
+
+def write_json(cfg: dict, results: dict):
+    out_results = {}
+
+    for test_framework, test_results in results.items():
+        if test_framework not in out_results.keys():
+            out_results[test_framework] = {}
+        for test, res in test_results.items():
+            if test != "model_mfd":
+                out_results[test_framework][test] = res["val"]
+
+    with open(cfg["json"]["outfile"], "w") as f:
+        json.dump(out_results, f)
 
 
 def write_outputs(
