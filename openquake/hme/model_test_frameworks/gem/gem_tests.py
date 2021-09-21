@@ -274,8 +274,12 @@ def max_mag_check(cfg: dict, bin_gdf: GeoDataFrame):
 
     bad_bins = max_check(bin_gdf, append_check=True, warn=test_config["warn"])
 
-    if "report" in cfg.keys():
-        return bad_bins
+    if bad_bins == []:
+        results = {"test_res": "Pass", "test_pass": True, "bad_bins": bad_bins}
+    else:
+        results = {"test_res": "Fail", "test_pass": False, "bad_bins": bad_bins}
+
+    return results
 
 
 def M_test(
