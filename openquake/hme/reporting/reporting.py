@@ -7,6 +7,7 @@ import os
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from geopandas import GeoDataFrame
 from jinja2 import Environment, FileSystemLoader
@@ -144,8 +145,13 @@ def render_likelihood(
 ) -> None:
 
     # total_log_like = np.sum(bin_gdf["log_like"]) / bin_gdf.shape[0]
-    total_log_like = "{0:2f}".format(
-        results["gem"]["likelihood"]["val"]["total_log_likelihood"]
+    tot_like = results["gem"]["likelihood"]["val"].pop("total_log_likelihood")
+    total_log_like = "{0:2f}".format(tot_like)
+
+    likelihood_table = (
+        pd.Series(results["gem"]["likelihood"]["val"], name="log_likelihood")
+        .to_frame()
+        .to_html()
     )
 
     if "plot_eqs" in cfg["report"]["basic"].keys():
@@ -167,6 +173,7 @@ def render_likelihood(
     results["gem"]["likelihood"]["rendered_text"] = likelihood_template.render(
         cfg=cfg,
         results=results,
+        likelihood_table=likelihood_table,
         total_log_like=total_log_like,
         likelihood_map_str=likelihood_map_str,
     )
@@ -174,13 +181,13 @@ def render_likelihood(
 
 def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
 
-    if results["gem"]["max_mag_check"]["val"] == []:
+    if results["gem"]["max_mag_check"]["val"]["test_pass"]:
         max_mag_results = (
             "PASS: All bins produce seismicity greater than observed."
         )
     else:
         max_mag_results = "Bins {} have higher observed seismicity than they can produce.".format(
-            results["gem"]["max_mag_check"]["val"]
+            results["gem"]["max_mag_check"]["val"]["bad_bins"]
         )
 
     max_mag_template = env.get_template("max_mag_check.html")

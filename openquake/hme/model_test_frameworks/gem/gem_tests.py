@@ -191,6 +191,10 @@ def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
         test_config["n_iters"],
     )
 
+    model_moment_eval["stoch_moment_sums"] = list(
+        model_moment_eval["stoch_moment_sums"]
+    )
+
     bin_gdf["moment_rank_pctile"] = obs_moment_evals["obs_moment_rank"]
     bin_gdf["moment_ratio"] = obs_moment_evals["moment_ratio"]
 
