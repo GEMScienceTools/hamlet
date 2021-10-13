@@ -172,19 +172,24 @@ def rupture_dict_from_logic_tree_dict(
     """
 
     if parallel is True:
-        return {
-            branch_name: rupture_list_from_source_list_parallel(
+        rup_dict = {}
+        for i, (branch_name, source_list) in enumerate(logic_tree_dict.items()):
+            logging.info(
+                f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
+            )
+            rup_dict[branch_name] = rupture_list_from_source_list_parallel(
                 source_list, simple_ruptures=simple_ruptures, n_procs=n_procs
             )
-            for branch_name, source_list in logic_tree_dict.items()
-        }
     else:
-        return {
-            branch_name: rupture_list_from_source_list(
+        rup_dict = {}
+        for i, (branch_name, source_list) in enumerate(logic_tree_dict.items()):
+            logging.info(
+                f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
+            )
+            rup_dict[branch_name] = rupture_list_from_source_list(
                 source_list, simple_ruptures=simple_ruptures
             )
-            for branch_name, source_list in logic_tree_dict.items()
-        }
+    return rup_dict
 
 
 def rupture_list_from_source_list(
@@ -502,8 +507,6 @@ def scale_rup_rate(rup, rate_scale: float):
 def rupture_dict_to_gdf(
     rupture_dict, weights, gdf: bool = False, parallel: bool = True
 ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
-
-    breakpoint()
 
     gdfs = []
     for branch, branch_sources in rupture_dict.items():
