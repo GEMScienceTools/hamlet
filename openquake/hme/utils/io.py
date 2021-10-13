@@ -14,6 +14,8 @@ from openquake.hazardlib.source.rupture import (
     ParametricProbabilisticRupture,
     NonParametricProbabilisticRupture,
 )
+
+from openquake.commonlib import readinput, logs
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (
     AreaSource,
@@ -204,6 +206,100 @@ def process_source_logic_tree(
         weights = {branch: 1.0}
 
     return lt, weights
+
+
+def process_source_logic_tree_oq(
+    base_dir: str,
+    lt_file: str = "ssmLT.xml",
+    gmm_lt_file: str = "gmmLT.xml",
+    branch: Optional[str] = None,
+    source_types: Optional[Sequence] = None,
+    tectonic_region_types: Optional[Sequence] = None,
+    description: Optional[str] = None,
+    verbose: bool = False,
+):
+
+    branch_weights = get_branch_weights(base_dir, lt_file)
+    logging.info("weights: " + str(branch_weights))
+    job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
+
+    oqp = readinput.get_oqparam(job_ini)
+
+    if branch is not None:
+        logging.info(f"reading {branch} (1/1)")
+        branch_csms = {
+            branch: readinput.get_composite_source_model(oqp, branchID=branch)
+        }
+    else:
+        branch_csms = {}
+        # br: readinput.get_composite_source_model(oqp, branchID=br) }
+        for i, br in enumerate(branch_weights.keys()):
+            logging.info(f"reading {br} ({i+1}/{len(branch_weights.keys())})")
+            branch_csms[br] = readinput.get_composite_source_model(
+                oqp, branchID=br
+            )
+
+    branch_sources = {}
+
+    for branch, branch_csm in branch_csms.items():
+        br_sources = []
+        for src_group in branch_csm.src_groups:
+            if (
+                tectonic_region_types is None
+                or src_group.trt in tectonic_region_types
+            ):
+                for src in src_group.sources:
+                    if (
+                        source_types is None
+                        or src.__class__.__name__ in source_types
+                    ):
+                        br_sources.append(src)
+        branch_sources[branch] = br_sources
+
+    if branch is not None:
+        branch_weights = {branch, 1.0}
+
+    return branch_sources, branch_weights
+
+
+def get_branch_weights(base_dir: str, lt_file: str = "ssmLT.xml"):
+    ssm_lt_path = os.path.join(base_dir, lt_file)
+
+    lt = SourceModelLogicTree(ssm_lt_path)
+
+    weights = {
+        branch_name: lt.branches[branch_name].weight
+        for branch_name in lt.branches.keys()
+    }
+
+    return weights
+
+
+def make_job_ini(
+    base_dir: str,
+    lt_file: str = "ssmLT.xml",
+    gmm_lt_file: str = "gmmLT.xml",
+    description: Optional[str] = None,
+):
+    ssm_lt_path = os.path.join(base_dir, lt_file)
+    gmm_lt_path = os.path.join(base_dir, gmm_lt_file)
+    job_ini = dict(
+        calculation_mode="preclassical",
+        description=description,
+        rupture_mesh_spacing="2.0",
+        area_source_discretization="15.0",
+        width_of_mfd_bin="0.1",  # typically smaller than from cfg; use cfg?
+        reference_vs30_type="measured",
+        reference_vs30_value="800.0",
+        reference_depth_to_1pt0km_per_sec="30.0",
+        maximum_distance="200",
+        investigation_time="1.0",
+        inputs=dict(
+            source_model_logic_tree=ssm_lt_path, gsim_logic_tree=gmm_lt_path
+        ),
+    )
+
+    return job_ini
 
 
 def write_ruptures_to_file(
