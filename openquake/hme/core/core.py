@@ -72,6 +72,7 @@ cfg_defaults = {
             "branch": None,
             "tectonic_region_types": None,
             "source_types": None,
+            "max_depth": None,
         },
         "rupture_file": {
             "rupture_file_path": None,

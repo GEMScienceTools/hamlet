@@ -23,6 +23,7 @@ from openquake.hazardlib.source import (
     PointSource,
     MultiPointSource,
     SimpleFaultSource,
+    MultiFaultSource,
 )
 
 
@@ -48,6 +49,8 @@ def _source_to_series(source):
         source_type = "area"
     elif isinstance(source, (SimpleFaultSource, CharacteristicFaultSource)):
         source_type = "simple_fault"
+    elif isinstance(source, MultiFaultSource):
+        source_type = "multi_fault"
     elif isinstance(source, ComplexFaultSource):
         source_type = "complex_fault"
     elif isinstance(source, PointSource):
