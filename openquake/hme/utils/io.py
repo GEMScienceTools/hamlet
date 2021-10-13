@@ -233,6 +233,7 @@ def process_source_logic_tree_oq(
         branch_csms = {
             branch: readinput.get_composite_source_model(oqp, branchID=branch)
         }
+        branch_weights = {branch: 1.0}
     else:
         branch_csms = {}
         # br: readinput.get_composite_source_model(oqp, branchID=br) }
@@ -244,7 +245,7 @@ def process_source_logic_tree_oq(
 
     branch_sources = {}
 
-    for branch, branch_csm in branch_csms.items():
+    for br, branch_csm in branch_csms.items():
         br_sources = []
         for src_group in branch_csm.src_groups:
             if (
@@ -257,10 +258,7 @@ def process_source_logic_tree_oq(
                         or src.__class__.__name__ in source_types
                     ):
                         br_sources.append(src)
-        branch_sources[branch] = br_sources
-
-    if branch is not None:
-        branch_weights = {branch, 1.0}
+        branch_sources[br] = br_sources
 
     return branch_sources, branch_weights
 
