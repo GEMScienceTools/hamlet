@@ -305,6 +305,7 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         min_mag=cfg["input"]["bins"]["mfd_bin_min"],
         max_mag=cfg["input"]["bins"]["mfd_bin_max"],
         bin_width=cfg["input"]["bins"]["mfd_bin_width"],
+        max_depth=cfg["input"]["ssm"]["max_depth"],
     )
 
     logger.info("bin_gdf shape: {}".format(bin_gdf.shape))

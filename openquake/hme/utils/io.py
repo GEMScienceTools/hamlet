@@ -10,21 +10,27 @@ from openquake.hazardlib.geo.point import Point
 
 from openquake.hazardlib.source.rupture import (
     float5,
-    to_csv_array, 
-    ParametricProbabilisticRupture, 
-    NonParametricProbabilisticRupture)
+    to_csv_array,
+    ParametricProbabilisticRupture,
+    NonParametricProbabilisticRupture,
+)
 from openquake.commonlib.logictree import SourceModelLogicTree
-from openquake.hazardlib.source import (AreaSource, ComplexFaultSource,
-                                        CharacteristicFaultSource,
-                                        NonParametricSeismicSource,
-                                        PointSource, MultiPointSource,
-                                        SimpleFaultSource)
+from openquake.hazardlib.source import (
+    AreaSource,
+    ComplexFaultSource,
+    CharacteristicFaultSource,
+    NonParametricSeismicSource,
+    PointSource,
+    MultiPointSource,
+    SimpleFaultSource,
+)
 
 
 try:
     from openquake.hazardlib.geo.mesh import surface_to_array
 except ImportError:
     from openquake.hazardlib.geo.mesh import surface_to_arrays
+
     def surface_to_array(surface):
         return surface_to_arrays(surface)[0]
 
@@ -39,38 +45,42 @@ from .simple_rupture import SimpleRupture, rup_to_dict
 def _source_to_series(source):
 
     if isinstance(source, AreaSource):
-        source_type = 'area'
+        source_type = "area"
     elif isinstance(source, (SimpleFaultSource, CharacteristicFaultSource)):
-        source_type = 'simple_fault'
+        source_type = "simple_fault"
     elif isinstance(source, ComplexFaultSource):
-        source_type = 'complex_fault'
+        source_type = "complex_fault"
     elif isinstance(source, PointSource):
-        source_type = 'point'
+        source_type = "point"
     elif isinstance(source, MultiPointSource):
-        source_type = 'multipoint'
+        source_type = "multipoint"
     elif isinstance(source, NonParametricSeismicSource):
-        source_type = 'nonpar'
+        source_type = "nonpar"
     else:
         return
 
-    return pd.Series({
-        'source': source,
-        'tectonic_region_type': source.tectonic_region_type,
-        'source_type': source_type
-    })
+    return pd.Series(
+        {
+            "source": source,
+            "tectonic_region_type": source.tectonic_region_type,
+            "source_type": source_type,
+        }
+    )
 
 
-def sort_sources(branch_sources: dict,
-                 source_types: Optional[Sequence[str]] = None,
-                 tectonic_region_types: Optional[Sequence[str]] = None,
-                 branch: Optional[str] = None) -> dict:
+def sort_sources(
+    branch_sources: dict,
+    source_types: Optional[Sequence[str]] = None,
+    tectonic_region_types: Optional[Sequence[str]] = None,
+    branch: Optional[str] = None,
+) -> dict:
     """
     Creates lists of sources for each branch of interest, optionally filtering
     sources by `source_type` and `tectonic_region_type`.
 
     :param source_types:
-        Types of sources to collect sources from. Any values in 
-        (`simple_fault1, `complex_fault`, `area`, `point`, `multipoint`) 
+        Types of sources to collect sources from. Any values in
+        (`simple_fault1, `complex_fault`, `area`, `point`, `multipoint`)
         are allowed.  Must be passed as a sequence (i.e., a tuple or list).
         Specify `None` if all values are to be included.
 
@@ -96,14 +106,17 @@ def sort_sources(branch_sources: dict,
 
             for source_file in source_file_list:
                 try:
-                    sources_from_file = read(source_file,
-                                             get_info=False,
-                                             area_source_discretization=15.,
-                                             rupture_mesh_spacing=2.,
-                                             complex_fault_mesh_spacing=5.)
+                    sources_from_file = read(
+                        source_file,
+                        get_info=False,
+                        area_source_discretization=15.0,
+                        rupture_mesh_spacing=2.0,
+                        complex_fault_mesh_spacing=5.0,
+                    )
                 except Exception as e:
                     logging.warning(
-                        f'error reading {branch} {source_file}: {e}')
+                        f"error reading {branch} {source_file}: {e}"
+                    )
 
                 try:
                     sources_from_file
@@ -113,7 +126,8 @@ def sort_sources(branch_sources: dict,
                 for source in sources_from_file:
                     if isinstance(source, list):
                         source_list.extend(
-                            [_source_to_series(s) for s in source])
+                            [_source_to_series(s) for s in source]
+                        )
                     elif source is None:
                         pass
                     else:
@@ -124,22 +138,23 @@ def sort_sources(branch_sources: dict,
             else:
                 source_df = pd.concat(source_list, axis=1).transpose()
 
-            logging.info(f'source df shape:{source_df.shape}')
+            logging.info(f"source df shape:{source_df.shape}")
 
             if source_types is not None:
                 source_df = source_df[source_df.source_type.isin(source_types)]
             if tectonic_region_types is not None:
-                source_df = source_df[source_df.tectonic_region_type.isin(
-                    tectonic_region_types)]
+                source_df = source_df[
+                    source_df.tectonic_region_type.isin(tectonic_region_types)
+                ]
 
-            branch_source_lists[branch_name] = source_df['source'].to_list()
+            branch_source_lists[branch_name] = source_df["source"].to_list()
 
     return branch_source_lists
 
 
-def read_branch_sources(base_dir,
-                        lt_file='ssmLT.xml',
-                        branch: Optional[str] = None):
+def read_branch_sources(
+    base_dir, lt_file="ssmLT.xml", branch: Optional[str] = None
+):
     lt = SourceModelLogicTree(os.path.join(base_dir, lt_file))
 
     branch_sources = {}
@@ -147,34 +162,40 @@ def read_branch_sources(base_dir,
     for branch_name, branch_filename in lt.branches.items():
         if branch_name == branch or branch is None:
             try:
-                branch_sources[branch_name] = [os.path.join(base_dir, v) for v in
-                                  branch_filename.value.split()]
+                branch_sources[branch_name] = [
+                    os.path.join(base_dir, v)
+                    for v in branch_filename.value.split()
+                ]
                 weights[branch_name] = lt.branches[branch_name].weight
             except:
-                print('error in ', branch_name)
+                print("error in ", branch_name)
                 pass
 
     if len(weights.keys()) == 1:
-        weights[list(branch_sources.keys())[0]] = 1.
-    
+        weights[list(branch_sources.keys())[0]] = 1.0
+
     logging.info("weights: " + str(weights))
 
     return branch_sources, weights
 
 
-def process_source_logic_tree(base_dir: str,
-                              lt_file: str = 'ssmLT.xml',
-                              branch: Optional[str] = None,
-                              source_types: Optional[Sequence] = None,
-                              tectonic_region_types: Optional[Sequence] = None,
-                              verbose: bool = False):
+def process_source_logic_tree(
+    base_dir: str,
+    lt_file: str = "ssmLT.xml",
+    branch: Optional[str] = None,
+    source_types: Optional[Sequence] = None,
+    tectonic_region_types: Optional[Sequence] = None,
+    verbose: bool = False,
+):
     if verbose:
-        print('reading source branches')
-    branch_sources, weights = (read_branch_sources(base_dir, lt_file=lt_file))
-    lt = sort_sources(branch_sources,
-                      source_types=source_types,
-                      tectonic_region_types=tectonic_region_types,
-                      branch=branch)
+        print("reading source branches")
+    branch_sources, weights = read_branch_sources(base_dir, lt_file=lt_file)
+    lt = sort_sources(
+        branch_sources,
+        source_types=source_types,
+        tectonic_region_types=tectonic_region_types,
+        branch=branch,
+    )
 
     if verbose:
         print(lt.keys())
@@ -184,19 +205,24 @@ def process_source_logic_tree(base_dir: str,
 
     return lt, weights
 
-def write_ruptures_to_file(rupture_gdf: GeoDataFrame,
-                           rupture_file_path: str,
-                           simple_ruptures: bool = True):
+
+def write_ruptures_to_file(
+    rupture_gdf: GeoDataFrame,
+    rupture_file_path: str,
+    simple_ruptures: bool = True,
+):
     if simple_ruptures is True:
         write_simple_ruptures_to_file(rupture_gdf, rupture_file_path)
     else:
         write_oq_ruptures_to_file(rupture_gdf, rupture_file_path)
 
 
-def write_simple_ruptures_to_file(rupture_gdf: GeoDataFrame, 
-                                  rupture_file_path: str):
+def write_simple_ruptures_to_file(
+    rupture_gdf: GeoDataFrame, rupture_file_path: str
+):
     ruptures_out = pd.DataFrame.from_dict(
-        [rup_to_dict(rup) for rup in rupture_gdf["rupture"]])
+        [rup_to_dict(rup) for rup in rupture_gdf["rupture"]]
+    )
 
     rup_file_type = rupture_file_path.split(".")[-1]
     if rup_file_type == "hdf5":
@@ -209,37 +235,42 @@ def write_simple_ruptures_to_file(rupture_gdf: GeoDataFrame,
         raise ValueError("Cannot write to {} filetype".format(rup_file_type))
 
 
-def write_oq_ruptures_to_file(rupture_gdf: GeoDataFrame,
-                              rupture_file_path: str):
-    
-    outfile_type = rupture_file_path.split('.')[-1]
-    if outfile_type != 'json':
+def write_oq_ruptures_to_file(
+    rupture_gdf: GeoDataFrame, rupture_file_path: str
+):
+
+    outfile_type = rupture_file_path.split(".")[-1]
+    if outfile_type != "json":
         logging.warn("Writing JSON to {}".format(rupture_file_path))
-    
+
     out_json = {
-        'ruptures':
-        [oq_rupture_to_json(rup) for rup in rupture_gdf['rupture']]
+        "ruptures": [oq_rupture_to_json(rup) for rup in rupture_gdf["rupture"]]
     }
 
-    with open(rupture_file_path, 'w') as of:
+    with open(rupture_file_path, "w") as of:
         json.dump(out_json, of)
 
-def oq_rupture_to_json(rupture: Union[ParametricProbabilisticRupture, 
-                                      NonParametricProbabilisticRupture]):
+
+def oq_rupture_to_json(
+    rupture: Union[
+        ParametricProbabilisticRupture, NonParametricProbabilisticRupture
+    ]
+):
 
     mesh = surface_to_array(rupture.surface)
 
     rec = {}
-    rec['id'] = rupture.rup_id
-    rec['mag'] = rupture.mag
-    rec['rake'] = rupture.rake
-    rec['lon'] = rupture.hypocenter.x
-    rec['lat'] = rupture.hypocenter.y
-    rec['dep'] = rupture.hypocenter.z
-    rec['trt'] = rupture.tectonic_region_type
-    #rec['multiplicity'] = rup.multiplicity
-    rec['mesh'] = json.dumps(
-            [[[float5(z) for z in y] for y in x] for x in mesh])
+    rec["id"] = rupture.rup_id
+    rec["mag"] = rupture.mag
+    rec["rake"] = rupture.rake
+    rec["lon"] = rupture.hypocenter.x
+    rec["lat"] = rupture.hypocenter.y
+    rec["dep"] = rupture.hypocenter.z
+    rec["trt"] = rupture.tectonic_region_type
+    # rec['multiplicity'] = rup.multiplicity
+    rec["mesh"] = json.dumps(
+        [[[float5(z) for z in y] for y in x] for x in mesh]
+    )
 
     return rec
 
@@ -292,10 +323,13 @@ def _rupture_from_namedtuple(row):
 def _process_ruptures_from_df(rup_df: pd.DataFrame):
     rup_list = list(
         tqdm(
-            map(_rupture_from_namedtuple,
-                rup_df.itertuples(index=False, name="rup")),
+            map(
+                _rupture_from_namedtuple,
+                rup_df.itertuples(index=False, name="rup"),
+            ),
             total=len(rup_df),
-        ))
+        )
+    )
     rupture_df = rupture_list_to_gdf(rup_list)
     return rupture_df
 
@@ -305,18 +339,20 @@ def read_ruptures_from_dataframe(rup_df):
     return new_rup_df
 
 
-def make_mfd_plot(sbin: SpacemagBin,
-                  model: bool = True,
-                  model_format: str = 'C0-',
-                  model_label: str = 'model',
-                  observed: bool = False,
-                  observed_time: float = 1.,
-                  observed_format: str = 'C1o-.',
-                  observed_label: str = 'observed',
-                  return_fig: bool = True,
-                  return_string: bool = False,
-                  save_fig: Union[bool, str] = False,
-                  **kwargs):
+def make_mfd_plot(
+    sbin: SpacemagBin,
+    model: bool = True,
+    model_format: str = "C0-",
+    model_label: str = "model",
+    observed: bool = False,
+    observed_time: float = 1.0,
+    observed_format: str = "C1o-.",
+    observed_label: str = "observed",
+    return_fig: bool = True,
+    return_string: bool = False,
+    save_fig: Union[bool, str] = False,
+    **kwargs,
+):
     """
     :param save_fig:
         Either the filename to save to, or specify `False`.
@@ -331,28 +367,30 @@ def make_mfd_plot(sbin: SpacemagBin,
     else:
         obs_mfd = None
 
-    return plot_mfd(model=mod_mfd,
-                    model_format=model_format,
-                    model_label=model_label,
-                    observed=obs_mfd,
-                    observed_format=observed_format,
-                    observed_label=observed_label,
-                    return_fig=return_fig,
-                    return_string=return_string,
-                    save_fig=save_fig,
-                    **kwargs)
+    return plot_mfd(
+        model=mod_mfd,
+        model_format=model_format,
+        model_label=model_label,
+        observed=obs_mfd,
+        observed_format=observed_format,
+        observed_label=observed_label,
+        return_fig=return_fig,
+        return_string=return_string,
+        save_fig=save_fig,
+        **kwargs,
+    )
 
 
 def write_mfd_plots_to_gdf(bin_gdf: GeoDataFrame, **kwargs):
-    plot_series = bin_gdf['SpacemagBin'].apply(make_mfd_plot,
-                                               model_iters=0,
-                                               **kwargs)
-    bin_gdf['mfd_plots'] = plot_series
+    plot_series = bin_gdf["SpacemagBin"].apply(
+        make_mfd_plot, model_iters=0, **kwargs
+    )
+    bin_gdf["mfd_plots"] = plot_series
 
 
 def write_bin_gdf_to_csv(filename, bin_gdf: GeoDataFrame, index: bool = False):
-    bin_gdf['wkt'] = bin_gdf.apply(lambda row: row.geometry.to_wkt(), axis=1)
+    bin_gdf["wkt"] = bin_gdf.apply(lambda row: row.geometry.to_wkt(), axis=1)
 
-    bin_wkt = bin_gdf.drop(['geometry', 'SpacemagBin'], axis=1)
+    bin_wkt = bin_gdf.drop(["geometry", "SpacemagBin"], axis=1)
 
     bin_wkt.to_csv(filename, index=index)

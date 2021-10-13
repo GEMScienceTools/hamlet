@@ -550,6 +550,7 @@ def make_bin_gdf_from_rupture_gdf(
     min_mag: Optional[float] = 6.0,
     max_mag: Optional[float] = 9.0,
     bin_width: Optional[float] = 0.2,
+    max_depth: Optional[float] = None,
 ) -> gpd.GeoDataFrame:
     """
     Takes all of the ruptures, finds the `h3` spatial bins for each, and then
@@ -589,6 +590,16 @@ def make_bin_gdf_from_rupture_gdf(
     """
 
     n_procs = n_procs or _n_procs
+
+    if max_depth:
+        include = np.array(
+            [
+                rup.hypocenter.depth <= max_depth
+                for rup in rupture_gdf["rupture"]
+            ]
+        )
+        rupture_gdf = rupture_gdf[include]
+        del include
 
     logging.info("starting rupture-bin spatial join")
 
