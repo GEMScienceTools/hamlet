@@ -1,4 +1,7 @@
 cfg_1 = {
+    "meta": {
+        "description": "Test"
+        },
     "input": {
         "bins": {"h3_res": 3},
         "ssm": {"branch": None, "tectonic_region_types": None, "source_types": None},

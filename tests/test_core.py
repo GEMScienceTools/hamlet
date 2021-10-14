@@ -22,6 +22,7 @@ def test_read_yaml_config():
                 "source_types": None,
                 "ssm_dir": "../../../../data/source_models/sm1/",
                 "ssm_lt_file": "ssmLT.xml",
+                "max_depth": None,
             },
             "rupture_file": {
                 "rupture_file_path": None,

@@ -1,3 +1,5 @@
+meta:
+    description: Test
 config:
     model_framework:
         gem:

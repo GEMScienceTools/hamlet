@@ -25,6 +25,8 @@ RUP_CSV = os.path.join(SM1_PATH, "sm1_rups.csv")
 
 # Doing this here because it takes several seconds and should be done once
 cfg = {
+    "meta": {
+            "description": "test"},
     "config": {
         "model_framework": {
             "relm": {
@@ -61,6 +63,7 @@ cfg = {
             "branch": "b1",
             "tectonic_region_types": ["Active Shallow Crust"],
             "source_types": None,
+            "max_depth": None,
         },
         "seis_catalog": {
             "seis_catalog_file": DATA_FILE,

@@ -28,6 +28,8 @@ RUP_CSV = os.path.join(SM1_PATH, "sm1_rups.csv")
 
 # Doing this here because it takes several seconds and should be done once
 test_cfg = {
+    "meta": {
+            "description": "test"},
     "config": {
         "model_framework": {
             "relm": {
