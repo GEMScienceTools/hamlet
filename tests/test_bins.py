@@ -7,7 +7,11 @@ import numpy as np
 
 from openquake.hme.utils import deep_update
 from openquake.hme.core.core import load_inputs, cfg_defaults
-from openquake.hme.model_test_frameworks.relm.relm_tests import S_test, N_test, M_test
+from openquake.hme.model_test_frameworks.relm.relm_tests import (
+    S_test,
+    N_test,
+    M_test,
+)
 
 BASE_PATH = os.path.dirname(__file__)
 SM1_PATH = os.path.join(BASE_PATH, "data", "source_models", "sm1")
@@ -16,6 +20,7 @@ DATA_FILE = os.path.join(SM1_PATH, "data", "phl_eqs.csv")
 # Doing this here because it takes several seconds and should be done once
 
 test_cfg = {
+    "meta": {"description": "test"},
     "config": {
         "model_framework": {
             "relm": {

@@ -24,6 +24,8 @@ DATA_FILE = os.path.join(SM1_PATH, "data", "phl_synth_catalog.csv")
 
 # Doing this here because it takes several seconds and should be done once
 test_cfg = {
+    "meta": {
+        "description": "test"},
     "config": {
         "model_framework": {
             "relm": {

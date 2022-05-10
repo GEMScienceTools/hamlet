@@ -21,6 +21,7 @@ from geopandas import GeoDataFrame
 
 from openquake.hme.utils.io import (
     process_source_logic_tree,
+    process_source_logic_tree_oq,
     write_mfd_plots_to_gdf,
 )
 
@@ -72,6 +73,7 @@ cfg_defaults = {
             "branch": None,
             "tectonic_region_types": None,
             "source_types": None,
+            "max_depth": None,
         },
         "rupture_file": {
             "rupture_file_path": None,
@@ -247,12 +249,13 @@ def load_ruptures_from_ssm(cfg: dict):
     source_cfg: dict = cfg["input"]["ssm"]
 
     logger.info("  processing logic tree")
-    ssm_lt_sources, weights = process_source_logic_tree(
+    ssm_lt_sources, weights = process_source_logic_tree_oq(
         source_cfg["ssm_dir"],
         lt_file=source_cfg["ssm_lt_file"],
         source_types=source_cfg["source_types"],
         tectonic_region_types=source_cfg["tectonic_region_types"],
         branch=source_cfg["branch"],
+        description=cfg["meta"]["description"],
     )
 
     logger.info("  making dictionary of ruptures")
@@ -305,6 +308,7 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         min_mag=cfg["input"]["bins"]["mfd_bin_min"],
         max_mag=cfg["input"]["bins"]["mfd_bin_max"],
         bin_width=cfg["input"]["bins"]["mfd_bin_width"],
+        max_depth=cfg["input"]["ssm"]["max_depth"],
     )
 
     logger.info("bin_gdf shape: {}".format(bin_gdf.shape))

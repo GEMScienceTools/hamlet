@@ -1,3 +1,5 @@
+meta:
+    description: Test
 config:
     model_framework:
         gem:
@@ -19,8 +21,7 @@ input:
         ssm_dir: ../../../../data/source_models/sm1/
         ssm_lt_file: ssmLT.xml
         branch: b1
-        source_types:
-            - simple_fault
+        source_types: null
 
     seis_catalog:
         seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
