@@ -236,12 +236,19 @@ def process_source_logic_tree_oq(
         branch_weights = {branch: 1.0}
     else:
         branch_csms = {}
-        # br: readinput.get_composite_source_model(oqp, branchID=br) }
-        for i, br in enumerate(branch_weights.keys()):
-            logging.info(f"reading {br} ({i+1}/{len(branch_weights.keys())})")
-            branch_csms[br] = readinput.get_composite_source_model(
-                oqp, branchID=br
-            )
+        try:
+            # br: readinput.get_composite_source_model(oqp, branchID=br) }
+            for i, br in enumerate(branch_weights.keys()):
+                logging.info(
+                    f"reading {br} ({i+1}/{len(branch_weights.keys())})"
+                )
+                branch_csms[br] = readinput.get_composite_source_model(
+                    oqp, branchID=br
+                )
+        except Exception as e:
+            logging.warn("Can't parse branches in source model... Combining.")
+            branch_csms["composite"] = readinput.get_composite_source_model(oqp)
+            branch_weights = {"composite": 1.0}
 
     branch_sources = {}
 
