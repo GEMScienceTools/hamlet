@@ -250,6 +250,11 @@ def _process_rup(
     simple_ruptures=True,
 ):
 
+    if hasattr(source, "weight"):
+        source_weight = source.weight
+    else:
+        source_weight = 1.0
+
     try:
         if simple_ruptures is False:
             rup.source = source.source_id
@@ -278,11 +283,15 @@ def _process_rup(
                 hypocenter=rup.hypocenter,
                 occurrence_rate=occurrence_rate,
             )
+
+        rup.occurrence_rate *= source_weight
+
         return rup
     except:
         rup.source = source.source_id
         if isinstance(rup, NonParametricProbabilisticRupture):
             rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
+        rup.occurrence_rate *= source_weight
         return rup
 
 
