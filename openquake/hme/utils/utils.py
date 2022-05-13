@@ -14,6 +14,7 @@ import dateutil
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+from scipy.stats import poisson
 
 from h3 import h3
 
@@ -1310,7 +1311,9 @@ def get_n_eqs_from_mfd(mfd: dict):
         return sum(len(val) for val in mfd.values())
 
 
-def get_model_mfd(bin_gdf: gpd.GeoDataFrame, cumulative: bool = False) -> dict:
+def get_model_mfd_old(
+    bin_gdf: gpd.GeoDataFrame, cumulative: bool = False
+) -> dict:
     mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
     mag_bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
 
@@ -1333,7 +1336,7 @@ def get_model_mfd(bin_gdf: gpd.GeoDataFrame, cumulative: bool = False) -> dict:
     return mod_mfd
 
 
-def get_obs_mfd(
+def get_obs_mfd_old(
     bin_gdf: gpd.GeoDataFrame,
     t_yrs: float,
     prospective: bool = False,
@@ -1399,3 +1402,120 @@ def get_total_obs_eqs(
                 obs_eqs.extend(mb)
 
     return obs_eqs
+
+
+def get_mag_bins(min_mag, max_mag, bin_width):
+    bc = round(min_mag, 2)
+    bcs = [bc]
+    while bc <= max_mag:
+        bc += bin_width
+        bcs.append(round(bc, 2))
+
+    def get_mag_bin(bc, bin_width=bin_width):
+        half_width = bin_width / 2.0
+        return (round(bc - half_width, 2), round(bc + half_width, 2))
+
+    mag_bins = {bc: get_mag_bin(bc) for bc in bcs}
+
+    return mag_bins
+
+
+def get_mag_bins_from_cfg(cfg):
+    return get_mag_bins(
+        cfg["input"]["bins"]["mfd_bin_min"],
+        cfg["input"]["bins"]["mfd_bin_max"],
+        cfg["input"]["bins"]["mfd_bin_width"],
+    )
+
+
+def get_model_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
+
+    return get_rup_df_mfd(
+        rdf, mag_bins, cumulative=cumulative, delete_col=delete_col
+    )
+
+
+def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
+
+    bin_centers = np.array(sorted(mag_bins.keys()))
+
+    if "mag_bin" not in rdf.columns:
+        rdf["mag_bin"] = [_nearest_bin(mag, bin_centers) for mag in rdf.mag]
+
+    mag_bin_groups = rdf.groupby("mag_bin")
+
+    mfd = {}
+
+    for bc in bin_centers:
+        mfd[bc] = 0.0
+        if bc in mag_bin_groups.groups.keys():
+            mfd[bc] += rdf.loc[mag_bin_groups.groups[bc]].occurrence_rate.sum()
+
+    if cumulative is True:
+        cum_mfd = {}
+        cum_mag = 0.0
+        # dict has descending order
+        for cb in bin_centers[::-1]:
+            cum_mag += mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # makde new dict with ascending order
+        mfd = {cb: cum_mfd[cb] for cb in bin_centers}
+
+    if delete_col:
+        del rdf["mag_bin"]
+
+    return mfd
+
+
+def get_obs_mfd(
+    rdf, mag_bins, t_yrs: float = 1.0, cumulative=False, delete_col=False
+):
+    bin_centers = np.array(sorted(mag_bins.keys()))
+
+    rdf["mag_bin"] = [_nearest_bin(mag, bin_centers) for mag in rdf.magnitude]
+
+    mag_bin_groups = rdf.groupby("mag_bin")
+
+    mfd = {}
+
+    for bc in bin_centers:
+        mfd[bc] = 0.0
+        if bc in mag_bin_groups.groups.keys():
+            mfd[bc] += (
+                rdf.loc[mag_bin_groups.groups[bc]].magnitude.count() / t_yrs
+            )
+
+    if cumulative is True:
+        cum_mfd = {}
+        cum_mag = 0.0
+        # dict has descending order
+        for cb in bin_centers[::-1]:
+            cum_mag += mfd[cb]
+            cum_mfd[cb] = cum_mag
+
+        # makde new dict with ascending order
+        mfd = {cb: cum_mfd[cb] for cb in bin_centers}
+
+    if delete_col:
+        del rdf["mag_bin"]
+
+    return mfd
+
+
+def sample_rups(rup_df, t_yrs):
+    n_rups = poisson.rvs(rup_df["occurrence_rate"] * t_yrs)
+    sample_idx = n_rups > 0
+    n_samples_per_rup = n_rups[sample_idx]
+    rup_rows = rup_df.index[sample_idx]
+
+    sampled_rups = []
+
+    for i, row in enumerate(rup_rows):
+        n = n_samples_per_rup[i]
+        for i in range(n):
+            sampled_rups.append(rup_df.loc[row])
+
+    sampled_rups = pd.concat(sample_rups, axis=1).T
+
+    return sampled_rups

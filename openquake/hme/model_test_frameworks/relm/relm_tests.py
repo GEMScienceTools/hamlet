@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from webbrowser import get
 
 import numpy as np
 from numpy.lib.function_base import append
@@ -10,7 +11,12 @@ from openquake.hme.utils.stats import (
     negative_binomial_distribution,
     estimate_negative_binom_parameters,
 )
-from openquake.hme.utils import get_source_bins, get_n_eqs_from_mfd
+from openquake.hme.utils import (
+    get_mag_bins_from_cfg,
+    # get_source_bins,
+    # get_n_eqs_from_mfd,
+)
+
 from openquake.hme.utils.plots import plot_mfd
 from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
@@ -26,15 +32,146 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     s_test_gdf_series,
     m_test_function,
     s_test_function,
+    n_test_function,
+    l_test_function,
 )
 
 
-def L_test():
-    #
-    raise NotImplementedError
+def M_test(cfg, input_data):
+    logging.info("Running CSEP/RELM M-Test")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    test_config = cfg["config"]["model_framework"]["relm"]["M_test"]
+    prospective = test_config.get("prospective", False)
+    critical_pct = test_config.get("critical_pct", 0.25)
+    t_yrs = test_config["investigation_time"]
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+
+    test_result = m_test_function(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        mag_bins,
+        t_yrs,
+        test_config["n_iters"],
+        not_modeled_likelihood=0.0,
+        critical_pct=critical_pct,
+    )
+
+    logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))
+    logging.info("M-Test pct {}".format(test_result["percentile"]))
+    logging.info("M-Test {}".format(test_result["test_res"]))
+    return test_result
 
 
-def M_test(
+def S_test(
+    cfg: dict,
+    input_data: dict,
+) -> dict:
+    """"""
+    logging.info("Running S-Test")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
+    t_yrs = test_config["investigation_time"]
+    prospective = test_config.get("prospective", False)
+    append_results = test_config.get("append")
+    likelihood_function = test_config.get("likelihood_function", "mfd")
+    not_modeled_likelihood = 0.0  # hardcoded for RELM
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+        eq_groups = input_data["pro_groups"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+        eq_groups = input_data["eq_groups"]
+
+    test_results = s_test_function(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        input_data["cell_groups"],
+        eq_groups,
+        t_yrs,
+        test_config["n_iters"],
+        likelihood_function,
+        mag_bins=mag_bins,
+        critical_pct=test_config["critical_pct"],
+        append_results=append_results,
+        not_modeled_likelihood=not_modeled_likelihood,
+    )
+
+    logging.info("S-Test {}".format(test_results["test_res"]))
+    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
+    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
+    return test_results
+
+
+def L_test(
+    cfg: dict,
+    input_data: dict,
+) -> dict:
+    """"""
+    raise NotImplementedError()
+    logging.info("Running L-Test")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    test_config = cfg["config"]["model_framework"]["relm"]["L_test"]
+    t_yrs = test_config["investigation_time"]
+    prospective = test_config.get("prospective", False)
+    append_results = test_config.get("append")
+    test_config["not_modeled_likelihood"] = 0.0  # hardcoded for RELM
+
+    test_results = l_test_function(
+        input_data["rupture_gdf"],
+        input_data["eq_gdf"],
+        input_data["cell_groups"],
+        input_data["eq_groups"],
+        t_yrs,
+        test_config["n_iters"],
+        mag_bins,
+        prospective=prospective,
+        critical_pct=test_config["critical_pct"],
+        append_results=append_results,
+    )
+
+    logging.info("L-Test {}".format(test_results["test_res"]))
+    logging.info("L-Test crit pct: {}".format(test_results["critical_pct"]))
+    logging.info("L-Test model pct: {}".format(test_results["percentile"]))
+    return test_results
+
+
+def N_test(cfg: dict, input_data: dict) -> dict:
+    logging.info("Running N-Test")
+
+    test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
+    prospective = test_config.get("prospective", False)
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+
+    test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
+
+    test_results = n_test_function(
+        input_data["rupture_gdf"], eq_gdf, test_config
+    )
+
+    logging.info("N-Test {}".format(test_results["test_res"]))
+    # logging.info("N-Test conf pct: {}".format(test_results["critical_pct"]))
+    # logging.info("N-Test model pct: {}".format(test_results["percentile"]))
+    return test_results
+
+
+"""
+OBSOLETE
+"""
+
+
+def M_test_old(
     cfg,
     bin_gdf: Optional[GeoDataFrame] = None,
 ) -> dict:
@@ -94,7 +231,7 @@ def M_test(
     return test_result
 
 
-def S_test(
+def S_test_old(
     cfg: dict,
     bin_gdf: GeoDataFrame,
 ) -> dict:
@@ -123,7 +260,7 @@ def S_test(
     return test_results
 
 
-def N_test(
+def N_test_old(
     cfg: dict,
     bin_gdf: Optional[GeoDataFrame] = None,
 ) -> dict:

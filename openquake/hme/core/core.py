@@ -288,7 +288,7 @@ def load_ruptures_from_ssm(cfg: dict):
     return rupture_gdf
 
 
-def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
+def load_inputs(cfg: dict) -> dict:
     """
     Loads all of the inputs specified by the `cfg` and returns a tuple of
     :class:`GeoDataFrame` objects, the earthquake catalog and the bins.
@@ -297,6 +297,7 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         Configuration for the evaluations, such as that parsed from the YAML
         config file.
     """
+
     eq_gdf = load_obs_eq_catalog(cfg)
 
     if cfg["input"]["rupture_file"]["read_rupture_file"] is True:
@@ -311,6 +312,9 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
             cfg["input"]["rupture_file"]["rupture_file_path"],
             cfg["input"]["simple_ruptures"],
         )
+
+    logging.info("grouping ruptures by cell")
+    cell_groups = rupture_gdf.groupby("cell_id")
 
     # bin_gdf = make_bin_gdf_from_rupture_gdf(
     #    rupture_gdf,
@@ -355,10 +359,28 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
     # add_earthquakes_to_bins(
     #    eq_gdf, bin_gdf, h3_res=cfg["input"]["bins"]["h3_res"]
     # )
+    logging.info("trimming earthquake catalog")
+    cells_in_model = rupture_gdf.cell_id.unique()
+    eq_in_model = (cell_id in cells_in_model for cell_id in eq_gdf.cell_id)
+    eq_gdf = eq_gdf.loc[eq_in_model]
+
+    logging.info("grouping earthquakes by cell")
+    eq_groups = eq_gdf.groupby("cell_id")
+
+    input_data = {
+        "rupture_gdf": rupture_gdf,
+        "cell_groups": cell_groups,
+        "eq_gdf": eq_gdf,
+        "eq_groups": eq_groups,
+    }
 
     if "prospective_catalog" in cfg["input"].keys():
         # logger.info("adding prospective earthquakes to bins")
         pro_gdf = load_pro_eq_catalog(cfg)
+        pro_eq_in_model = (
+            cell_id in cells_in_model for cell_id in pro_gdf.cell_id
+        )
+        pro_eq_gdf = pro_gdf.loc[pro_eq_in_model]
         # add_earthquakes_to_bins(
         #    pro_gdf,
         #    bin_gdf,
@@ -366,11 +388,10 @@ def load_inputs(cfg: dict) -> Tuple[GeoDataFrame]:
         #    category="prospective",
         # )
         # return rupture_gdf, bin_gdf, eq_gdf, pro_gdf
-        return rupture_gdf, eq_gdf, pro_gdf
+        input_data["pro_gdf"] = pro_gdf
+        input_data["pro_groups"] = pro_gdf.groupby("cell_id")
 
-    else:
-        # return rupture_gdf, bin_gdf, eq_gdf
-        return rupture_gdf, eq_gdf
+    return input_data
 
 
 """
@@ -400,11 +421,13 @@ def run_tests(cfg: dict) -> None:
     except KeyError:
         pass
 
-    if "prospective_catalog" in cfg["input"].keys():
-        rup_gdf, bin_gdf, eq_gdf, pro_gdf = load_inputs(cfg)
-    else:
-        rup_gdf, bin_gdf, eq_gdf = load_inputs(cfg)
-        pro_gdf = None
+    # if "prospective_catalog" in cfg["input"].keys():
+    #    rup_gdf, bin_gdf, eq_gdf, pro_gdf = load_inputs(cfg)
+    # else:
+    #    rup_gdf, bin_gdf, eq_gdf = load_inputs(cfg)
+    #    pro_gdf = None
+
+    input_data = load_inputs(cfg)
 
     t_done_load = time.time()
     logger.info(
@@ -439,7 +462,7 @@ def run_tests(cfg: dict) -> None:
         results[framework] = {}
         for test in tests:
             results[framework][test_inv[framework][test]] = {
-                "val": test(cfg, bin_gdf=bin_gdf)
+                "val": test(cfg, input_data)
             }
 
     t_done_eval = time.time()
@@ -448,12 +471,15 @@ def run_tests(cfg: dict) -> None:
     )
 
     if "output" in cfg.keys():
+        raise NotImplementedError()
         write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
 
     if "report" in cfg.keys():
+        raise NotImplementedError()
         write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
 
     if "json" in cfg.keys():
+        raise NotImplementedError()
         write_json(cfg, results)
 
     t_out_done = time.time()

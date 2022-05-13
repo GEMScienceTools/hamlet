@@ -8,9 +8,10 @@ from datetime import datetime, timedelta
 
 import h3
 import numpy as np
-from numpy.lib.arraysetops import unique
-from scipy.stats import poisson, nbinom
+from pandas import DataFrame
 from geopandas import GeoDataFrame
+from scipy.stats import poisson, nbinom
+from numpy.lib.arraysetops import unique
 
 from openquake.hme.utils.bins import SpacemagBin
 from openquake.hme.utils import (
@@ -30,7 +31,363 @@ from openquake.hme.model_test_frameworks.relm.relm_stats import (
 )
 
 
+"""
+NEW
+"""
+
+
+def l_test_function(
+    # bin_gdf: GeoDataFrame,
+    rup_gdf: GeoDataFrame,
+    eq_gdf: GeoDataFrame,
+    cell_groups,
+    eq_groups,
+    t_yrs: float,
+    n_iters: int,
+    mag_bins,
+    critical_pct: float = 0.25,
+    not_modeled_likelihood: float = 0.0,
+    append_results: bool = False,
+):
+
+    cell_like_cfg = {
+        "investigation_time": t_yrs,
+        "likelihood_fn": "mfd",
+        "not_modeled_likelihood": not_modeled_likelihood,
+        "n_iters": n_iters,
+        "N_norm": 1.0,
+        "mag_bins": mag_bins,
+    }
+
+    cell_likes = s_test_cells(
+        cell_groups, rup_gdf, eq_groups, eq_gdf, cell_like_cfg
+    )
+
+    cells = sorted(cell_likes.keys())
+
+    obs_likes = np.array([cell_likes[cell]["obs_loglike"] for cell in cells])
+    stoch_likes = np.vstack(
+        [cell_likes[cell]["stoch_loglikes"] for cell in cells]
+    ).T
+    bad_bins = list(
+        unique(list(chain(*[cell_likes[cell]["bad_bins"] for cell in cells])))
+    )
+
+    obs_like_total = sum(obs_likes)
+    stoch_like_totals = np.sum(stoch_likes, axis=1)
+
+    pctile = (
+        len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
+    )
+
+    test_pass = True if pctile >= critical_pct else False
+    test_res = "Pass" if test_pass else "Fail"
+
+    test_result = {
+        "critical_pct": critical_pct,
+        "percentile": pctile,
+        "test_pass": bool(test_pass),
+        "test_res": test_res,
+        "bad_bins": bad_bins,
+        "test_data": {
+            "obs_loglike": obs_likes,
+            "stoch_loglike": stoch_likes,
+        },
+    }
+
+    return test_result
+
+
 def m_test_function(
+    rup_gdf,
+    eq_gdf,
+    mag_bins: dict,
+    t_yrs: float,
+    n_iters: int,
+    not_modeled_likelihood: float = 0.0,
+    critical_pct: float = 0.25,
+):
+
+    mod_mfd = get_model_mfd(rup_gdf, mag_bins)
+    obs_mfd = get_obs_mfd(eq_gdf, mag_bins, t_yrs=t_yrs)
+
+    # calculate log-likelihoods
+    n_bins = len(mod_mfd.keys())
+
+    stochastic_eq_counts = {
+        bc: np.random.poisson((rate * t_yrs), size=n_iters)
+        for bc, rate in mod_mfd.items()
+    }
+
+    bin_log_likelihoods = {
+        bc: [
+            poisson_log_likelihood(
+                n_stoch,
+                (mod_mfd[bc] * t_yrs),
+                not_modeled_val=not_modeled_likelihood,
+            )
+            for n_stoch in eq_counts
+        ]
+        for bc, eq_counts in stochastic_eq_counts.items()
+    }
+
+    stoch_geom_mean_likes = np.array(
+        [
+            np.exp(
+                np.sum([bll_mag[i] for bll_mag in bin_log_likelihoods.values()])
+                / n_bins
+            )
+            for i in range(n_iters)
+        ]
+    )
+
+    obs_geom_mean_like = np.exp(
+        np.sum(
+            [
+                poisson_log_likelihood(
+                    int(obs_mfd[bc] * t_yrs),
+                    rate * t_yrs,
+                )
+                for bc, rate in mod_mfd.items()
+            ]
+        )
+        / n_bins
+    )
+
+    pctile = (
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
+        / n_iters
+    )
+
+    test_pass = True if pctile >= critical_pct else False
+    test_res = "Pass" if test_pass else "Fail"
+
+    test_result = {
+        "critical_pct": critical_pct,
+        "percentile": pctile,
+        "test_pass": test_pass,
+        "test_res": test_res,
+        "test_data": {
+            "stoch_geom_mean_likes": stoch_geom_mean_likes.tolist(),
+            "obs_geom_mean_like": obs_geom_mean_like,
+        },
+    }
+
+    return test_result
+
+
+def s_test_function(
+    # bin_gdf: GeoDataFrame,
+    rup_gdf: GeoDataFrame,
+    eq_gdf: GeoDataFrame,
+    cell_groups,
+    eq_groups,
+    t_yrs: float,
+    n_iters: int,
+    likelihood_fn: str,
+    mag_bins,
+    critical_pct: float = 0.25,
+    not_modeled_likelihood: float = 0.0,
+    append_results: bool = False,
+):
+    N_obs = len(eq_gdf)
+    N_pred = rup_gdf.occurrence_rate.sum() * t_yrs
+    # N_pred = get_model_annual_eq_rate(bin_gdf) * t_yrs
+    N_norm = N_obs / N_pred
+
+    cell_like_cfg = {
+        "investigation_time": t_yrs,
+        "likelihood_fn": likelihood_fn,
+        "not_modeled_likelihood": not_modeled_likelihood,
+        "n_iters": n_iters,
+        "N_norm": N_norm,
+        "mag_bins": mag_bins,
+    }
+
+    cell_likes = s_test_cells(
+        cell_groups, rup_gdf, eq_groups, eq_gdf, cell_like_cfg
+    )
+
+    cells = sorted(cell_likes.keys())
+
+    obs_likes = np.array([cell_likes[cell]["obs_loglike"] for cell in cells])
+    stoch_likes = np.vstack(
+        [cell_likes[cell]["stoch_loglikes"] for cell in cells]
+    ).T
+    bad_bins = list(
+        unique(list(chain(*[cell_likes[cell]["bad_bins"] for cell in cells])))
+    )
+
+    obs_like_total = sum(obs_likes)
+    stoch_like_totals = np.sum(stoch_likes, axis=1)
+
+    if append_results:
+        raise NotImplementedError()
+        # bin_pcts = []
+        # for i, obs_like in enumerate(obs_likes):
+        #    stoch_like = stoch_likes[:, i]
+        #    bin_pct = len(stoch_like[stoch_like <= obs_like]) / n_iters
+        #    bin_pcts.append(bin_pct)
+        # bin_gdf["S_bin_pct"] = bin_pcts
+
+        # bin_gdf["N_model"] = bin_gdf.SpacemagBin.apply(
+        #    lambda x: get_n_eqs_from_mfd(x.get_rupture_mfd()) * t_yrs
+        # )
+
+        # bin_gdf["N_obs"] = bin_gdf.SpacemagBin.apply(
+        #    lambda x: get_n_eqs_from_mfd(x.observed_earthquakes)
+        # )
+
+    pctile = (
+        len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
+    )
+
+    test_pass = True if pctile >= critical_pct else False
+    test_res = "Pass" if test_pass else "Fail"
+
+    test_result = {
+        "critical_pct": critical_pct,
+        "percentile": pctile,
+        "test_pass": bool(test_pass),
+        "test_res": test_res,
+        "bad_bins": bad_bins,
+        "test_data": {
+            "obs_loglike": obs_likes,
+            "stoch_loglike": stoch_likes,
+            "cell_loglikes": cell_likes,
+        },
+    }
+
+    return test_result
+
+
+def s_test_cells(cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg):
+
+    s_test_cell_results = {}
+
+    for cell_id in cell_groups.groups.keys():
+        cell_rups = rup_gdf.loc[cell_groups.groups[cell_id]]
+        if cell_id in eq_groups.groups:
+            cell_eqs = eq_gdf.loc[eq_groups.groups[cell_id]]
+        else:
+            cell_eqs = DataFrame(columns=eq_gdf.columns)
+
+        s_test_cell_results[cell_id] = s_test_cell(
+            cell_rups, cell_eqs, test_cfg
+        )
+
+    return s_test_cell_results
+
+
+def s_test_cell(rup_gdf, eq_gdf, test_cfg, N_norm: float = 1.0):
+
+    t_yrs = test_cfg["investigation_time"]
+    mag_bins = test_cfg["mag_bins"]
+    like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]
+    not_modeled_likelihood = test_cfg["not_modeled_likelihood"]
+    N_norm = test_cfg["N_norm"]
+    not_modeled_log_like = (
+        -np.inf
+        if not_modeled_likelihood == 0.0
+        else np.log(not_modeled_likelihood)
+    )
+
+    rate_mfd = get_model_mfd(rup_gdf, mag_bins)
+    rate_mfd = {mag: t_yrs * rate * N_norm for mag, rate in rate_mfd.items()}
+
+    obs_mfd = get_obs_mfd(eq_gdf, mag_bins, t_yrs=1.0)
+    obs_L, likes = like_fn(rate_mfd, empirical_mfd=obs_mfd, return_likes=True)
+
+    # handle bins with eqs but no rups
+    bad_bins = []
+    for like in likes:
+        if like == not_modeled_log_like:
+            logging.warn("CAN'T HANDLE NOT MODELED VALS YET")
+            # bad_bins.append(sbin.bin_id)
+            # bin_ctr = h3.h3_to_geo(sbin.bin_id)
+            # bin_ctr = (round(bin_ctr[0], 3), round(bin_ctr[1], 3))
+            # logging.warn(f"{sbin.bin_id} {bin_ctr} has zero likelihood")
+            # obs_mfd = sbin.get_empirical_mfd(cumulative=False)
+            # for mag, rate in rate_mfd.items():
+            #    if rate == 0.0 and obs_mfd[mag] > 0.0:
+            #        logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
+
+    stoch_rup_counts = [
+        get_poisson_counts_from_mfd(rate_mfd).copy()
+        for i in range(test_cfg["n_iters"])
+    ]
+
+    # calculate L for iterated stochastic event sets
+    stoch_Ls = np.array(
+        [
+            like_fn(
+                rate_mfd,
+                empirical_mfd=stoch_rup_counts[i],
+                not_modeled_likelihood=not_modeled_likelihood,
+            )
+            for i in range(test_cfg["n_iters"])
+        ]
+    )
+
+    return {
+        "obs_loglike": obs_L,
+        "stoch_loglikes": stoch_Ls,
+        "bad_bins": bad_bins,
+    }
+
+
+def n_test_function(rup_gdf, eq_gdf, test_config):
+
+    if "prospective" not in test_config.keys():
+        prospective = False
+    else:
+        prospective = test_config["prospective"]
+
+    if "conf_interval" not in test_config:
+        test_config["conf_interval"] = 0.95
+
+    annual_rup_rate = rup_gdf.occurrence_rate.sum()
+    n_obs = len(eq_gdf)
+
+    test_rup_rate = annual_rup_rate * test_config["investigation_time"]
+
+    if test_config["prob_model"] == "poisson":
+        test_result = N_test_poisson(
+            n_obs, test_rup_rate, test_config["conf_interval"]
+        )
+
+    elif test_config["prob_model"] == "neg_binom":
+        raise NotImplementedError("can't subdivide earthquakes yet")
+        n_eqs_in_subs = subdivide_observed_eqs(
+            bin_gdf, test_config["investigation_time"]
+        )
+
+        if prospective:
+            prob_success, r_dispersion = estimate_negative_binom_parameters(
+                n_eqs_in_subs, test_rup_rate
+            )
+        else:
+            prob_success, r_dispersion = estimate_negative_binom_parameters(
+                n_eqs_in_subs
+            )
+
+        test_result = N_test_neg_binom(
+            n_obs,
+            test_rup_rate,
+            prob_success,
+            r_dispersion,
+            test_config["conf_interval"],
+        )
+
+    return test_result
+
+
+"""
+OLD AS
+"""
+
+
+def m_test_function_old(
     bin_gdf,
     t_yrs: float,
     n_iters: int,
@@ -104,7 +461,7 @@ def m_test_function(
     return test_result
 
 
-def s_test_function(
+def s_test_function_old(
     bin_gdf: GeoDataFrame,
     t_yrs: float,
     n_iters: int,
