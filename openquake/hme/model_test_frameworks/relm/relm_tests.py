@@ -166,9 +166,13 @@ def N_test(cfg: dict, input_data: dict) -> dict:
         input_data["rupture_gdf"], eq_gdf, test_config
     )
 
-    logging.info("N-Test {}".format(test_results["test_res"]))
-    # logging.info("N-Test conf pct: {}".format(test_results["critical_pct"]))
-    # logging.info("N-Test model pct: {}".format(test_results["percentile"]))
+    logging.info(
+        "N-Test number obs eqs: {}".format(test_results["n_obs_earthquakes"])
+    )
+    logging.info(
+        "N-Test number pred eqs: {}".format(test_results["inv_time_rate"])
+    )
+    logging.info("N-Test {}".format(test_results["test_pass"]))
     return test_results
 
 
