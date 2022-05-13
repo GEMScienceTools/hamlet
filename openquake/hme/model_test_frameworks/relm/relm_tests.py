@@ -114,7 +114,6 @@ def L_test(
     input_data: dict,
 ) -> dict:
     """"""
-    raise NotImplementedError()
     logging.info("Running L-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
@@ -122,18 +121,25 @@ def L_test(
     t_yrs = test_config["investigation_time"]
     prospective = test_config.get("prospective", False)
     append_results = test_config.get("append")
-    test_config["not_modeled_likelihood"] = 0.0  # hardcoded for RELM
+    not_modeled_likelihood = 0.0  # hardcoded for RELM
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+        eq_groups = input_data["pro_groups"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+        eq_groups = input_data["eq_groups"]
 
     test_results = l_test_function(
         input_data["rupture_gdf"],
-        input_data["eq_gdf"],
+        eq_gdf,
         input_data["cell_groups"],
-        input_data["eq_groups"],
+        eq_groups,
         t_yrs,
         test_config["n_iters"],
         mag_bins,
-        prospective=prospective,
         critical_pct=test_config["critical_pct"],
+        not_modeled_likelihood=not_modeled_likelihood,
         append_results=append_results,
     )
 
