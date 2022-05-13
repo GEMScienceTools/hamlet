@@ -4,6 +4,7 @@ from functools import partial
 from typing import Union, Optional
 
 from h3 import h3
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
@@ -29,29 +30,29 @@ from ..utils import (
 def _process_rupture(
     rup: Union[
         ParametricProbabilisticRupture, NonParametricProbabilisticRupture
-    ],
-    h3_res: int = 3,
+    ]
 ):
 
-    rd = {}
+    rd = np.zeros(8, dtype=float)  # experiment w/ lower precision later
 
     if isinstance(rup, NonParametricProbabilisticRupture):
-        rd["occurrence_rate"] = get_nonparametric_rupture_occurrence_rate(
-            rup
-        )  # * source_weight
+        rd[7] = get_nonparametric_rupture_occurrence_rate(rup)
     else:
-        rd["occurrence_rate"] = rup.occurrence_rate  # * source_weight
+        rd[7] = rup.occurrence_rate
 
-    rd["longitude"] = rup.hypocenter.x
-    rd["latitude"] = rup.hypocenter.y
-    rd["depth"] = rup.hypocenter.z
-    rd["mag"] = rup.mag
-    rd["strike"] = rup.surface.get_strike()
-    rd["dip"] = rup.surface.get_dip()
-    rd["rake"] = rup.rake
-    rd["cell_id"] = h3.geo_to_h3(rd["latitude"], rd["longitude"], h3_res)
+    rd[0] = rup.hypocenter.x
+    rd[1] = rup.hypocenter.y
+    rd[2] = rup.hypocenter.z
+    rd[3] = rup.mag
+    rd[4] = rup.surface.get_strike()
+    rd[5] = rup.surface.get_dip()
+    rd[6] = rup.rake
 
     return rd
+
+
+def _add_rup_data(i, rup, rup_data):
+    rup_data[i, :] = _process_rupture(rup)
 
 
 def _process_source_chunk(source_chunk_w_args) -> list:
@@ -67,7 +68,7 @@ def _process_source_chunk(source_chunk_w_args) -> list:
     pbar = tqdm(total=sc["chunk_sum"], position=sc["position"], desc=text)
 
     # wait so that processes don't finish at same time and take too much RAM
-    sleep(sc["position"] * 0.5)
+    sleep(sc["position"] * 0.75)
 
     rups = (
         [
@@ -85,19 +86,37 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 
 def _process_source(source, h3_res: int = 3, pbar: tqdm = None):
 
-    rups = list(
-        map(partial(_process_rupture, h3_res=h3_res), source.iter_ruptures())
-    )
-    rup_df = pd.DataFrame(rups)
-    rup_df.index = [
-        "{}_{}".format(source.source_id, i) for i, rup in enumerate(rups)
-    ]
+    rup_cols = [
+        "longitude",
+        "latitude",
+        "depth",
+        "mag",
+        "strike",
+        "dip",
+        "rake",
+        "occurrence_rate",
+    ]  # cell_id comes later
+
+    n_rups = source.count_ruptures()
+
+    rup_data = np.zeros((n_rups, len(rup_cols)), dtype=float)
+    cell_ids = []
+
+    for i, rup in enumerate(source.iter_ruptures()):
+        _add_rup_data(i, rup, rup_data)
+        cell_ids.append(h3.geo_to_h3(rup_data[i, 1], rup_data[i, 0], h3_res))
+        if pbar is not None:
+            pbar.update(n=1)
+
+    rup_df = pd.DataFrame(rup_data, columns=rup_cols)
+
+    rup_df["cell_id"] = cell_ids
+
+    rup_df.index = ["{}_{}".format(source.source_id, i) for i in rup_df.index]
     rup_df.index.name = "rup_id"
+
     if hasattr(source, "weight"):
         rup_df["occurrence_rate"] *= source.weight
-
-    if pbar is not None:
-        pbar.update(n=len(rups))
 
     return rup_df
 
@@ -105,30 +124,13 @@ def _process_source(source, h3_res: int = 3, pbar: tqdm = None):
 def rupture_df_from_source_list(source_list, h3_res=3):
     rup_counts = [s.count_ruptures() for s in source_list]
     n_rups = sum(rup_counts)
-    # rupture_df = pd.DataFrame(index)
     source_df_list = []
     pbar = tqdm(total=n_rups)
 
     logging.info("{} ruptures".format(n_rups))
 
     for i, source in enumerate(source_list):
-        rups = list(
-            tqdm(
-                map(
-                    partial(_process_rupture, h3_res=h3_res),
-                    source.iter_ruptures(),
-                ),
-                total=rup_counts[i],
-                leave=False,
-            )
-        )
-        rup_df = pd.DataFrame(rups)
-        rup_df.index = [
-            "{}_{}".format(source.source_id, i) for i, rup in enumerate(rups)
-        ]
-        rup_df.index.name = "rup_id"
-        if hasattr(source, "weight"):
-            rup_df["occurrence_rate"] *= source.weight
+        rup_df = _process_source(source, h3_res=h3_res, pbar=pbar)
         source_df_list.append(rup_df)
 
     rupture_df = pd.concat(source_df_list, axis=0)
