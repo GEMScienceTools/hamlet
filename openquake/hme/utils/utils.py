@@ -751,6 +751,7 @@ def make_earthquake_gdf_from_csv(
     source: Optional[str] = None,
     event_id: Optional[str] = None,
     epsg: int = 4326,
+    h3_res: int = 3,
 ) -> gpd.GeoDataFrame:
     """
     Reads an earthquake catalog from a CSV file and returns a GeoDataFrame. The
@@ -819,6 +820,11 @@ def make_earthquake_gdf_from_csv(
     ]
     eq_gdf["latitude"] = [
         eq["geometry"].xy[1][0] for i, eq in eq_gdf.iterrows()
+    ]
+
+    eq_gdf["cell_id"] = [
+        h3.geo_to_h3(row.latitude, row.longitude, h3_res)
+        for i, row in eq_gdf.iterrows()
     ]
 
     return eq_gdf
