@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 from functools import partial
 from typing import Union, Optional
 
@@ -16,7 +17,11 @@ from openquake.hazardlib.source.rupture import (
 
 
 from ..utils import (
+    Pool,
+    logger,
     _n_procs,
+    flatten_list,
+    _chunk_source_list,
     get_nonparametric_rupture_occurrence_rate,
 )
 
@@ -47,6 +52,54 @@ def _process_rupture(
     rd["cell_id"] = h3.geo_to_h3(rd["latitude"], rd["longitude"], h3_res)
 
     return rd
+
+
+def _process_source_chunk(source_chunk_w_args) -> list:
+
+    sc = source_chunk_w_args
+
+    pos = str(sc["position"] + 1)
+    if len(pos) == 1:
+        pos = f"0{pos}"
+
+    text = f"source chunk #{pos}"
+
+    pbar = tqdm(total=sc["chunk_sum"], position=sc["position"], desc=text)
+
+    # wait so that processes don't finish at same time and take too much RAM
+    sleep(sc["position"] * 0.5)
+
+    rups = (
+        [
+            _process_source(source, h3_res=sc["h3_res"], pbar=pbar)
+            for source in sc["source_chunk"]
+        ],
+    )
+
+    del sc["source_chunk"]
+
+    rups = flatten_list(rups)
+
+    return rups
+
+
+def _process_source(source, h3_res: int = 3, pbar: tqdm = None):
+
+    rups = list(
+        map(partial(_process_rupture, h3_res=h3_res), source.iter_ruptures())
+    )
+    rup_df = pd.DataFrame(rups)
+    rup_df.index = [
+        "{}_{}".format(source.source_id, i) for i, rup in enumerate(rups)
+    ]
+    rup_df.index.name = "rup_id"
+    if hasattr(source, "weight"):
+        rup_df["occurrence_rate"] *= source.weight
+
+    if pbar is not None:
+        pbar.update(n=len(rups))
+
+    return rup_df
 
 
 def rupture_df_from_source_list(source_list, h3_res=3):
@@ -83,10 +136,57 @@ def rupture_df_from_source_list(source_list, h3_res=3):
     return rupture_df
 
 
+def rupture_list_from_source_list_parallel(
+    source_list, n_procs: int = _n_procs, h3_res: int = 3
+) -> pd.DataFrame:
+
+    logger.info("    chunking sources")
+    source_chunks, chunk_sums = _chunk_source_list(source_list, n_procs)
+
+    if n_procs > len(source_chunks):
+        logging.info("    fewer chunks than processes.")
+
+    logger.info("    beginning multiprocess source processing")
+    with Pool(n_procs, maxtasksperchild=None) as pool:
+
+        rupture_dfs = []
+
+        chunks_with_args = [
+            {
+                "source_chunk": source_chunk,
+                "position": i,
+                "chunk_sum": chunk_sums[i],
+                "h3_res": h3_res,
+            }
+            for i, source_chunk in enumerate(source_chunks)
+        ]
+
+        pbar = tqdm([n for n in range(n_procs)])
+
+        for rups in pool.imap_unordered(
+            _process_source_chunk, chunks_with_args
+        ):
+            rupture_dfs.extend(rups)
+            del rups
+
+        pbar.write("\n" * n_procs)
+        pbar.close()
+        logging.info(
+            "    finishing multiprocess source processing, cleaning up."
+        )
+
+    while isinstance(rupture_dfs[0], list):
+        rupture_dfs = flatten_list(rupture_dfs)
+
+    rupture_df = pd.concat(rupture_dfs, axis=0)
+    return rupture_df
+
+
 def rupture_dict_from_logic_tree_dict(
     logic_tree_dict: dict,
     parallel: bool = True,
-    n_procs: Optional[int] = _n_procs,
+    n_procs: int = _n_procs,
+    h3_res: int = 3,
 ) -> dict:
     """
     Creates a dictionary of ruptures from a dictionary representation of a
@@ -121,15 +221,14 @@ def rupture_dict_from_logic_tree_dict(
 
     """
 
-    if False:
-        # if parallel is True:
+    if parallel is True:
         rup_dict = {}
         for i, (branch_name, source_list) in enumerate(logic_tree_dict.items()):
             logging.info(
                 f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
             )
             rup_dict[branch_name] = rupture_list_from_source_list_parallel(
-                source_list, simple_ruptures=simple_ruptures, n_procs=n_procs
+                source_list, h3_res=h3_res, n_procs=n_procs
             )
     else:
         rup_dict = {}
@@ -137,7 +236,9 @@ def rupture_dict_from_logic_tree_dict(
             logging.info(
                 f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
             )
-            rup_dict[branch_name] = rupture_df_from_source_list(source_list)
+            rup_dict[branch_name] = rupture_df_from_source_list(
+                source_list, h3_res=h3_res
+            )
     return rup_dict
 
 

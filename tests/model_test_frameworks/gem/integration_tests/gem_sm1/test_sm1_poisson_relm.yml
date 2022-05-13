@@ -27,7 +27,7 @@ config:
         investigation_time: 40.
         n_iters: 1000
 
-  parallel: False
+  parallel: True
   rand_seed: 69
 
 input:
