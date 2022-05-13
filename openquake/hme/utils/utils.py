@@ -41,6 +41,7 @@ from .stats import (
 
 _n_procs = max(1, os.cpu_count() - 1)
 # _n_procs = 2  # parallel testing
+os.environ["NUMEXPR_MAX_THREADS"] = str(_n_procs)
 
 
 class TqdmLoggingHandler(logging.Handler):
