@@ -1,7 +1,8 @@
 import logging
 from time import sleep
 from functools import partial
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
+from multiprocessing import Pool, Process, Queue
 
 from h3 import h3
 import numpy as np
@@ -15,16 +16,109 @@ from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture,
     ParametricProbabilisticRupture,
 )
+from openquake.hazardlib.source import MultiPointSource, ComplexFaultSource
 
 
 from ..utils import (
-    Pool,
+    # Pool,
     logger,
     _n_procs,
     flatten_list,
-    _chunk_source_list,
+    # _chunk_source_list,
     get_nonparametric_rupture_occurrence_rate,
 )
+
+
+def _put_sources_in_chunks(sources, source_counts, n_chunks, unweighted=None):
+    source_chunks = [list() for i in range(n_chunks)]
+    chunk_sums = np.zeros(n_chunks, dtype=int)
+    if unweighted is not None:
+        uw_chunk_sums = np.zeros(n_chunks, dtype=int)
+
+    for i, source in enumerate(sources):
+        min_bin = np.argmin(chunk_sums)
+        source_chunks[min_bin].append(source)
+        chunk_sums[min_bin] += source_counts[i]
+        if unweighted is not None:
+            uw_chunk_sums[min_bin] += unweighted[i]
+
+    if unweighted is None:
+        return source_chunks, chunk_sums
+    else:
+        return source_chunks, chunk_sums, uw_chunk_sums
+
+
+def _chunk_source_list(
+    sources: list, n_chunks: int = _n_procs, n_rup_threshold=10_000_000
+) -> Tuple[list, list]:
+
+    sources_temp = []
+    for s in sources:
+        if isinstance(s, MultiPointSource):
+            for ps in s:
+                sources_temp.append(ps)
+        else:
+            sources_temp.append(s)
+
+    sources = sources_temp
+
+    def source_weight(source):
+        if isinstance(source, ComplexFaultSource):
+            weight = 5.0
+        else:
+            weight = 1.0
+
+        return weight
+
+    source_counts_unweighted = [s.count_ruptures() for s in sources]
+    source_counts = [
+        source_counts_unweighted[i] * source_weight(s)
+        for i, s in enumerate(sources)
+    ]
+
+    sources = [
+        s
+        for c, s in sorted(
+            zip(source_counts, sources), key=lambda pair: pair[0], reverse=True
+        )
+    ]
+
+    source_counts_unweighted = [
+        s
+        for c, s in sorted(
+            zip(source_counts, source_counts_unweighted),
+            key=lambda pair: pair[0],
+            reverse=True,
+        )
+    ]
+
+    source_counts.sort(reverse=True)
+
+    if sum(source_counts) > n_rup_threshold:
+        # n_chunks = n_chunks // 2  # save ram for big models
+        pass
+
+    logging.info("     first chunking")
+    source_chunks, chunk_sums, uw_chunk_sums = _put_sources_in_chunks(
+        sources, source_counts, n_chunks, unweighted=source_counts_unweighted
+    )
+
+    nc = n_chunks
+
+    ii = 0
+    while ((chunk_sums[-1] * 1.3) < chunk_sums[0]) and (nc > 3):
+        if ii == 0:
+            logging.info("     rebalancing")
+        ii += 1
+
+        nc -= 1
+        source_chunks, chunk_sums, uw_chunk_sums = _put_sources_in_chunks(
+            sources, source_counts, nc, unweighted=source_counts_unweighted
+        )
+
+    logging.info("     chunk_sums:\n{}".format(str(chunk_sums)))
+
+    return (source_chunks, uw_chunk_sums.tolist())
 
 
 def _process_rupture(
@@ -68,10 +162,11 @@ def _process_source_chunk(source_chunk_w_args) -> list:
     pbar = tqdm(total=sc["chunk_sum"], position=sc["position"], desc=text)
 
     # wait so that processes don't finish at same time and take too much RAM
-    sleep(sc["position"] * 0.75)
+    sleep(sc["position"] * 0.5)
 
     rups = (
         [
+            # _process_source(source, h3_res=sc["h3_res"], pbar=None)
             _process_source(source, h3_res=sc["h3_res"], pbar=pbar)
             for source in sc["source_chunk"]
         ],
@@ -145,11 +240,26 @@ def rupture_list_from_source_list_parallel(
     logger.info("    chunking sources")
     source_chunks, chunk_sums = _chunk_source_list(source_list, n_procs)
 
+    chunks_with_args = [
+        {
+            "source_chunk": source_chunk,
+            "position": i + 1,
+            "chunk_sum": chunk_sums[i],
+            "h3_res": h3_res,
+        }
+        for i, source_chunk in enumerate(source_chunks)
+    ]
+
     if n_procs > len(source_chunks):
         logging.info("    fewer chunks than processes.")
+        n_procs = len(source_chunks)
 
+    big_pbar = tqdm(total=sum(chunk_sums), leave=True, position=0)
+    big_pbar.update(n=0)
     logger.info("    beginning multiprocess source processing")
-    with Pool(n_procs, maxtasksperchild=None) as pool:
+    pbar = tqdm([n for n in range(n_procs + 1)])
+
+    with Pool(n_procs, maxtasksperchild=1) as pool:
 
         rupture_dfs = []
 
@@ -163,19 +273,17 @@ def rupture_list_from_source_list_parallel(
             for i, source_chunk in enumerate(source_chunks)
         ]
 
-        pbar = tqdm([n for n in range(n_procs)])
-
         for rups in pool.imap_unordered(
             _process_source_chunk, chunks_with_args
         ):
             rupture_dfs.extend(rups)
+            big_pbar.update(n=len(rups))
             del rups
 
         pbar.write("\n" * n_procs)
         pbar.close()
-        logging.info(
-            "    finishing multiprocess source processing, cleaning up."
-        )
+
+    logging.info("    finishing multiprocess source processing, cleaning up.")
 
     while isinstance(rupture_dfs[0], list):
         rupture_dfs = flatten_list(rupture_dfs)
