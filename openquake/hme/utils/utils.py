@@ -1440,7 +1440,9 @@ def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
     bin_centers = np.array(sorted(mag_bins.keys()))
 
     if "mag_bin" not in rdf.columns:
-        rdf["mag_bin"] = [_nearest_bin(mag, bin_centers) for mag in rdf.mag]
+        rdf["mag_bin"] = [
+            _nearest_bin(mag, bin_centers) for mag in rdf.magnitude
+        ]
 
     mag_bin_groups = rdf.groupby("mag_bin")
 

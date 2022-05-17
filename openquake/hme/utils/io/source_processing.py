@@ -179,20 +179,23 @@ def _process_source_chunk(source_chunk_w_args) -> list:
     return rups
 
 
-def _process_source(source, h3_res: int = 3, pbar: tqdm = None):
+def _process_source(
+    source, h3_res: int = 3, n_rups: Optional[int] = None, pbar: tqdm = None
+):
 
     rup_cols = [
         "longitude",
         "latitude",
         "depth",
-        "mag",
+        "magnitude",
         "strike",
         "dip",
         "rake",
         "occurrence_rate",
     ]  # cell_id comes later
 
-    n_rups = source.count_ruptures()
+    if n_rups is None:
+        n_rups = source.count_ruptures()
 
     rup_data = np.zeros((n_rups, len(rup_cols)), dtype=float)
     cell_ids = []
@@ -210,8 +213,8 @@ def _process_source(source, h3_res: int = 3, pbar: tqdm = None):
     rup_df.index = ["{}_{}".format(source.source_id, i) for i in rup_df.index]
     rup_df.index.name = "rup_id"
 
-    if hasattr(source, "weight"):
-        rup_df["occurrence_rate"] *= source.weight
+    # if hasattr(source, "weight"):
+    #    rup_df["occurrence_rate"] *= source.weight
 
     return rup_df
 
@@ -254,10 +257,8 @@ def rupture_list_from_source_list_parallel(
         logging.info("    fewer chunks than processes.")
         n_procs = len(source_chunks)
 
-    big_pbar = tqdm(total=sum(chunk_sums), leave=True, position=0)
-    big_pbar.update(n=0)
     logger.info("    beginning multiprocess source processing")
-    pbar = tqdm([n for n in range(n_procs + 1)])
+    pbar = tqdm([n for n in range(n_procs)])
 
     with Pool(n_procs, maxtasksperchild=1) as pool:
 
@@ -277,7 +278,6 @@ def rupture_list_from_source_list_parallel(
             _process_source_chunk, chunks_with_args
         ):
             rupture_dfs.extend(rups)
-            big_pbar.update(n=len(rups))
             del rups
 
         pbar.write("\n" * n_procs)
