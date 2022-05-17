@@ -336,25 +336,38 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg, N_norm: float = 1.0):
     }
 
 
-def n_test_function(rup_gdf, eq_gdf, test_config):
+def n_test_function(rup_gdf, eq_gdf, test_config: dict):
 
-    if "prospective" not in test_config.keys():
-        prospective = False
-    else:
-        prospective = test_config["prospective"]
+    prospective = test_config.get("prospective", False)
 
-    if "conf_interval" not in test_config:
-        test_config["conf_interval"] = 0.95
+    conf_interval = test_config.get("conf_interval", 0.95)
 
-    annual_rup_rate = rup_gdf.occurrence_rate.sum()
-    n_obs = len(eq_gdf)
+    min_bin_mag = test_config["mag_bins"][
+        sorted(test_config["mag_bins"].keys())[0]
+    ][0]
+    max_bin_mag = test_config["mag_bins"][
+        sorted(test_config["mag_bins"].keys())[-1]
+    ][1]
+
+    #    breakpoint()
+
+    mag_range_idxs = (rup_gdf.magnitude >= min_bin_mag) & (
+        rup_gdf.magnitude <= max_bin_mag
+    )
+
+    eq_mag_range_idxs = (eq_gdf.magnitude >= min_bin_mag) & (
+        eq_gdf.magnitude <= max_bin_mag
+    )
+
+    annual_rup_rate = rup_gdf.loc[mag_range_idxs].occurrence_rate.sum()
+    n_obs = len(eq_gdf.loc[eq_mag_range_idxs])
 
     test_rup_rate = annual_rup_rate * test_config["investigation_time"]
 
+    breakpoint()
+
     if test_config["prob_model"] == "poisson":
-        test_result = N_test_poisson(
-            n_obs, test_rup_rate, test_config["conf_interval"]
-        )
+        test_result = N_test_poisson(n_obs, test_rup_rate, conf_interval)
 
     elif test_config["prob_model"] == "neg_binom":
         raise NotImplementedError("can't subdivide earthquakes yet")

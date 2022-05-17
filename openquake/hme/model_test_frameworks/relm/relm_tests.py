@@ -160,7 +160,7 @@ def N_test(cfg: dict, input_data: dict) -> dict:
     else:
         eq_gdf = input_data["eq_gdf"]
 
-    test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
+    test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
 
     test_results = n_test_function(
         input_data["rupture_gdf"], eq_gdf, test_config
