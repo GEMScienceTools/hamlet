@@ -41,6 +41,7 @@ from openquake.hme.utils import (
     trim_eq_catalog,
     make_bin_gdf_from_rupture_gdf,
     subset_source,
+    trim_inputs,
 )
 from openquake.hme.reporting import generate_basic_report
 
@@ -436,11 +437,18 @@ def run_tests(cfg: dict) -> None:
         )
     )
 
+    test_lists = get_test_lists_from_config(cfg)
+
+    # if 'gem' in
+
+    logger.info("trimming rupture and earthquake data to test magnitude range")
+    trim_inputs(input_data, cfg)
+    logger.info(" {} ruptures".format(len(input_data["rupture_gdf"])))
+
     # This block of code takes test_lists, which is a dictionary of the
     # tests to be used (with keys of names (strings) and values of function
     # objects) and inverts it, so that test_inv is a dictionary with keys
     # that are function objects, and the values are strings of the fn name.
-    test_lists = get_test_lists_from_config(cfg)
     test_inv = {
         framework: {
             fn: name

@@ -1521,3 +1521,35 @@ def sample_rups(rup_df, t_yrs):
     sampled_rups = pd.concat(sample_rups, axis=1).T
 
     return sampled_rups
+
+
+def trim_inputs(input_data, cfg):
+    mag_bins = get_mag_bins_from_cfg(cfg)
+
+    min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
+    max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
+
+    rup_gdf = input_data["rupture_gdf"]
+    eq_gdf = input_data["eq_gdf"]
+
+    mag_range_idxs = (rup_gdf.magnitude >= min_bin_mag) & (
+        rup_gdf.magnitude <= max_bin_mag
+    )
+    input_data["rupture_gdf"] = rup_gdf.loc[mag_range_idxs]
+    input_data["cell_groups"] = input_data["rupture_gdf"].groupby("cell_id")
+
+    eq_mag_range_idxs = (eq_gdf.magnitude >= min_bin_mag) & (
+        eq_gdf.magnitude <= max_bin_mag
+    )
+
+    input_data["eq_gdf"] = eq_gdf.loc[eq_mag_range_idxs]
+    input_data["eq_groups"] = input_data["eq_gdf"].groupby("cell_id")
+
+    if "pro_gdf" in input_data.keys():
+        pro_gdf = input_data["pro_gdf"]
+        pro_mag_range_idxs = (pro_gdf.magnitude >= min_bin_mag) & (
+            pro_gdf.magnitude <= max_bin_mag
+        )
+
+        input_data["pro_gdf"] = pro_gdf.loc[pro_mag_range_idxs]
+        input_data["pro_groups"] = input_data["pro_gdf"].groupby("cell_id")

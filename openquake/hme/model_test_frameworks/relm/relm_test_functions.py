@@ -190,9 +190,11 @@ def s_test_function(
     not_modeled_likelihood: float = 0.0,
     append_results: bool = False,
 ):
+
+    annual_rup_rate = rup_gdf.occurrence_rate.sum()
+
     N_obs = len(eq_gdf)
-    N_pred = rup_gdf.occurrence_rate.sum() * t_yrs
-    # N_pred = get_model_annual_eq_rate(bin_gdf) * t_yrs
+    N_pred = annual_rup_rate * t_yrs
     N_norm = N_obs / N_pred
 
     cell_like_cfg = {
@@ -342,29 +344,10 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
 
     conf_interval = test_config.get("conf_interval", 0.95)
 
-    min_bin_mag = test_config["mag_bins"][
-        sorted(test_config["mag_bins"].keys())[0]
-    ][0]
-    max_bin_mag = test_config["mag_bins"][
-        sorted(test_config["mag_bins"].keys())[-1]
-    ][1]
-
-    #    breakpoint()
-
-    mag_range_idxs = (rup_gdf.magnitude >= min_bin_mag) & (
-        rup_gdf.magnitude <= max_bin_mag
-    )
-
-    eq_mag_range_idxs = (eq_gdf.magnitude >= min_bin_mag) & (
-        eq_gdf.magnitude <= max_bin_mag
-    )
-
-    annual_rup_rate = rup_gdf.loc[mag_range_idxs].occurrence_rate.sum()
-    n_obs = len(eq_gdf.loc[eq_mag_range_idxs])
+    annual_rup_rate = rup_gdf.occurrence_rate.sum()
+    n_obs = len(eq_gdf)
 
     test_rup_rate = annual_rup_rate * test_config["investigation_time"]
-
-    breakpoint()
 
     if test_config["prob_model"] == "poisson":
         test_result = N_test_poisson(n_obs, test_rup_rate, conf_interval)
