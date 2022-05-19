@@ -61,6 +61,9 @@ from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict
 from openquake.hme.model_test_frameworks.sanity.sanity_checks import (
     sanity_test_dict,
 )
+from openquake.hme.model_test_frameworks.model_description import (
+    model_description_test_dict,
+)
 
 Openable = Union[str, bytes, int, "os.PathLike[Any]"]
 
@@ -68,6 +71,7 @@ test_dict = {
     "gem": gem_test_dict,
     "relm": relm_test_dict,
     "sanity": sanity_test_dict,
+    "model_description": model_description_test_dict,
 }
 
 logger = logging.getLogger(__name__)
@@ -130,8 +134,13 @@ def get_test_lists_from_config(cfg: dict) -> dict:
     frameworks = list(cfg["config"]["model_framework"].keys())
 
     for fw in frameworks:
-        fw_test_names = list(cfg["config"]["model_framework"][fw].keys())
-        tests[fw] = [test_dict[fw][test] for test in fw_test_names]
+        if hasattr(cfg["config"]["model_framework"][fw], "keys"):
+            fw_test_names = list(cfg["config"]["model_framework"][fw].keys())
+        else:
+            fw_test_names = cfg["config"]["model_framework"][fw]
+
+        # tests[fw] = [test_dict[fw][test] for test in fw_test_names]
+        tests[fw] = fw_test_names
 
     return tests
 
@@ -439,44 +448,32 @@ def run_tests(cfg: dict) -> None:
 
     test_lists = get_test_lists_from_config(cfg)
 
-    # if 'gem' in
+    results = {}
+
+    if "model_description" in test_lists.keys():
+        mod_desc_tests = test_lists.pop("model_description")
+        results["model_description"] = {
+            test: {"val": test_dict["model_description"][test](cfg, input_data)}
+            for test in mod_desc_tests
+        }
 
     logger.info("trimming rupture and earthquake data to test magnitude range")
     trim_inputs(input_data, cfg)
     logger.info(" {} ruptures".format(len(input_data["rupture_gdf"])))
 
-    # This block of code takes test_lists, which is a dictionary of the
-    # tests to be used (with keys of names (strings) and values of function
-    # objects) and inverts it, so that test_inv is a dictionary with keys
-    # that are function objects, and the values are strings of the fn name.
-    test_inv = {
-        framework: {
-            fn: name
-            for name, fn in test_dict[framework].items()
-            if fn in fw_tests
-        }
-        for framework, fw_tests in test_lists.items()
-    }
-
-    results = {}
-
-    # Now we loop over the tests in each framework. As we do each test, we
-    # store the test results in the 'results' dict; the test fn object (that is
-    # the variable in the loop) is called to run the test, and also used as the
-    # key for the test_inv dict which makes sure that the results are stored
-    # in the appropriate location. This can probably be simplified but the
-    # complexity seemed necessary when it was written.
     for framework, tests in test_lists.items():
         results[framework] = {}
         for test in tests:
-            results[framework][test_inv[framework][test]] = {
-                "val": test(cfg, input_data)
+            results[framework][test] = {
+                "val": test_dict[framework][test](cfg, input_data)
             }
 
     t_done_eval = time.time()
     logger.info(
         "Done evaluating model in {0:.2f} s".format(t_done_eval - t_done_load)
     )
+
+    # breakpoint()
 
     if "output" in cfg.keys():
         raise NotImplementedError()
