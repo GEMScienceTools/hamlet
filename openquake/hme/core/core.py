@@ -139,7 +139,6 @@ def get_test_lists_from_config(cfg: dict) -> dict:
         else:
             fw_test_names = cfg["config"]["model_framework"][fw]
 
-        # tests[fw] = [test_dict[fw][test] for test in fw_test_names]
         tests[fw] = fw_test_names
 
     return tests
@@ -282,16 +281,14 @@ def load_ruptures_from_ssm(cfg: dict):
     rupture_dict = rupture_dict_from_logic_tree_dict(
         ssm_lt_sources,
         parallel=cfg["config"]["parallel"],
-        # simple_ruptures=cfg["input"]["simple_ruptures"],
     )
 
     del ssm_lt_sources
 
     logger.info("  making geodataframe from ruptures")
-    # rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
     rupture_gdf = rupture_dict_to_gdf(
         rupture_dict,
-        weights,  # parallel=cfg["config"]["parallel"]
+        weights,
     )
     logger.info("  done preparing rupture dataframe")
 
@@ -326,27 +323,12 @@ def load_inputs(cfg: dict) -> dict:
     logging.info("grouping ruptures by cell")
     cell_groups = rupture_gdf.groupby("cell_id")
 
-    # bin_gdf = make_bin_gdf_from_rupture_gdf(
-    #    rupture_gdf,
-    #    parallel=cfg["config"]["parallel"],
-    #    h3_res=cfg["input"]["bins"]["h3_res"],
-    #    min_mag=cfg["input"]["bins"]["mfd_bin_min"],
-    #    max_mag=cfg["input"]["bins"]["mfd_bin_max"],
-    #    bin_width=cfg["input"]["bins"]["mfd_bin_width"],
-    #    max_depth=cfg["input"]["ssm"]["max_depth"],
-    # )
-
-    # logger.info("bin_gdf shape: {}".format(bin_gdf.shape))
-
     logger.info("rupture_gdf shape: {}".format(rupture_gdf.shape))
     logger.debug(
         "rupture_gdf memory: {} GB".format(
             sum(rupture_gdf.memory_usage(index=True, deep=True)) * 1e-9
         )
     )
-
-    # logger.info("adding ruptures to bins")
-    # add_ruptures_to_bins(rupture_gdf, bin_gdf)
 
     if cfg["input"]["subset"]["file"] is not None:
         # logger.info("   Subsetting bin_gdf")
@@ -357,18 +339,6 @@ def load_inputs(cfg: dict) -> dict:
         # )
         logger.warn("CANNOT SUBSET SOURCE YET!!!")
 
-    # del rupture_gdf
-
-    # logger.debug(
-    #    "bin_gdf memory: {} GB".format(
-    #        sum(bin_gdf.memory_usage(index=True, deep=True)) * 1e-9
-    #    )
-    # )
-
-    # logger.info("adding earthquakes to bins")
-    # add_earthquakes_to_bins(
-    #    eq_gdf, bin_gdf, h3_res=cfg["input"]["bins"]["h3_res"]
-    # )
     logging.info("trimming earthquake catalog")
     cells_in_model = rupture_gdf.cell_id.unique()
     eq_in_model = (cell_id in cells_in_model for cell_id in eq_gdf.cell_id)
@@ -385,19 +355,12 @@ def load_inputs(cfg: dict) -> dict:
     }
 
     if "prospective_catalog" in cfg["input"].keys():
-        # logger.info("adding prospective earthquakes to bins")
+        logger.info("adding prospective earthquakes to input data")
         pro_gdf = load_pro_eq_catalog(cfg)
         pro_eq_in_model = (
             cell_id in cells_in_model for cell_id in pro_gdf.cell_id
         )
         pro_eq_gdf = pro_gdf.loc[pro_eq_in_model]
-        # add_earthquakes_to_bins(
-        #    pro_gdf,
-        #    bin_gdf,
-        #    h3_res=cfg["input"]["bins"]["h3_res"],
-        #    category="prospective",
-        # )
-        # return rupture_gdf, bin_gdf, eq_gdf, pro_gdf
         input_data["pro_gdf"] = pro_gdf
         input_data["pro_groups"] = pro_gdf.groupby("cell_id")
 
@@ -430,12 +393,6 @@ def run_tests(cfg: dict) -> None:
         logger.warning("Cannot use random seed: {}".format(e.__str__()))
     except KeyError:
         pass
-
-    # if "prospective_catalog" in cfg["input"].keys():
-    #    rup_gdf, bin_gdf, eq_gdf, pro_gdf = load_inputs(cfg)
-    # else:
-    #    rup_gdf, bin_gdf, eq_gdf = load_inputs(cfg)
-    #    pro_gdf = None
 
     input_data = load_inputs(cfg)
 

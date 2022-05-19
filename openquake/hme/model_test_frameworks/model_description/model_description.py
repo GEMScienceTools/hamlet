@@ -41,9 +41,6 @@ def _get_inclusive_min_max_mags(
     while (total_max_mag + half_width) < max(data_max_mag, mfd_max_mag):
         total_max_mag += mfd_bin_width
 
-    # if total_max_mag > max(data_max_mag, mfd_max_mag):
-    #    total_max_mag -= mfd_bin_width
-
     total_min_mag = round(total_min_mag, 2)
     total_max_mag = round(total_max_mag, 2)
 
