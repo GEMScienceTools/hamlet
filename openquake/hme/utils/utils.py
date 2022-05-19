@@ -1420,6 +1420,15 @@ def get_mag_bins(min_mag, max_mag, bin_width):
     return mag_bins
 
 
+def get_bin_edges_from_mag_bins(mag_bins: dict):
+    bin_centers = sorted(mag_bins.keys())
+
+    bin_edges = [mag_bins[bc][0] for bc in bin_centers]
+    bin_edges.append(mag_bins[bin_centers[-1]][1])
+
+    return bin_edges
+
+
 def get_mag_bins_from_cfg(cfg):
     return get_mag_bins(
         cfg["input"]["bins"]["mfd_bin_min"],
@@ -1438,11 +1447,16 @@ def get_model_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
 def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
 
     bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
     if "mag_bin" not in rdf.columns:
-        rdf["mag_bin"] = [
-            _nearest_bin(mag, bin_centers) for mag in rdf.magnitude
-        ]
+        rdf["mag_bin"] = pd.cut(
+            rdf.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
 
     mag_bin_groups = rdf.groupby("mag_bin")
 
@@ -1474,8 +1488,16 @@ def get_obs_mfd(
     rdf, mag_bins, t_yrs: float = 1.0, cumulative=False, delete_col=False
 ):
     bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
-    rdf["mag_bin"] = [_nearest_bin(mag, bin_centers) for mag in rdf.magnitude]
+    if "mag_bin" not in rdf.columns:
+        rdf["mag_bin"] = pd.cut(
+            rdf.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
 
     mag_bin_groups = rdf.groupby("mag_bin")
 

@@ -33,7 +33,7 @@ def write_ruptures_to_file(
     elif rup_file_type == "feather":
         ruptures_out.to_feather(rupture_file_path)
     elif rup_file_type == "csv":
-        ruptures_out.to_csv(rupture_file_path, index=False)
+        ruptures_out.to_csv(rupture_file_path)
     else:
         raise ValueError("Cannot write to {} filetype".format(rup_file_type))
 
@@ -110,7 +110,8 @@ def read_rupture_file(rupture_file):
 
     logging.info("converting to SimpleRuptures")
 
-    rupture_gdf = read_ruptures_from_dataframe(ruptures)
+    # rupture_gdf = read_ruptures_from_dataframe(ruptures)
+    rupture_gdf = ruptures
 
     return rupture_gdf
 
