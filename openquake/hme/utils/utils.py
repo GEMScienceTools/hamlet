@@ -2,12 +2,11 @@ import os
 import json
 import logging
 import datetime
-from time import time, sleep
+from time import sleep
 from functools import partial
 from multiprocessing import Pool
-from collections import deque
 from collections.abc import Mapping
-from typing import Sequence, List, Optional, Union, Tuple
+from typing import Sequence, List, Optional, Union, Tuple, Dict
 
 import attr
 import dateutil
@@ -1575,3 +1574,16 @@ def trim_inputs(input_data, cfg):
 
         input_data["pro_gdf"] = pro_gdf.loc[pro_mag_range_idxs]
         input_data["pro_groups"] = input_data["pro_gdf"].groupby("cell_id")
+
+
+def get_poisson_counts_from_mfd_iter(mfd: Dict[float, float], n_iters: int):
+    samples = {
+        mag: np.random.poisson(rate, n_iters) for mag, rate in mfd.items()
+    }
+
+    sample_mfds = {
+        i: {mag: rate[i] for mag, rate in samples.items()}
+        for i in range(n_iters)
+    }
+
+    return sample_mfds

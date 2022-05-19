@@ -48,8 +48,10 @@ def M_test(cfg, input_data):
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
+        t_yrs = test_config["investigation_time"]
     else:
         eq_gdf = input_data["eq_gdf"]
+        t_yrs = cfg["input"]["seis_catalog"]["duration"]
 
     test_result = m_test_function(
         input_data["rupture_gdf"],
@@ -76,18 +78,21 @@ def S_test(
 
     mag_bins = get_mag_bins_from_cfg(cfg)
     test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
-    t_yrs = test_config["investigation_time"]
     prospective = test_config.get("prospective", False)
     append_results = test_config.get("append")
     likelihood_function = test_config.get("likelihood_function", "mfd")
     not_modeled_likelihood = 0.0  # hardcoded for RELM
 
+    test_config["parallel"] = cfg["config"]["parallel"]
+
     if prospective:
         eq_gdf = input_data["pro_gdf"]
         eq_groups = input_data["pro_groups"]
+        t_yrs = test_config["investigation_time"]
     else:
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
+        t_yrs = cfg["input"]["seis_catalog"]["duration"]
 
     test_results = s_test_function(
         input_data["rupture_gdf"],
@@ -118,7 +123,6 @@ def L_test(
 
     mag_bins = get_mag_bins_from_cfg(cfg)
     test_config = cfg["config"]["model_framework"]["relm"]["L_test"]
-    t_yrs = test_config["investigation_time"]
     prospective = test_config.get("prospective", False)
     append_results = test_config.get("append")
     not_modeled_likelihood = 0.0  # hardcoded for RELM
@@ -126,9 +130,11 @@ def L_test(
     if prospective:
         eq_gdf = input_data["pro_gdf"]
         eq_groups = input_data["pro_groups"]
+        t_yrs = test_config["investigation_time"]
     else:
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
+        t_yrs = cfg["input"]["seis_catalog"]["duration"]
 
     test_results = l_test_function(
         input_data["rupture_gdf"],
@@ -153,7 +159,13 @@ def N_test(cfg: dict, input_data: dict) -> dict:
     logging.info("Running N-Test")
 
     test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
+
     prospective = test_config.get("prospective", False)
+
+    if (test_config["prob_model"] == "poisson") and not prospective:
+        test_config["investigation_time"] = cfg["input"]["seis_catalog"][
+            "duration"
+        ]
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
