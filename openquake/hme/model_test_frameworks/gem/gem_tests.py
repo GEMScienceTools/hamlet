@@ -207,25 +207,142 @@ def N_test(cfg: dict, input_data: dict) -> dict:
     return test_results
 
 
-##########
-# old tests
-##########
-
-
-def max_mag_check(cfg: dict, bin_gdf: GeoDataFrame):
+def max_mag_check(cfg: dict, input_data: dict):
 
     logging.info("Checking Maximum Magnitudes")
 
-    test_config = cfg["config"]["model_framework"]["gem"]["max_mag_check"]
+    max_bin_check_results = max_check(cfg, input_data, framework="gem")
 
-    bad_bins = max_check(bin_gdf, append_check=True, warn=test_config["warn"])
+    bad_bins = [
+        cell
+        for cell, max_check_val in max_bin_check_results.items()
+        if max_check_val is False
+    ]
 
+    # could add all results here for the map...
     if bad_bins == []:
         results = {"test_res": "Pass", "test_pass": True, "bad_bins": bad_bins}
     else:
         results = {"test_res": "Fail", "test_pass": False, "bad_bins": bad_bins}
 
+    logging.info("Max Mag Check res: {}".format(results["test_res"]))
     return results
+
+
+##########
+# old tests
+##########
+
+
+def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
+    """
+    The Moment Over-Under evaluation compares each cell's total seismic moment
+    forecast by the model to the observed moment release from the earthquake
+    catalog. The evaluation uses stochastic event sets so that the catalog is
+    more directly comparable to the forecast.
+    """
+
+    logging.info("Running Over-Under evaluation")
+
+    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
+
+    # these two tests can be combined by accessing the stochastic eqs
+    # in the bins -- this should be done for many tests.
+
+    # evalutates the bins independently
+    # returns a Series of dicts
+    obs_moment_evals = bin_gdf.SpacemagBin.apply(
+        eval_obs_moment,
+        args=(test_config["investigation_time"], test_config["n_iters"]),
+    )
+
+    # turns the Series of dicts into a DataFrame
+    obs_moment_evals = obs_moment_evals.apply(pd.Series)
+
+    # evaluates the whole model
+    model_moment_eval = eval_obs_moment_model(
+        bin_gdf.SpacemagBin,
+        test_config["investigation_time"],
+        test_config["n_iters"],
+    )
+
+    model_moment_eval["stoch_moment_sums"] = list(
+        model_moment_eval["stoch_moment_sums"]
+    )
+
+    bin_gdf["moment_rank_pctile"] = obs_moment_evals["obs_moment_rank"]
+    bin_gdf["moment_ratio"] = obs_moment_evals["moment_ratio"]
+
+    logging.info(
+        "Observed / mean stochastic moment: {}".format(
+            round(model_moment_eval["model_moment_ratio"], 3)
+        )
+    )
+
+    logging.info(
+        "Observed moment release rank (higher rank is more moment): {}".format(
+            round(model_moment_eval["model_obs_moment_rank"], 3)
+        )
+    )
+
+    return model_moment_eval
+
+
+def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
+
+    # calculate observed, model mfd for all bins
+    # add together
+
+    logging.info("Running Model-Observed MFD Comparison")
+
+    test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
+
+    mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
+    obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(
+        t_yrs=test_config["investigation_time"]
+    )
+
+    for i, row in bin_gdf.iloc[1:].iterrows():
+        bin_mod_mfd = row.SpacemagBin.get_rupture_mfd()
+        bin_obs_mfd = row.SpacemagBin.get_empirical_mfd(
+            t_yrs=test_config["investigation_time"]
+        )
+
+        for bin_center, rate in bin_mod_mfd.items():
+            mod_mfd[bin_center] += rate
+
+        for bin_center, rate in bin_obs_mfd.items():
+            obs_mfd[bin_center] += rate
+
+    mfd_df = pd.DataFrame.from_dict(
+        mod_mfd, orient="index", columns=["mod_mfd"]
+    )
+    mfd_df["mod_mfd_cum"] = np.cumsum(mfd_df["mod_mfd"].values[::-1])[::-1]
+
+    mfd_df["obs_mfd"] = obs_mfd.values()
+    mfd_df["obs_mfd_cum"] = np.cumsum(mfd_df["obs_mfd"].values[::-1])[::-1]
+
+    mfd_df.index.name = "bin"
+
+    # refactor below -- this shouldn't be in test_config
+    if "out_csv" in test_config.keys():
+        mfd_df.to_csv(test_config["out_csv"])
+
+    if "out_plot" in test_config.keys():
+        plot_mfd(
+            model=mfd_df["mod_mfd_cum"].to_dict(),
+            observed=mfd_df["obs_mfd_cum"].to_dict(),
+            save_fig=test_config["out_plot"],
+        )
+
+    if "report" in cfg.keys():
+        return plot_mfd(
+            model=mfd_df["mod_mfd_cum"].to_dict(),
+            observed=mfd_df["obs_mfd_cum"].to_dict(),
+            t_yrs=test_config["investigation_time"],
+            return_fig=False,
+            return_string=True,
+        )
 
 
 def mfd_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame):
@@ -365,117 +482,6 @@ def mfd_poisson_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
     bin_gdf["log_like"] = test_config["default_likelihood"]
     bin_gdf["log_like"].update(source_bin_log_likes)
-
-
-def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
-    """
-    The Moment Over-Under evaluation compares each cell's total seismic moment
-    forecast by the model to the observed moment release from the earthquake
-    catalog. The evaluation uses stochastic event sets so that the catalog is
-    more directly comparable to the forecast.
-    """
-
-    logging.info("Running Over-Under evaluation")
-
-    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
-
-    # these two tests can be combined by accessing the stochastic eqs
-    # in the bins -- this should be done for many tests.
-
-    # evalutates the bins independently
-    # returns a Series of dicts
-    obs_moment_evals = bin_gdf.SpacemagBin.apply(
-        eval_obs_moment,
-        args=(test_config["investigation_time"], test_config["n_iters"]),
-    )
-
-    # turns the Series of dicts into a DataFrame
-    obs_moment_evals = obs_moment_evals.apply(pd.Series)
-
-    # evaluates the whole model
-    model_moment_eval = eval_obs_moment_model(
-        bin_gdf.SpacemagBin,
-        test_config["investigation_time"],
-        test_config["n_iters"],
-    )
-
-    model_moment_eval["stoch_moment_sums"] = list(
-        model_moment_eval["stoch_moment_sums"]
-    )
-
-    bin_gdf["moment_rank_pctile"] = obs_moment_evals["obs_moment_rank"]
-    bin_gdf["moment_ratio"] = obs_moment_evals["moment_ratio"]
-
-    logging.info(
-        "Observed / mean stochastic moment: {}".format(
-            round(model_moment_eval["model_moment_ratio"], 3)
-        )
-    )
-
-    logging.info(
-        "Observed moment release rank (higher rank is more moment): {}".format(
-            round(model_moment_eval["model_obs_moment_rank"], 3)
-        )
-    )
-
-    return model_moment_eval
-
-
-def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
-
-    # calculate observed, model mfd for all bins
-    # add together
-
-    logging.info("Running Model-Observed MFD Comparison")
-
-    test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
-
-    mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
-    obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(
-        t_yrs=test_config["investigation_time"]
-    )
-
-    for i, row in bin_gdf.iloc[1:].iterrows():
-        bin_mod_mfd = row.SpacemagBin.get_rupture_mfd()
-        bin_obs_mfd = row.SpacemagBin.get_empirical_mfd(
-            t_yrs=test_config["investigation_time"]
-        )
-
-        for bin_center, rate in bin_mod_mfd.items():
-            mod_mfd[bin_center] += rate
-
-        for bin_center, rate in bin_obs_mfd.items():
-            obs_mfd[bin_center] += rate
-
-    mfd_df = pd.DataFrame.from_dict(
-        mod_mfd, orient="index", columns=["mod_mfd"]
-    )
-    mfd_df["mod_mfd_cum"] = np.cumsum(mfd_df["mod_mfd"].values[::-1])[::-1]
-
-    mfd_df["obs_mfd"] = obs_mfd.values()
-    mfd_df["obs_mfd_cum"] = np.cumsum(mfd_df["obs_mfd"].values[::-1])[::-1]
-
-    mfd_df.index.name = "bin"
-
-    # refactor below -- this shouldn't be in test_config
-    if "out_csv" in test_config.keys():
-        mfd_df.to_csv(test_config["out_csv"])
-
-    if "out_plot" in test_config.keys():
-        plot_mfd(
-            model=mfd_df["mod_mfd_cum"].to_dict(),
-            observed=mfd_df["obs_mfd_cum"].to_dict(),
-            save_fig=test_config["out_plot"],
-        )
-
-    if "report" in cfg.keys():
-        return plot_mfd(
-            model=mfd_df["mod_mfd_cum"].to_dict(),
-            observed=mfd_df["obs_mfd_cum"].to_dict(),
-            t_yrs=test_config["investigation_time"],
-            return_fig=False,
-            return_string=True,
-        )
 
 
 gem_test_dict = {

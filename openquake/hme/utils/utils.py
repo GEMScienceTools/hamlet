@@ -1587,3 +1587,16 @@ def get_poisson_counts_from_mfd_iter(mfd: Dict[float, float], n_iters: int):
     }
 
     return sample_mfds
+
+
+def get_cell_rups(cell_id, rupture_gdf, cell_groups):
+    cell_rup_df = rupture_gdf.loc[cell_groups.groups[cell_id]]
+    return cell_rup_df
+
+
+def get_cell_eqs(cell_id, eq_gdf, eq_groups):
+    if cell_id in eq_groups.groups:
+        cell_eqs = eq_gdf.loc[eq_groups.groups[cell_id]]
+    else:
+        cell_eqs = pd.DataFrame(columns=eq_gdf.columns)
+    return cell_eqs

@@ -23,6 +23,7 @@ from openquake.hme.utils.utils import (
     get_n_eqs_from_mfd,
     get_poisson_counts_from_mfd_iter,
     _n_procs,
+    get_cell_eqs,
 )
 from openquake.hme.utils.stats import (
     negative_binomial_distribution,
@@ -255,17 +256,10 @@ def s_test_cells(cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg):
 
     cell_ids = list(cell_groups.groups.keys())
 
-    def get_cell_eqs(cell_id, eq_gdf=eq_gdf, eq_groups=eq_groups):
-        if cell_id in eq_groups.groups:
-            cell_eqs = eq_gdf.loc[eq_groups.groups[cell_id]]
-        else:
-            cell_eqs = DataFrame(columns=eq_gdf.columns)
-        return cell_eqs
-
     args = (
         (
             rup_gdf.loc[cell_groups.groups[cell_id]],
-            get_cell_eqs(cell_id),
+            get_cell_eqs(cell_id, eq_gdf, eq_groups),
             test_cfg,
         )
         for cell_id in cell_ids
