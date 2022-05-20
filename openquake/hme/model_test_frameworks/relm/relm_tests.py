@@ -44,7 +44,6 @@ def M_test(cfg, input_data):
     test_config = cfg["config"]["model_framework"]["relm"]["M_test"]
     prospective = test_config.get("prospective", False)
     critical_pct = test_config.get("critical_pct", 0.25)
-    t_yrs = test_config["investigation_time"]
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -79,7 +78,6 @@ def S_test(
     mag_bins = get_mag_bins_from_cfg(cfg)
     test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
     prospective = test_config.get("prospective", False)
-    append_results = test_config.get("append")
     likelihood_function = test_config.get("likelihood_function", "mfd")
     not_modeled_likelihood = 0.0  # hardcoded for RELM
 
@@ -104,7 +102,6 @@ def S_test(
         likelihood_function,
         mag_bins=mag_bins,
         critical_pct=test_config["critical_pct"],
-        append_results=append_results,
         not_modeled_likelihood=not_modeled_likelihood,
     )
 

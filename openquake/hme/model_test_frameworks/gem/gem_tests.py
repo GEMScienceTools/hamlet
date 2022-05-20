@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils import get_source_bins
+from openquake.hme.utils import get_mag_bins_from_cfg
 from openquake.hme.utils.plots import plot_mfd
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
@@ -15,9 +15,217 @@ from .gem_test_functions import (
     eval_obs_moment_model,
 )
 
+from ..relm.relm_tests import (
+    n_test_function,
+    s_test_function,
+    m_test_function,
+    l_test_function,
+)
 from ..relm.relm_test_functions import m_test_function, s_test_function
 
 from .gem_stats import calc_mfd_log_likelihood_independent
+
+
+def M_test(
+    cfg,
+    input_data,
+) -> dict:
+    """
+    The M-Test is based on Zechar et al. (2010), though not identical. This
+    tests evaluates the consistency of the magnitude-frequency distribution of
+    the model vs. the observations, by evaluating the log-likelihood of the
+    observed earthquakes given the model (forecast), compared with the
+    log-likelihood of a large number of stochastic catalogs generated from the
+    same forecast. If the log-likelihood of the observed earthquake catalog is
+    less than the majority of the log-likelihoods of stochastic catalogs
+    (specified by the `critical_pct` argument), then the test fails.
+
+    The log-likelihoods are calculated first for each magnitude bin. The
+    log-likelihood for each magnitude bin is the log-likelihood of the observed
+    (or stochastic) number of earthquakes in that magnitude bin occurring
+    throughout the model domain, given the mean rupture rate for that magnitude
+    bin, using the Poisson distribution.
+
+    Then, the log-likelihoods of the observed catalog and the stochastic
+    catalogs are calculated as the geometric mean of the individual bin
+    likelihoods.
+
+    The differences between this implementation and that of Zechar et al. (2010)
+    is that 1) in this version we do not fix the total number of earthquakes
+    that occurs in each stochastic simulation (because that is somewhat
+    complicated to implement within Hamlet) and 2) we use the geometric mean
+    instead of the product of the magnitude bin likelihoods for the total
+    likelihood, because this lets us disregard the discretization of the MFD
+    when comparing between different models. Note that in terms of passing or
+    failing, (1) does not matter much if the model passes the N-test, and (2)
+    does not matter at all because the ranking of the observed and stochasitc
+    catalogs will remain the same.
+    """
+    logging.info("Running GEM M-Test")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    test_config = cfg["config"]["model_framework"]["gem"]["M_test"]
+
+    prospective = test_config.get("prospective", False)
+    critical_pct = test_config.get("critical_pct", 0.25)
+    not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+        t_yrs = test_config["investigation_time"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+
+    test_result = m_test_function(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        mag_bins,
+        t_yrs,
+        test_config["n_iters"],
+        not_modeled_likelihood=not_modeled_likelihood,
+        critical_pct=critical_pct,
+    )
+
+    logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))
+    logging.info("M-Test pct {}".format(test_result["percentile"]))
+    logging.info("M-Test {}".format(test_result["test_res"]))
+    return test_result
+
+
+def S_test(
+    cfg: dict,
+    input_data: dict,
+) -> dict:
+    """"""
+    logging.info("Running GEM S-Test")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
+    prospective = test_config.get("prospective", False)
+    likelihood_function = test_config.get("likelihood_function", "mfd")
+    not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
+
+    test_config["parallel"] = cfg["config"]["parallel"]
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+        eq_groups = input_data["pro_groups"]
+        t_yrs = test_config["investigation_time"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+        eq_groups = input_data["eq_groups"]
+        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+
+    test_results = s_test_function(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        input_data["cell_groups"],
+        eq_groups,
+        t_yrs,
+        test_config["n_iters"],
+        likelihood_function,
+        mag_bins=mag_bins,
+        critical_pct=test_config["critical_pct"],
+        not_modeled_likelihood=not_modeled_likelihood,
+    )
+
+    logging.info("S-Test {}".format(test_results["test_res"]))
+    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
+    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
+    return test_results
+
+
+def L_test(
+    cfg: dict,
+    input_data: dict,
+) -> dict:
+    """"""
+    logging.info("Running GEM L-Test")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    test_config = cfg["config"]["model_framework"]["gem"]["L_test"]
+    prospective = test_config.get("prospective", False)
+    not_modeled_likelihood = 0.0  # hardcoded for RELM
+    not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+        eq_groups = input_data["pro_groups"]
+        t_yrs = test_config["investigation_time"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+        eq_groups = input_data["eq_groups"]
+        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+
+    test_results = l_test_function(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        input_data["cell_groups"],
+        eq_groups,
+        t_yrs,
+        test_config["n_iters"],
+        mag_bins,
+        critical_pct=test_config["critical_pct"],
+        not_modeled_likelihood=not_modeled_likelihood,
+    )
+
+    logging.info("L-Test {}".format(test_results["test_res"]))
+    logging.info("L-Test crit pct: {}".format(test_results["critical_pct"]))
+    logging.info("L-Test model pct: {}".format(test_results["percentile"]))
+    return test_results
+
+
+def N_test(cfg: dict, input_data: dict) -> dict:
+    logging.info("Running N-Test")
+
+    test_config = cfg["config"]["model_framework"]["gem"]["N_test"]
+
+    prospective = test_config.get("prospective", False)
+
+    if (test_config["prob_model"] == "poisson") and not prospective:
+        test_config["investigation_time"] = cfg["input"]["seis_catalog"][
+            "duration"
+        ]
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+
+    test_results = n_test_function(
+        input_data["rupture_gdf"], eq_gdf, test_config
+    )
+
+    logging.info(
+        "N-Test number obs eqs: {}".format(test_results["n_obs_earthquakes"])
+    )
+    logging.info(
+        "N-Test number pred eqs: {}".format(test_results["inv_time_rate"])
+    )
+    logging.info("N-Test {}".format(test_results["test_pass"]))
+    return test_results
+
+
+##########
+# old tests
+##########
+
+
+def max_mag_check(cfg: dict, bin_gdf: GeoDataFrame):
+
+    logging.info("Checking Maximum Magnitudes")
+
+    test_config = cfg["config"]["model_framework"]["gem"]["max_mag_check"]
+
+    bad_bins = max_check(bin_gdf, append_check=True, warn=test_config["warn"])
+
+    if bad_bins == []:
+        results = {"test_res": "Pass", "test_pass": True, "bad_bins": bad_bins}
+    else:
+        results = {"test_res": "Fail", "test_pass": False, "bad_bins": bad_bins}
+
+    return results
 
 
 def mfd_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame):
@@ -270,121 +478,6 @@ def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
         )
 
 
-def max_mag_check(cfg: dict, bin_gdf: GeoDataFrame):
-
-    logging.info("Checking Maximum Magnitudes")
-
-    test_config = cfg["config"]["model_framework"]["gem"]["max_mag_check"]
-
-    bad_bins = max_check(bin_gdf, append_check=True, warn=test_config["warn"])
-
-    if bad_bins == []:
-        results = {"test_res": "Pass", "test_pass": True, "bad_bins": bad_bins}
-    else:
-        results = {"test_res": "Fail", "test_pass": False, "bad_bins": bad_bins}
-
-    return results
-
-
-def M_test(
-    cfg,
-    bin_gdf: Optional[GeoDataFrame] = None,
-) -> dict:
-    """
-    The M-Test is based on Zechar et al. (2010), though not identical. This
-    tests evaluates the consistency of the magnitude-frequency distribution of
-    the model vs. the observations, by evaluating the log-likelihood of the
-    observed earthquakes given the model (forecast), compared with the
-    log-likelihood of a large number of stochastic catalogs generated from the
-    same forecast. If the log-likelihood of the observed earthquake catalog is
-    less than the majority of the log-likelihoods of stochastic catalogs
-    (specified by the `critical_pct` argument), then the test fails.
-
-    The log-likelihoods are calculated first for each magnitude bin. The
-    log-likelihood for each magnitude bin is the log-likelihood of the observed
-    (or stochastic) number of earthquakes in that magnitude bin occurring
-    throughout the model domain, given the mean rupture rate for that magnitude
-    bin, using the Poisson distribution.
-
-    Then, the log-likelihoods of the observed catalog and the stochastic
-    catalogs are calculated as the geometric mean of the individual bin
-    likelihoods.
-
-    The differences between this implementation and that of Zechar et al. (2010)
-    is that 1) in this version we do not fix the total number of earthquakes
-    that occurs in each stochastic simulation (because that is somewhat
-    complicated to implement within Hamlet) and 2) we use the geometric mean
-    instead of the product of the magnitude bin likelihoods for the total
-    likelihood, because this lets us disregard the discretization of the MFD
-    when comparing between different models. Note that in terms of passing or
-    failing, (1) does not matter much if the model passes the N-test, and (2)
-    does not matter at all because the ranking of the observed and stochasitc
-    catalogs will remain the same.
-    """
-    logging.info("Running GEM M-Test")
-
-    test_config = cfg["config"]["model_framework"]["gem"]["M_test"]
-
-    if "prospective" not in test_config.keys():
-        prospective = False
-    else:
-        prospective = test_config["prospective"]
-
-    if "critical_pct" not in test_config:
-        critical_pct = 0.25
-    else:
-        critical_pct = test_config["critical_pct"]
-
-    if "not_modeled_likelihood" not in test_config:
-        not_modeled_likelihood = 1e-5
-
-    t_yrs = test_config["investigation_time"]
-
-    test_result = m_test_function(
-        bin_gdf,
-        t_yrs,
-        test_config["n_iters"],
-        prospective=prospective,
-        not_modeled_likelihood=not_modeled_likelihood,
-        critical_pct=critical_pct,
-    )
-
-    logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))
-    logging.info("M-Test pct {}".format(test_result["percentile"]))
-    logging.info("M-Test {}".format(test_result["test_res"]))
-    return test_result
-
-
-def S_test(
-    cfg: dict,
-    bin_gdf: GeoDataFrame,
-) -> dict:
-    """"""
-    logging.info("Running GEM S-Test")
-
-    test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
-    t_yrs = test_config["investigation_time"]
-    prospective = test_config.get("prospective", False)
-    append_results = (test_config.get("append"), True)
-    not_modeled_likelihod = test_config.get("not_modeled_likelihood", 1e-5)
-
-    test_results = s_test_function(
-        bin_gdf,
-        t_yrs,
-        test_config["n_iters"],
-        test_config["likelihood_fn"],
-        prospective=prospective,
-        critical_pct=test_config["critical_pct"],
-        not_modeled_likelihood=not_modeled_likelihod,
-        append_results=append_results,
-    )
-
-    logging.info("S-Test {}".format(test_results["test_res"]))
-    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
-    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
-    return test_results
-
-
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
@@ -392,4 +485,6 @@ gem_test_dict = {
     "moment_over_under": moment_over_under_eval,
     "M_test": M_test,
     "S_test": S_test,
+    "N_test": N_test,
+    "L_test": L_test,
 }
