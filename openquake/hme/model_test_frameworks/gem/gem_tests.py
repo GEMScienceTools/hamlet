@@ -266,10 +266,6 @@ def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
         test_config["n_iters"],
     )
 
-    model_moment_eval["stoch_moment_sums"] = list(
-        model_moment_eval["stoch_moment_sums"]
-    )
-
     bin_gdf["moment_rank_pctile"] = obs_moment_evals["obs_moment_rank"]
     bin_gdf["moment_ratio"] = obs_moment_evals["moment_ratio"]
 
@@ -399,6 +395,17 @@ def mfd_empirical_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
     The likelihoods for each :class:`~openquake.hme.utils.bins.SpacemagBin` are
     then log-transformed and appended as a new column to the `bin_gdf`
     :class:`GeoDataFrame` hosting the bins.
+
+    The differences between this implementation and that of Zechar et al. (2010)
+    are that 1) in this version we do not fix the total number of earthquakes
+    that occurs in each stochastic simulation (because that is somewhat
+    complicated to implement within Hamlet) and 2) we use the geometric mean
+    instead of the product of the magnitude bin likelihoods for the total
+    likelihood, because this lets us disregard the discretization of the MFD
+    when comparing between different models. Note that in terms of passing or
+    failing, (1) does not matter much if the model passes the N-test, and (2)
+    does not matter at all because the ranking of the observed and stochasitc
+    catalogs will remain the same.
     """
 
     test_config = cfg["config"]["model_framework"]["gem"]["likelihood"]

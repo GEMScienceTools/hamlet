@@ -27,7 +27,7 @@ def check_fix_seis_catalog(seis_cat_cfg) -> None:
             )
     else:
         seis_cat_cfg["duration"] = (
-            seis_cat_cfg["stop_dat"] - seis_cat_cfg["start_date"]
+            seis_cat_cfg["stop_date"] - seis_cat_cfg["start_date"]
         )
 
 

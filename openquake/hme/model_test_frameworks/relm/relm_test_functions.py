@@ -224,6 +224,13 @@ def s_test_function(
         unique(list(chain(*[cell_likes[cell]["bad_bins"] for cell in cells])))
     )
 
+    cell_fracs = np.zeros(len(cells))
+    for i, obs_like in enumerate(obs_likes):
+        cell_stoch_likes = stoch_likes[i, :]
+        cell_fracs[i] = (
+            len([cell_stoch_likes[cell_stoch_likes >= obs_like]]) / n_iters
+        )
+
     obs_like_total = sum(obs_likes)
     stoch_like_totals = np.sum(stoch_likes, axis=1)
 
@@ -244,6 +251,7 @@ def s_test_function(
             "obs_loglike": obs_likes,
             "stoch_loglike": stoch_likes,
             "cell_loglikes": cell_likes,
+            "cell_fracs": cell_fracs,
         },
     }
 

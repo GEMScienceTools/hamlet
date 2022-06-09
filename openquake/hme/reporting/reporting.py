@@ -4,7 +4,9 @@ testing.
 """
 
 import os
+import logging
 from typing import Optional
+from xml.parsers.expat import model
 
 import numpy as np
 import pandas as pd
@@ -31,8 +33,7 @@ def _init_env() -> Environment:
 def generate_basic_report(
     cfg: dict,
     results: dict,
-    bin_gdf: Optional[GeoDataFrame] = None,
-    eq_gdf: Optional[GeoDataFrame] = None,
+    input_data: dict,
 ) -> None:
     """
     Generates an HTML report with the results of the various evaluations or
@@ -68,9 +69,7 @@ def generate_basic_report(
     env = _init_env()
     report_template = env.get_template("basic_report.html")
 
-    render_result_text(
-        env=env, cfg=cfg, results=results, bin_gdf=bin_gdf, eq_gdf=eq_gdf
-    )
+    render_result_text(env=env, cfg=cfg, results=results, input_data=input_data)
 
     report = report_template.render(cfg=cfg, results=results)
 
@@ -82,48 +81,64 @@ def render_result_text(
     env: Environment,
     cfg: dict,
     results: dict,
-    bin_gdf: Optional[GeoDataFrame] = None,
-    eq_gdf: Optional[GeoDataFrame] = None,
+    input_data: dict,
 ) -> None:
 
     if "gem" in results.keys():
         if "model_mfd" in results["gem"].keys():
-            render_mfd(env=env, cfg=cfg, results=results)
+            logging.warn("model_mfd reporting not implemented")
+            # render_mfd(env=env, cfg=cfg, results=results)
 
-        if "likelihood" in results["gem"].keys():
-            render_likelihood(
-                env=env,
-                cfg=cfg,
-                results=results,
-                bin_gdf=bin_gdf,
-                eq_gdf=eq_gdf,
-            )
+        # will remove likelhood eval
+        # if "likelihood" in results["gem"].keys():
+        #    render_likelihood(
+        #        env=env,
+        #        cfg=cfg,
+        #        results=results,
+        #        bin_gdf=bin_gdf,
+        #        eq_gdf=eq_gdf,
+        #    )
 
         if "moment_over_under" in results["gem"].keys():
-            render_moment_over_under(
-                env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
-            )
+            logging.warn("moment_over_under reporting not implemented")
+            # render_moment_over_under(
+            #    env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
+            # )
 
         if "max_mag_check" in results["gem"].keys():
-            render_max_mag(env=env, cfg=cfg, results=results)
+            logging.warn("max_mag_check reporting not implemented")
+            # render_max_mag(env=env, cfg=cfg, results=results)
 
-        if "M_test" in results["gem"].keys():
-            render_gem_M_test(env=env, cfg=cfg, results=results)
-
-        if "M_test" in results["gem"].keys():
-            render_gem_S_test(
-                env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
+        if "N_test" in results["gem"].keys():
+            render_N_test(
+                env=env, cfg=cfg, results=results, model_test_framework="gem"
             )
+
+        if "M_test" in results["gem"].keys():
+            logging.warn("M test reporting not implemented")
+            # render_gem_M_test(env=env, cfg=cfg, results=results)
+
+        if "S_test" in results["gem"].keys():
+            logging.warn("S test reporting not implemented")
+            # render_gem_S_test(
+            #    env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
+            # )
 
     if "relm" in results.keys():
         if "N_test" in results["relm"].keys():
-            render_N_test(env=env, cfg=cfg, results=results)
+            render_N_test(
+                env=env, cfg=cfg, results=results, model_test_framework="relm"
+            )
 
         if "M_test" in results["relm"].keys():
-            render_M_test(env=env, cfg=cfg, results=results)
+            # logging.warn("M test reporting not implemented")
+            render_M_test(
+                env=env, cfg=cfg, results=results, model_test_framework="relm"
+            )
 
         if "S_test" in results["relm"].keys():
-            render_S_test(env=env, cfg=cfg, results=results, bin_gdf=bin_gdf)
+            logging.warn("S test reporting not implemented")
+            # render_S_test(env=env, cfg=cfg, results=results, bin_gdf=bin_gdf)
 
     if "sanity" in results.keys():
         raise NotImplementedError("Reporting for sanity not implemented.")
@@ -131,8 +146,14 @@ def render_result_text(
 
 def render_mfd(env: Environment, cfg: dict, results: dict):
     mfd_template = env.get_template("mfd.html")
-    results["gem"]["model_mfd"]["rendered_text"] = mfd_template.render(
-        cfg=cfg, results=results
+
+
+def render_N_test(
+    env: Environment, cfg: dict, results: dict, model_test_framework="gem"
+):
+    n_test = env.get_template("n_test.html")
+    results[model_test_framework]["N_test"]["rendered_text"] = n_test.render(
+        res=results[model_test_framework]["N_test"]["val"]
     )
 
 
@@ -196,17 +217,12 @@ def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
     )
 
 
-def render_N_test(env: Environment, cfg: dict, results: dict) -> None:
-    n_test = env.get_template("n_test.html")
-    results["relm"]["N_test"]["rendered_text"] = n_test.render(
-        res=results["relm"]["N_test"]["val"]
-    )
-
-
-def render_M_test(env: Environment, cfg: dict, results: dict) -> None:
+def render_M_test(
+    env: Environment, cfg: dict, results: dict, model_test_framework="gem"
+) -> None:
     n_test = env.get_template("m_test.html")
-    results["relm"]["M_test"]["rendered_text"] = n_test.render(
-        res=results["relm"]["M_test"]["val"]
+    results[model_test_framework]["M_test"]["rendered_text"] = n_test.render(
+        res=results[model_test_framework]["M_test"]["val"]
     )
 
 
@@ -297,4 +313,23 @@ def render_moment_over_under(
     results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
         res=results["gem"]["moment_over_under"]["val"],
         over_under_map_str=over_under_map_str,
+    )
+
+
+#####
+# old
+#####
+
+
+def render_N_test_old(env: Environment, cfg: dict, results: dict) -> None:
+    n_test = env.get_template("n_test.html")
+    results["relm"]["N_test"]["rendered_text"] = n_test.render(
+        res=results["relm"]["N_test"]["val"]
+    )
+
+
+def render_mfd_old(env: Environment, cfg: dict, results: dict):
+    mfd_template = env.get_template("mfd.html")
+    results["gem"]["model_mfd"]["rendered_text"] = mfd_template.render(
+        cfg=cfg, results=results
     )

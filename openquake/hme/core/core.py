@@ -43,6 +43,9 @@ from openquake.hme.utils import (
     subset_source,
     trim_inputs,
 )
+
+from openquake.hme.utils.results_processing import process_results
+
 from openquake.hme.reporting import generate_basic_report
 
 
@@ -361,8 +364,8 @@ def load_inputs(cfg: dict) -> dict:
             cell_id in cells_in_model for cell_id in pro_gdf.cell_id
         )
         pro_eq_gdf = pro_gdf.loc[pro_eq_in_model]
-        input_data["pro_gdf"] = pro_gdf
-        input_data["pro_groups"] = pro_gdf.groupby("cell_id")
+        input_data["pro_gdf"] = pro_eq_gdf
+        input_data["pro_groups"] = pro_eq_gdf.groupby("cell_id")
 
     return input_data
 
@@ -432,13 +435,14 @@ def run_tests(cfg: dict) -> None:
 
     # breakpoint()
 
-    if "output" in cfg.keys():
-        raise NotImplementedError()
-        write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
+    process_results(cfg, input_data, results)
+
+    # if "output" in cfg.keys():
+    #    raise NotImplementedError()
+    #    write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
 
     if "report" in cfg.keys():
-        raise NotImplementedError()
-        write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
+        write_reports(cfg, results=results, input_data=input_data)
 
     if "json" in cfg.keys():
         raise NotImplementedError()
@@ -453,6 +457,8 @@ def run_tests(cfg: dict) -> None:
             (t_out_done - t_start) / 60.0
         )
     )
+
+    return results
 
 
 """
@@ -528,12 +534,7 @@ def write_outputs(
 OUTPUT_FILE_MAP = {"geojson": "GeoJSON"}
 
 
-def write_reports(
-    cfg: dict,
-    results: dict,
-    bin_gdf: Optional[GeoDataFrame] = None,
-    eq_gdf: Optional[GeoDataFrame] = None,
-) -> None:
+def write_reports(cfg: dict, results: dict, input_data: dict) -> None:
     """
     Writes reports summarizing the results of the tests and evaluations.
 
@@ -555,4 +556,4 @@ def write_reports(
     logger.info("writing reports")
 
     if "basic" in cfg["report"].keys():
-        generate_basic_report(cfg, results, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
+        generate_basic_report(cfg, results, input_data)

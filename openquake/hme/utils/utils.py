@@ -1539,7 +1539,7 @@ def sample_rups(rup_df, t_yrs):
         for i in range(n):
             sampled_rups.append(rup_df.loc[row])
 
-    sampled_rups = pd.concat(sample_rups, axis=1).T
+    sampled_rups = pd.concat(sampled_rups, axis=1).T
 
     return sampled_rups
 
