@@ -810,7 +810,7 @@ def make_earthquake_gdf_from_csv(
     df.drop([x_col, y_col], axis=1)
 
     eq_gdf = gpd.GeoDataFrame(df)
-    eq_gdf.crs = {"init": "epsg:{}".format(epsg)}
+    eq_gdf.crs = f"EPSG:{epsg}"
 
     if epsg != 4326:
         eq_gdf = eq_gdf.to_crs(epsg=4326)
