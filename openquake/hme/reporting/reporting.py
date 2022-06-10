@@ -115,14 +115,17 @@ def render_result_text(
             )
 
         if "M_test" in results["gem"].keys():
-            logging.warn("M test reporting not implemented")
+            logging.warn(" GEM M test reporting not implemented")
             # render_gem_M_test(env=env, cfg=cfg, results=results)
 
         if "S_test" in results["gem"].keys():
-            logging.warn("S test reporting not implemented")
+            logging.warn("GEM S test reporting not implemented")
             # render_gem_S_test(
             #    env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
             # )
+
+        if "L_test" in results["gem"].keys():
+            logging.warn("GEM L test reporting not implemented.")
 
     if "relm" in results.keys():
         if "N_test" in results["relm"].keys():
@@ -137,11 +140,24 @@ def render_result_text(
             )
 
         if "S_test" in results["relm"].keys():
-            logging.warn("S test reporting not implemented")
-            # render_S_test(env=env, cfg=cfg, results=results, bin_gdf=bin_gdf)
+            # logging.warn("S test reporting not implemented")
+            render_S_test(
+                env=env,
+                cfg=cfg,
+                results=results,
+                cell_gdf=results["cell_gdf"],
+                model_test_framework="relm",
+            )
+
+    if "L_test" in results["gem"].keys():
+        logging.warn("RELM L test reporting not implemented.")
 
     if "sanity" in results.keys():
         raise NotImplementedError("Reporting for sanity not implemented.")
+
+    if "model_description" in results.keys():
+        if "describe_model" in results["model_description"].keys():
+            logging.warn("describe_model reporting not implemented.")
 
 
 def render_mfd(env: Environment, cfg: dict, results: dict):
@@ -237,26 +253,27 @@ def render_S_test(
     env: Environment,
     cfg: dict,
     results: dict,
-    bin_gdf: GeoDataFrame,
+    cell_gdf: GeoDataFrame,
+    model_test_framework: str = "gem",
 ) -> None:
 
     s_test = env.get_template("s_test.html")
 
-    test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
+    test_config = cfg["config"]["model_framework"][model_test_framework][
+        "S_test"
+    ]
 
     if "map_epsg" in cfg["report"]["basic"].keys():
         map_epsg = cfg["report"]["basic"]["map_epsg"]
     else:
         map_epsg = None
-    if "append" in test_config.keys():
-        if test_config["append"] is True:
-            S_test_map_str = plot_S_test_map(
-                bin_gdf,
-                map_epsg=map_epsg,
-                bad_bins=results["relm"]["S_test"]["val"]["bad_bins"],
-            )
-        else:
-            S_test_map_str = ""
+
+    S_test_map_str = plot_S_test_map(
+        cell_gdf,
+        map_epsg=map_epsg,
+        bad_bins=results["relm"]["S_test"]["val"]["bad_bins"],
+        model_test_framework=model_test_framework,
+    )
 
     results["relm"]["S_test"]["rendered_text"] = s_test.render(
         res=results["relm"]["S_test"]["val"], S_test_map_str=S_test_map_str

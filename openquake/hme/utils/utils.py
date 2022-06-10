@@ -1527,6 +1527,7 @@ def get_obs_mfd(
 
 
 def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
+    print("sampling rups")
     n_rups = poisson.rvs(rup_df["occurrence_rate"] * t_yrs)
 
     sample_idx = n_rups > 0

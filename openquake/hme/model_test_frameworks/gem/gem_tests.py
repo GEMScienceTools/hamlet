@@ -229,12 +229,20 @@ def max_mag_check(cfg: dict, input_data: dict):
     return results
 
 
+def model_mfd_eval():
+    raise NotImplementedError()
+
+
+def moment_over_under_eval():
+    pass
+
+
 ##########
 # old tests
 ##########
 
 
-def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
+def moment_over_under_eval_old(cfg: dict, bin_gdf: GeoDataFrame):
     """
     The Moment Over-Under evaluation compares each cell's total seismic moment
     forecast by the model to the observed moment release from the earthquake
@@ -284,7 +292,7 @@ def moment_over_under_eval(cfg: dict, bin_gdf: GeoDataFrame):
     return model_moment_eval
 
 
-def model_mfd_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
+def model_mfd_test_old(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
     # calculate observed, model mfd for all bins
     # add together
@@ -494,7 +502,7 @@ def mfd_poisson_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
-    "model_mfd": model_mfd_test,
+    "model_mfd": model_mfd_eval,
     "moment_over_under": moment_over_under_eval,
     "M_test": M_test,
     "S_test": S_test,

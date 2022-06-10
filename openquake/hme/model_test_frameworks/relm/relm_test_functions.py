@@ -159,7 +159,7 @@ def m_test_function(
     )
 
     pctile = (
-        len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes >= obs_geom_mean_like])
         / n_iters
     )
 
@@ -219,24 +219,23 @@ def s_test_function(
     obs_likes = np.array([cell_likes[cell]["obs_loglike"] for cell in cells])
     stoch_likes = np.vstack(
         [cell_likes[cell]["stoch_loglikes"] for cell in cells]
-    ).T
+    )
     bad_bins = list(
         unique(list(chain(*[cell_likes[cell]["bad_bins"] for cell in cells])))
     )
 
     cell_fracs = np.zeros(len(cells))
+
+    # breakpoint()
+
     for i, obs_like in enumerate(obs_likes):
-        cell_stoch_likes = stoch_likes[i, :]
-        cell_fracs[i] = (
-            len([cell_stoch_likes[cell_stoch_likes >= obs_like]]) / n_iters
-        )
+        cell_stoch_likes = stoch_likes[i]
+        cell_fracs[i] = sum(cell_stoch_likes <= obs_like) / n_iters
 
     obs_like_total = sum(obs_likes)
-    stoch_like_totals = np.sum(stoch_likes, axis=1)
+    stoch_like_totals = np.sum(stoch_likes, axis=0)
 
-    pctile = (
-        len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
-    )
+    pctile = sum(stoch_like_totals <= obs_like_total) / n_iters
 
     test_pass = True if pctile >= critical_pct else False
     test_res = "Pass" if test_pass else "Fail"
@@ -262,7 +261,7 @@ def s_test_cells(cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg):
 
     s_test_cell_results = {}
 
-    cell_ids = list(cell_groups.groups.keys())
+    cell_ids = sorted(cell_groups.groups.keys())
 
     args = (
         (
