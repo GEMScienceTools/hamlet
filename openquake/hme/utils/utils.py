@@ -1526,11 +1526,17 @@ def get_obs_mfd(
     return mfd
 
 
-def sample_rups(rup_df, t_yrs):
+def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
     n_rups = poisson.rvs(rup_df["occurrence_rate"] * t_yrs)
+
     sample_idx = n_rups > 0
-    n_samples_per_rup = n_rups[sample_idx]
-    rup_rows = rup_df.index[sample_idx]
+    mag_idx = (rup_df["magnitude"] >= min_mag) & (
+        rup_df["magnitude"] <= max_mag
+    )
+    final_idx = sample_idx & mag_idx
+
+    n_samples_per_rup = n_rups[final_idx]
+    rup_rows = rup_df.index[final_idx]
 
     sampled_rups = []
 
