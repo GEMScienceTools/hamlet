@@ -1,3 +1,4 @@
+from multiprocessing.dummy import current_process
 import os
 import json
 import logging
@@ -36,6 +37,11 @@ from .stats import (
     sample_num_events_in_interval,
     sample_num_events_in_interval_array,
 )
+
+try:
+    from .numba_stat_funcs import poisson_sample_vec
+except ImportError:
+    poisson_sample_vec = np.random.poisson
 
 _n_procs = max(1, os.cpu_count() - 1)
 # _n_procs = 2  # parallel testing
@@ -1527,26 +1533,23 @@ def get_obs_mfd(
 
 
 def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
-    print("sampling rups")
-    n_rups = poisson.rvs(rup_df["occurrence_rate"] * t_yrs)
-
-    sample_idx = n_rups > 0
     mag_idx = (rup_df["magnitude"] >= min_mag) & (
         rup_df["magnitude"] <= max_mag
     )
-    final_idx = sample_idx & mag_idx
 
+    rup_rates = rup_df["occurrence_rate"].values * t_yrs
+    n_rups = poisson_sample_vec(rup_rates)
+    sample_idx = n_rups > 0
+    
+    final_idx = sample_idx & mag_idx
+    
     n_samples_per_rup = n_rups[final_idx]
     rup_rows = rup_df.index[final_idx]
 
-    sampled_rups = []
+    sampled_rups_idx = [row for i, row in enumerate(rup_rows)
+                         for j in range(n_samples_per_rup[i])]
 
-    for i, row in enumerate(rup_rows):
-        n = n_samples_per_rup[i]
-        for i in range(n):
-            sampled_rups.append(rup_df.loc[row])
-
-    sampled_rups = pd.concat(sampled_rups, axis=1).T
+    sampled_rups = rup_df.loc[pd.Index(sampled_rups_idx)]
 
     return sampled_rups
 
