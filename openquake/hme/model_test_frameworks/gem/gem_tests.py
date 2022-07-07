@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils import get_source_bins
+from openquake.hme.utils import get_source_bins, get_mag_bins_from_cfg
 from openquake.hme.utils.plots import plot_mfd
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
@@ -288,7 +288,7 @@ def max_mag_check(cfg: dict, bin_gdf: GeoDataFrame):
 
 def M_test(
     cfg,
-    bin_gdf: Optional[GeoDataFrame] = None,
+    input_data,
 ) -> dict:
     """
     The M-Test is based on Zechar et al. (2010), though not identical. This
@@ -323,29 +323,35 @@ def M_test(
     """
     logging.info("Running GEM M-Test")
 
+    mag_bins = get_mag_bins_from_cfg(cfg)
     test_config = cfg["config"]["model_framework"]["gem"]["M_test"]
-
-    if "prospective" not in test_config.keys():
-        prospective = False
-    else:
-        prospective = test_config["prospective"]
-
-    if "critical_pct" not in test_config:
-        critical_pct = 0.25
-    else:
-        critical_pct = test_config["critical_pct"]
-
-    if "not_modeled_likelihood" not in test_config:
-        not_modeled_likelihood = 1e-5
-
+    prospective = test_config.get("prospective", False)
+    critical_pct = test_config.get("critical_pct", 0.25)
     t_yrs = test_config["investigation_time"]
+    not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
 
     test_result = m_test_function(
-        bin_gdf,
+        input_data["rupture_gdf"],
+        eq_gdf,
+        mag_bins,
         t_yrs,
         test_config["n_iters"],
-        prospective=prospective,
-        not_modeled_likelihood=not_modeled_likelihood,
+        not_modeled_likelihood=0.0,
+        critical_pct=critical_pct,
+    )
+
+    test_result = m_test_function(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        mag_bins,
+        t_yrs,
+        test_config["n_iters"],
+        not_modeled_likelihood=0.0,
         critical_pct=critical_pct,
     )
 
