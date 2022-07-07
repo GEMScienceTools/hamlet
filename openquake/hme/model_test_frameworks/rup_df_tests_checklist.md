@@ -25,9 +25,9 @@ GEM tests:
 - [x] m_test
 - [ ] s_test
 - [ ] l_test
-- [ ] max_mag_check
+- [x] max_mag_check
 - [ ] model_mfd
-- [ ] moment_over_under
+- [x] moment_over_under
 
 
 Rendering:

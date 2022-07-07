@@ -73,7 +73,7 @@ def S_test(
     input_data: dict,
 ) -> dict:
     """"""
-    logging.info("Running S-Test")
+    logging.info("Running CSEP/RELM S-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
     test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
@@ -116,7 +116,7 @@ def L_test(
     input_data: dict,
 ) -> dict:
     """"""
-    logging.info("Running L-Test")
+    logging.info("Running CSEP/RELM L-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
     test_config = cfg["config"]["model_framework"]["relm"]["L_test"]

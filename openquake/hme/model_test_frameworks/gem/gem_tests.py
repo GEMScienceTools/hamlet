@@ -13,6 +13,7 @@ from .gem_test_functions import (
     get_stochastic_mfds_parallel,
     eval_obs_moment,
     eval_obs_moment_model,
+    moment_over_under_eval_fn,
 )
 
 from ..relm.relm_tests import (
@@ -233,8 +234,41 @@ def model_mfd_eval():
     raise NotImplementedError()
 
 
-def moment_over_under_eval():
-    pass
+def moment_over_under_eval(cfg, input_data):
+    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
+    max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
+
+    prospective = test_config.get("prospective", False)
+    t_yrs = test_config["investigation_time"]
+    n_iters = test_config["n_iters"]
+    min_mag = test_config.get("min_mag", min_bin_mag)
+    max_mag = test_config.get("max_mag", max_bin_mag)
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+
+    test_results = moment_over_under_eval_fn(
+        input_data["rupture_gdf"], eq_gdf, t_yrs, min_mag, max_mag, n_iters
+    )
+
+    results_for_print = {
+        "total_obs_moment": test_results["test_data"]["total_obs_moment"],
+        "modeled_obs_moment_mean": test_results["test_data"][
+            "modeled_obs_moment"
+        ]["mean"],
+        "modeled_obs_moment_sd": test_results["test_data"][
+            "modeled_obs_moment"
+        ]["sd"],
+        "fractile": test_results["test_data"]["frac"],
+    }
+
+    logging.info("Moment Over-Under Results: {}".format(results_for_print))
+
+    return test_results
 
 
 ##########
