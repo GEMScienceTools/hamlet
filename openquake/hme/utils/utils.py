@@ -1540,14 +1540,17 @@ def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
     rup_rates = rup_df["occurrence_rate"].values * t_yrs
     n_rups = poisson_sample_vec(rup_rates)
     sample_idx = n_rups > 0
-    
+
     final_idx = sample_idx & mag_idx
-    
+
     n_samples_per_rup = n_rups[final_idx]
     rup_rows = rup_df.index[final_idx]
 
-    sampled_rups_idx = [row for i, row in enumerate(rup_rows)
-                         for j in range(n_samples_per_rup[i])]
+    sampled_rups_idx = [
+        row
+        for i, row in enumerate(rup_rows)
+        for j in range(n_samples_per_rup[i])
+    ]
 
     sampled_rups = rup_df.loc[pd.Index(sampled_rups_idx)]
 
