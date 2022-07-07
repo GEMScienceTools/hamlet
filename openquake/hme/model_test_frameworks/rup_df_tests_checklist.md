@@ -7,8 +7,9 @@ Utils:
 - [ ] subset_source
   
 core:
-- [ ] load_ruptures_from_file
-- [ ] write ruptures to file
+- [x] load_ruptures_from_file
+- [x] write ruptures to file
+- [ ] get source type and tectonic region type (? may be already filtered)
 
 RELM tests:
 - [x] m_test_function

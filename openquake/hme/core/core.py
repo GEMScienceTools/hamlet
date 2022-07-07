@@ -228,11 +228,14 @@ def load_ruptures_from_file(cfg: dict):
     """
     Reads a flat file with ruptures.
     """
-
+    h3_res = cfg["input"]["bins"]["h3_res"]
+    parallel = cfg["config"]["parallel"]
     rup_file = cfg["input"]["rupture_file"]["rupture_file_path"]
     logging.info("Reading ruptures from {}".format(rup_file))
     if os.path.exists(rup_file):
-        rupture_gdf = read_rupture_file(rup_file)
+        rupture_gdf = read_rupture_file(
+            rup_file, h3_res=h3_res, parallel=parallel
+        )
 
     else:
         logging.warn("Rupture file does not exist; reading SSM.")

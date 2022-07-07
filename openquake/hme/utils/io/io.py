@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Union, Optional, Sequence
 
+from h3 import h3
 import pandas as pd
 from tqdm import tqdm
 from geopandas import GeoDataFrame
@@ -19,6 +20,10 @@ from ..bins import SpacemagBin
 from ..plots import plot_mfd
 from ..utils import rupture_list_to_gdf
 from ..simple_rupture import SimpleRupture, rup_to_dict
+from openquake.hme.utils.io.source_processing import (
+    _get_h3_cell_for_rupture_df,
+    _get_h3_cell_for_rupture_df_parallel,
+)
 
 
 def write_ruptures_to_file(
@@ -33,6 +38,23 @@ def write_ruptures_to_file(
 
 
 def write_simple_ruptures_to_file(
+    rupture_gdf: GeoDataFrame, rupture_file_path: str
+):
+
+    ruptures_out = rupture_gdf.drop("cell_id", axis=1)
+
+    rup_file_type = rupture_file_path.split(".")[-1]
+    if rup_file_type == "hdf5":
+        ruptures_out.to_hdf(rupture_file_path, key="ruptures")
+    elif rup_file_type == "feather":
+        ruptures_out.to_feather(rupture_file_path)
+    elif rup_file_type == "csv":
+        ruptures_out.to_csv(rupture_file_path, index=False)
+    else:
+        raise ValueError("Cannot write to {} filetype".format(rup_file_type))
+
+
+def write_simple_ruptures_to_file_old(
     rupture_gdf: GeoDataFrame, rupture_file_path: str
 ):
     ruptures_out = pd.DataFrame.from_dict(
@@ -90,7 +112,29 @@ def oq_rupture_to_json(
     return rec
 
 
-def read_rupture_file(rupture_file):
+def read_rupture_file(
+    rupture_file, h3_res: int = 3, parallel=False
+) -> pd.DataFrame:
+    rup_file_type = rupture_file.split(".")[-1]
+
+    if rup_file_type == "hdf5":
+        rupture_df = pd.read_hdf(rupture_file, key="ruptures")
+    elif rup_file_type == "feather":
+        rupture_df = pd.read_feather(rupture_file)
+    elif rup_file_type == "csv":
+        rupture_df = pd.read_csv(rupture_file)
+    else:
+        raise ValueError("Cannot read filetype {}".format(rup_file_type))
+
+    if parallel == False:
+        _get_h3_cell_for_rupture_df(rupture_df, h3_res)
+    else:
+        _get_h3_cell_for_rupture_df_parallel(rupture_df, h3_res)
+
+    return rupture_df
+
+
+def read_rupture_file_old(rupture_file):
     rup_file_type = rupture_file.split(".")[-1]
 
     if rup_file_type == "hdf5":
@@ -103,7 +147,6 @@ def read_rupture_file(rupture_file):
         raise ValueError("Cannot read filetype {}".format(rup_file_type))
 
     logging.info("converting to SimpleRuptures")
-
     rupture_gdf = read_ruptures_from_dataframe(ruptures)
 
     return rupture_gdf

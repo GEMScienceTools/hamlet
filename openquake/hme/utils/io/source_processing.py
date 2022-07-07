@@ -378,3 +378,35 @@ def rupture_dict_to_gdf(
         df["geometry"] = df.apply(parse_geometry, axis=1)
 
     return df
+
+
+def _get_h3_cell_for_rupture_df(rupture_df, h3_res):
+    logging.info("getting H3 cells")
+    cell_ids = list(
+        tqdm(
+            (
+                h3.geo_to_h3(row.latitude, row.longitude, h3_res)
+                for i, row in rupture_df.iterrows()
+            ),
+            total=len(rupture_df),
+        )
+    )
+    rupture_df["cell_id"] = cell_ids
+
+
+def _get_h3_cell(args):
+    return h3.geo_to_h3(*args)
+
+
+def _get_h3_cell_for_rupture_df_parallel(rupture_df, h3_res):
+    logging.info("getting H3 cells in parallel")
+
+    lons = rupture_df.longitude.values
+    lats = rupture_df.latitude.values
+
+    args = ((lat, lons[i], h3_res) for i, lat in enumerate(lats))
+
+    with Pool(_n_procs) as pool:
+        cell_ids = pool.map(_get_h3_cell, args)
+
+    rupture_df["cell_id"] = cell_ids
