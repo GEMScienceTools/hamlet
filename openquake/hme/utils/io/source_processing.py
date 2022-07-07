@@ -8,7 +8,7 @@ from h3 import h3
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 from tqdm.autonotebook import tqdm
 
 
@@ -410,3 +410,17 @@ def _get_h3_cell_for_rupture_df_parallel(rupture_df, h3_res):
         cell_ids = pool.map(_get_h3_cell, args)
 
     rupture_df["cell_id"] = cell_ids
+
+
+def make_cell_gdf_from_ruptures(rupture_gdf):
+    cell_ids = sorted(rupture_gdf.cell_id.unique())
+    polies = [
+        Polygon(h3.h3_to_geo_boundary(cell_id, geo_json=True))
+        for cell_id in cell_ids
+    ]
+
+    cell_gdf = gpd.GeoDataFrame(
+        index=cell_ids, geometry=polies, crs="EPSG:4326"
+    )
+
+    return cell_gdf

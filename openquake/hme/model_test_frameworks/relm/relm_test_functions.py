@@ -3,6 +3,7 @@ Utility functions for running tests in the RELM model test framework.
 """
 import logging
 from itertools import chain
+from multiprocessing import Pool
 from typing import Sequence, Optional
 from datetime import datetime, timedelta
 
@@ -14,12 +15,15 @@ from scipy.stats import poisson, nbinom
 from numpy.lib.arraysetops import unique
 
 from openquake.hme.utils.bins import SpacemagBin
-from openquake.hme.utils import (
+from openquake.hme.utils.utils import (
     get_model_mfd,
     get_obs_mfd,
     get_model_annual_eq_rate,
     get_total_obs_eqs,
     get_n_eqs_from_mfd,
+    get_poisson_counts_from_mfd_iter,
+    _n_procs,
+    get_cell_eqs,
 )
 from openquake.hme.utils.stats import (
     negative_binomial_distribution,
@@ -155,7 +159,7 @@ def m_test_function(
     )
 
     pctile = (
-        len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes >= obs_geom_mean_like])
         / n_iters
     )
 
@@ -215,34 +219,23 @@ def s_test_function(
     obs_likes = np.array([cell_likes[cell]["obs_loglike"] for cell in cells])
     stoch_likes = np.vstack(
         [cell_likes[cell]["stoch_loglikes"] for cell in cells]
-    ).T
+    )
     bad_bins = list(
         unique(list(chain(*[cell_likes[cell]["bad_bins"] for cell in cells])))
     )
 
+    cell_fracs = np.zeros(len(cells))
+
+    # breakpoint()
+
+    for i, obs_like in enumerate(obs_likes):
+        cell_stoch_likes = stoch_likes[i]
+        cell_fracs[i] = sum(cell_stoch_likes <= obs_like) / n_iters
+
     obs_like_total = sum(obs_likes)
-    stoch_like_totals = np.sum(stoch_likes, axis=1)
+    stoch_like_totals = np.sum(stoch_likes, axis=0)
 
-    if append_results:
-        raise NotImplementedError()
-        # bin_pcts = []
-        # for i, obs_like in enumerate(obs_likes):
-        #    stoch_like = stoch_likes[:, i]
-        #    bin_pct = len(stoch_like[stoch_like <= obs_like]) / n_iters
-        #    bin_pcts.append(bin_pct)
-        # bin_gdf["S_bin_pct"] = bin_pcts
-
-        # bin_gdf["N_model"] = bin_gdf.SpacemagBin.apply(
-        #    lambda x: get_n_eqs_from_mfd(x.get_rupture_mfd()) * t_yrs
-        # )
-
-        # bin_gdf["N_obs"] = bin_gdf.SpacemagBin.apply(
-        #    lambda x: get_n_eqs_from_mfd(x.observed_earthquakes)
-        # )
-
-    pctile = (
-        len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
-    )
+    pctile = sum(stoch_like_totals <= obs_like_total) / n_iters
 
     test_pass = True if pctile >= critical_pct else False
     test_res = "Pass" if test_pass else "Fail"
@@ -257,6 +250,7 @@ def s_test_function(
             "obs_loglike": obs_likes,
             "stoch_loglike": stoch_likes,
             "cell_loglikes": cell_likes,
+            "cell_fracs": cell_fracs,
         },
     }
 
@@ -267,21 +261,34 @@ def s_test_cells(cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg):
 
     s_test_cell_results = {}
 
-    for cell_id in cell_groups.groups.keys():
-        cell_rups = rup_gdf.loc[cell_groups.groups[cell_id]]
-        if cell_id in eq_groups.groups:
-            cell_eqs = eq_gdf.loc[eq_groups.groups[cell_id]]
-        else:
-            cell_eqs = DataFrame(columns=eq_gdf.columns)
+    cell_ids = sorted(cell_groups.groups.keys())
 
-        s_test_cell_results[cell_id] = s_test_cell(
-            cell_rups, cell_eqs, test_cfg
+    args = (
+        (
+            rup_gdf.loc[cell_groups.groups[cell_id]],
+            get_cell_eqs(cell_id, eq_gdf, eq_groups),
+            test_cfg,
         )
+        for cell_id in cell_ids
+    )
+
+    with Pool(_n_procs) as p:
+        s_test_cell_results_ = p.map(_s_test_cell_args, args)
+
+    s_test_cell_results = {
+        cell_id: s_test_cell_results_[i] for i, cell_id in enumerate(cell_ids)
+    }
 
     return s_test_cell_results
 
 
-def s_test_cell(rup_gdf, eq_gdf, test_cfg, N_norm: float = 1.0):
+def _s_test_cell_args(cell_args):
+    return s_test_cell(*cell_args)
+
+
+def s_test_cell(rup_gdf, eq_gdf, test_cfg):
+
+    cell_id = rup_gdf.cell_id.values[0]
 
     t_yrs = test_cfg["investigation_time"]
     mag_bins = test_cfg["mag_bins"]
@@ -304,20 +311,20 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg, N_norm: float = 1.0):
     bad_bins = []
     for like in likes:
         if like == not_modeled_log_like:
-            logging.warn("CAN'T HANDLE NOT MODELED VALS YET")
-            # bad_bins.append(sbin.bin_id)
-            # bin_ctr = h3.h3_to_geo(sbin.bin_id)
-            # bin_ctr = (round(bin_ctr[0], 3), round(bin_ctr[1], 3))
-            # logging.warn(f"{sbin.bin_id} {bin_ctr} has zero likelihood")
-            # obs_mfd = sbin.get_empirical_mfd(cumulative=False)
-            # for mag, rate in rate_mfd.items():
-            #    if rate == 0.0 and obs_mfd[mag] > 0.0:
-            #        logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
+            bad_bins.append(cell_id)
+            bin_ctr = h3.h3_to_geo(cell_id)
+            bin_ctr = (round(bin_ctr[0], 3), round(bin_ctr[1], 3))
+            logging.warn(f"{cell_id} {bin_ctr} has zero likelihood")
+            for mag, rate in rate_mfd.items():
+                if rate == 0.0 and obs_mfd[mag] > 0.0:
+                    logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
 
-    stoch_rup_counts = [
-        get_poisson_counts_from_mfd(rate_mfd).copy()
-        for i in range(test_cfg["n_iters"])
-    ]
+    stoch_rup_counts = get_poisson_counts_from_mfd_iter(
+        rate_mfd, test_cfg["n_iters"]
+    )
+
+    # should come up with vectorized likelihood functions (might work already)
+    # with proper setup
 
     # calculate L for iterated stochastic event sets
     stoch_Ls = np.array(

@@ -4,35 +4,26 @@ from typing import Optional
 from geopandas import GeoDataFrame, GeoSeries
 
 from .sanity_test_functions import (
-    check_bin_max, )
+    max_check_function,
+)
 
 
 def min_max_check():
     raise NotImplementedError
 
 
-def max_check(bin_gdf: GeoDataFrame,
-              append_check: bool = False,
-              warn: bool = False) -> list:
+def max_check(cfg, input_data, framework="sanity"):
+    bin_width = cfg["input"]["bins"]["mfd_bin_width"]
 
-    max_check_col: GeoSeries = bin_gdf.SpacemagBin.apply(check_bin_max)
+    test_cfg = cfg["config"]["model_framework"][framework]
+    warn = test_cfg.get("warn", True)
+    parallel = cfg["config"].get("parallel", True)
 
-    if warn is True:
-        for i, mxc in max_check_col.iteritems():
-            if mxc is False:
-                logging.warn('bin {} fails max mag test.'.format(i))
-
-    if append_check is True:
-        bin_gdf['max_check'] = max_check_col
-
-    return bin_gdf[~max_check_col].index.to_list()
-
-
-def min_check():
-    # should check source ruptures and min bin config, maybe?
-    raise NotImplementedError
+    return max_check_function(
+        input_data, bin_width, warn=warn, parallel=parallel
+    )
 
 
 sanity_test_dict = {
-    'max_check': max_check,
+    "max_check": max_check,
 }

@@ -1,13 +1,13 @@
+from multiprocessing.dummy import current_process
 import os
 import json
 import logging
 import datetime
-from time import time, sleep
+from time import sleep
 from functools import partial
 from multiprocessing import Pool
-from collections import deque
 from collections.abc import Mapping
-from typing import Sequence, List, Optional, Union, Tuple
+from typing import Sequence, List, Optional, Union, Tuple, Dict
 
 import attr
 import dateutil
@@ -37,6 +37,11 @@ from .stats import (
     sample_num_events_in_interval,
     sample_num_events_in_interval_array,
 )
+
+try:
+    from .numba_stat_funcs import poisson_sample_vec
+except ImportError:
+    poisson_sample_vec = np.random.poisson
 
 _n_procs = max(1, os.cpu_count() - 1)
 # _n_procs = 2  # parallel testing
@@ -811,7 +816,7 @@ def make_earthquake_gdf_from_csv(
     df.drop([x_col, y_col], axis=1)
 
     eq_gdf = gpd.GeoDataFrame(df)
-    eq_gdf.crs = {"init": "epsg:{}".format(epsg)}
+    eq_gdf.crs = f"EPSG:{epsg}"
 
     if epsg != 4326:
         eq_gdf = eq_gdf.to_crs(epsg=4326)
@@ -1420,6 +1425,15 @@ def get_mag_bins(min_mag, max_mag, bin_width):
     return mag_bins
 
 
+def get_bin_edges_from_mag_bins(mag_bins: dict):
+    bin_centers = sorted(mag_bins.keys())
+
+    bin_edges = [mag_bins[bc][0] for bc in bin_centers]
+    bin_edges.append(mag_bins[bin_centers[-1]][1])
+
+    return bin_edges
+
+
 def get_mag_bins_from_cfg(cfg):
     return get_mag_bins(
         cfg["input"]["bins"]["mfd_bin_min"],
@@ -1438,11 +1452,16 @@ def get_model_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
 def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
 
     bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
     if "mag_bin" not in rdf.columns:
-        rdf["mag_bin"] = [
-            _nearest_bin(mag, bin_centers) for mag in rdf.magnitude
-        ]
+        rdf["mag_bin"] = pd.cut(
+            rdf.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
 
     mag_bin_groups = rdf.groupby("mag_bin")
 
@@ -1474,8 +1493,16 @@ def get_obs_mfd(
     rdf, mag_bins, t_yrs: float = 1.0, cumulative=False, delete_col=False
 ):
     bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
-    rdf["mag_bin"] = [_nearest_bin(mag, bin_centers) for mag in rdf.magnitude]
+    if "mag_bin" not in rdf.columns:
+        rdf["mag_bin"] = pd.cut(
+            rdf.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
 
     mag_bin_groups = rdf.groupby("mag_bin")
 
@@ -1505,20 +1532,24 @@ def get_obs_mfd(
     return mfd
 
 
-def sample_rups(rup_df, t_yrs):
-    n_rups = poisson.rvs(rup_df["occurrence_rate"] * t_yrs)
+def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
+    mag_idx = (rup_df["magnitude"] >= min_mag) & (
+        rup_df["magnitude"] <= max_mag
+    )
+
+    rup_rates = rup_df["occurrence_rate"].values * t_yrs
+    n_rups = poisson_sample_vec(rup_rates)
     sample_idx = n_rups > 0
-    n_samples_per_rup = n_rups[sample_idx]
-    rup_rows = rup_df.index[sample_idx]
+    
+    final_idx = sample_idx & mag_idx
+    
+    n_samples_per_rup = n_rups[final_idx]
+    rup_rows = rup_df.index[final_idx]
 
-    sampled_rups = []
+    sampled_rups_idx = [row for i, row in enumerate(rup_rows)
+                         for j in range(n_samples_per_rup[i])]
 
-    for i, row in enumerate(rup_rows):
-        n = n_samples_per_rup[i]
-        for i in range(n):
-            sampled_rups.append(rup_df.loc[row])
-
-    sampled_rups = pd.concat(sample_rups, axis=1).T
+    sampled_rups = rup_df.loc[pd.Index(sampled_rups_idx)]
 
     return sampled_rups
 
@@ -1553,3 +1584,29 @@ def trim_inputs(input_data, cfg):
 
         input_data["pro_gdf"] = pro_gdf.loc[pro_mag_range_idxs]
         input_data["pro_groups"] = input_data["pro_gdf"].groupby("cell_id")
+
+
+def get_poisson_counts_from_mfd_iter(mfd: Dict[float, float], n_iters: int):
+    samples = {
+        mag: np.random.poisson(rate, n_iters) for mag, rate in mfd.items()
+    }
+
+    sample_mfds = {
+        i: {mag: rate[i] for mag, rate in samples.items()}
+        for i in range(n_iters)
+    }
+
+    return sample_mfds
+
+
+def get_cell_rups(cell_id, rupture_gdf, cell_groups):
+    cell_rup_df = rupture_gdf.loc[cell_groups.groups[cell_id]]
+    return cell_rup_df
+
+
+def get_cell_eqs(cell_id, eq_gdf, eq_groups):
+    if cell_id in eq_groups.groups:
+        cell_eqs = eq_gdf.loc[eq_groups.groups[cell_id]]
+    else:
+        cell_eqs = pd.DataFrame(columns=eq_gdf.columns)
+    return cell_eqs

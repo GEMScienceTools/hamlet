@@ -31,10 +31,16 @@ def write_ruptures_to_file(
     rupture_file_path: str,
     simple_ruptures: bool = True,
 ):
-    if simple_ruptures is True:
-        write_simple_ruptures_to_file(rupture_gdf, rupture_file_path)
+    ruptures_out = rupture_gdf
+    rup_file_type = rupture_file_path.split(".")[-1]
+    if rup_file_type == "hdf5":
+        ruptures_out.to_hdf(rupture_file_path, key="ruptures")
+    elif rup_file_type == "feather":
+        ruptures_out.to_feather(rupture_file_path)
+    elif rup_file_type == "csv":
+        ruptures_out.to_csv(rupture_file_path)
     else:
-        write_oq_ruptures_to_file(rupture_gdf, rupture_file_path)
+        raise ValueError("Cannot write to {} filetype".format(rup_file_type))
 
 
 def write_simple_ruptures_to_file(

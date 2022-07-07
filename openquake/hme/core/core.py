@@ -43,6 +43,9 @@ from openquake.hme.utils import (
     subset_source,
     trim_inputs,
 )
+
+from openquake.hme.utils.results_processing import process_results
+
 from openquake.hme.reporting import generate_basic_report
 
 
@@ -61,6 +64,9 @@ from openquake.hme.model_test_frameworks.relm.relm_tests import relm_test_dict
 from openquake.hme.model_test_frameworks.sanity.sanity_checks import (
     sanity_test_dict,
 )
+from openquake.hme.model_test_frameworks.model_description import (
+    model_description_test_dict,
+)
 
 Openable = Union[str, bytes, int, "os.PathLike[Any]"]
 
@@ -68,6 +74,7 @@ test_dict = {
     "gem": gem_test_dict,
     "relm": relm_test_dict,
     "sanity": sanity_test_dict,
+    "model_description": model_description_test_dict,
 }
 
 logger = logging.getLogger(__name__)
@@ -130,8 +137,12 @@ def get_test_lists_from_config(cfg: dict) -> dict:
     frameworks = list(cfg["config"]["model_framework"].keys())
 
     for fw in frameworks:
-        fw_test_names = list(cfg["config"]["model_framework"][fw].keys())
-        tests[fw] = [test_dict[fw][test] for test in fw_test_names]
+        if hasattr(cfg["config"]["model_framework"][fw], "keys"):
+            fw_test_names = list(cfg["config"]["model_framework"][fw].keys())
+        else:
+            fw_test_names = cfg["config"]["model_framework"][fw]
+
+        tests[fw] = fw_test_names
 
     return tests
 
@@ -276,16 +287,14 @@ def load_ruptures_from_ssm(cfg: dict):
     rupture_dict = rupture_dict_from_logic_tree_dict(
         ssm_lt_sources,
         parallel=cfg["config"]["parallel"],
-        # simple_ruptures=cfg["input"]["simple_ruptures"],
     )
 
     del ssm_lt_sources
 
     logger.info("  making geodataframe from ruptures")
-    # rupture_gdf = rupture_list_to_gdf(rupture_dict[source_cfg["branch"]])
     rupture_gdf = rupture_dict_to_gdf(
         rupture_dict,
-        weights,  # parallel=cfg["config"]["parallel"]
+        weights,
     )
     logger.info("  done preparing rupture dataframe")
 
@@ -320,27 +329,12 @@ def load_inputs(cfg: dict) -> dict:
     logging.info("grouping ruptures by cell")
     cell_groups = rupture_gdf.groupby("cell_id")
 
-    # bin_gdf = make_bin_gdf_from_rupture_gdf(
-    #    rupture_gdf,
-    #    parallel=cfg["config"]["parallel"],
-    #    h3_res=cfg["input"]["bins"]["h3_res"],
-    #    min_mag=cfg["input"]["bins"]["mfd_bin_min"],
-    #    max_mag=cfg["input"]["bins"]["mfd_bin_max"],
-    #    bin_width=cfg["input"]["bins"]["mfd_bin_width"],
-    #    max_depth=cfg["input"]["ssm"]["max_depth"],
-    # )
-
-    # logger.info("bin_gdf shape: {}".format(bin_gdf.shape))
-
     logger.info("rupture_gdf shape: {}".format(rupture_gdf.shape))
     logger.debug(
         "rupture_gdf memory: {} GB".format(
             sum(rupture_gdf.memory_usage(index=True, deep=True)) * 1e-9
         )
     )
-
-    # logger.info("adding ruptures to bins")
-    # add_ruptures_to_bins(rupture_gdf, bin_gdf)
 
     if cfg["input"]["subset"]["file"] is not None:
         # logger.info("   Subsetting bin_gdf")
@@ -351,18 +345,6 @@ def load_inputs(cfg: dict) -> dict:
         # )
         logger.warn("CANNOT SUBSET SOURCE YET!!!")
 
-    # del rupture_gdf
-
-    # logger.debug(
-    #    "bin_gdf memory: {} GB".format(
-    #        sum(bin_gdf.memory_usage(index=True, deep=True)) * 1e-9
-    #    )
-    # )
-
-    # logger.info("adding earthquakes to bins")
-    # add_earthquakes_to_bins(
-    #    eq_gdf, bin_gdf, h3_res=cfg["input"]["bins"]["h3_res"]
-    # )
     logging.info("trimming earthquake catalog")
     cells_in_model = rupture_gdf.cell_id.unique()
     eq_in_model = (cell_id in cells_in_model for cell_id in eq_gdf.cell_id)
@@ -379,21 +361,14 @@ def load_inputs(cfg: dict) -> dict:
     }
 
     if "prospective_catalog" in cfg["input"].keys():
-        # logger.info("adding prospective earthquakes to bins")
+        logger.info("adding prospective earthquakes to input data")
         pro_gdf = load_pro_eq_catalog(cfg)
         pro_eq_in_model = (
             cell_id in cells_in_model for cell_id in pro_gdf.cell_id
         )
         pro_eq_gdf = pro_gdf.loc[pro_eq_in_model]
-        # add_earthquakes_to_bins(
-        #    pro_gdf,
-        #    bin_gdf,
-        #    h3_res=cfg["input"]["bins"]["h3_res"],
-        #    category="prospective",
-        # )
-        # return rupture_gdf, bin_gdf, eq_gdf, pro_gdf
-        input_data["pro_gdf"] = pro_gdf
-        input_data["pro_groups"] = pro_gdf.groupby("cell_id")
+        input_data["pro_gdf"] = pro_eq_gdf
+        input_data["pro_groups"] = pro_eq_gdf.groupby("cell_id")
 
     return input_data
 
@@ -425,12 +400,6 @@ def run_tests(cfg: dict) -> None:
     except KeyError:
         pass
 
-    # if "prospective_catalog" in cfg["input"].keys():
-    #    rup_gdf, bin_gdf, eq_gdf, pro_gdf = load_inputs(cfg)
-    # else:
-    #    rup_gdf, bin_gdf, eq_gdf = load_inputs(cfg)
-    #    pro_gdf = None
-
     input_data = load_inputs(cfg)
 
     t_done_load = time.time()
@@ -442,38 +411,24 @@ def run_tests(cfg: dict) -> None:
 
     test_lists = get_test_lists_from_config(cfg)
 
-    # if 'gem' in
+    results = {}
+
+    if "model_description" in test_lists.keys():
+        mod_desc_tests = test_lists.pop("model_description")
+        results["model_description"] = {
+            test: {"val": test_dict["model_description"][test](cfg, input_data)}
+            for test in mod_desc_tests
+        }
 
     logger.info("trimming rupture and earthquake data to test magnitude range")
     trim_inputs(input_data, cfg)
     logger.info(" {} ruptures".format(len(input_data["rupture_gdf"])))
 
-    # This block of code takes test_lists, which is a dictionary of the
-    # tests to be used (with keys of names (strings) and values of function
-    # objects) and inverts it, so that test_inv is a dictionary with keys
-    # that are function objects, and the values are strings of the fn name.
-    test_inv = {
-        framework: {
-            fn: name
-            for name, fn in test_dict[framework].items()
-            if fn in fw_tests
-        }
-        for framework, fw_tests in test_lists.items()
-    }
-
-    results = {}
-
-    # Now we loop over the tests in each framework. As we do each test, we
-    # store the test results in the 'results' dict; the test fn object (that is
-    # the variable in the loop) is called to run the test, and also used as the
-    # key for the test_inv dict which makes sure that the results are stored
-    # in the appropriate location. This can probably be simplified but the
-    # complexity seemed necessary when it was written.
     for framework, tests in test_lists.items():
         results[framework] = {}
         for test in tests:
-            results[framework][test_inv[framework][test]] = {
-                "val": test(cfg, input_data)
+            results[framework][test] = {
+                "val": test_dict[framework][test](cfg, input_data)
             }
 
     t_done_eval = time.time()
@@ -481,13 +436,16 @@ def run_tests(cfg: dict) -> None:
         "Done evaluating model in {0:.2f} s".format(t_done_eval - t_done_load)
     )
 
-    if "output" in cfg.keys():
-        raise NotImplementedError()
-        write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
+    # breakpoint()
+
+    process_results(cfg, input_data, results)
+
+    # if "output" in cfg.keys():
+    #    raise NotImplementedError()
+    #    write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
 
     if "report" in cfg.keys():
-        raise NotImplementedError()
-        write_reports(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf, results=results)
+        write_reports(cfg, results=results, input_data=input_data)
 
     if "json" in cfg.keys():
         raise NotImplementedError()
@@ -502,6 +460,8 @@ def run_tests(cfg: dict) -> None:
             (t_out_done - t_start) / 60.0
         )
     )
+
+    return results
 
 
 """
@@ -577,12 +537,7 @@ def write_outputs(
 OUTPUT_FILE_MAP = {"geojson": "GeoJSON"}
 
 
-def write_reports(
-    cfg: dict,
-    results: dict,
-    bin_gdf: Optional[GeoDataFrame] = None,
-    eq_gdf: Optional[GeoDataFrame] = None,
-) -> None:
+def write_reports(cfg: dict, results: dict, input_data: dict) -> None:
     """
     Writes reports summarizing the results of the tests and evaluations.
 
@@ -604,4 +559,4 @@ def write_reports(
     logger.info("writing reports")
 
     if "basic" in cfg["report"].keys():
-        generate_basic_report(cfg, results, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
+        generate_basic_report(cfg, results, input_data)
