@@ -13,6 +13,7 @@ from .gem_test_functions import (
     get_stochastic_mfds_parallel,
     eval_obs_moment,
     eval_obs_moment_model,
+    model_mfd_eval_fn,
     moment_over_under_eval_fn,
 )
 
@@ -230,8 +231,24 @@ def max_mag_check(cfg: dict, input_data: dict):
     return results
 
 
-def model_mfd_eval():
-    raise NotImplementedError()
+def model_mfd_eval(cfg, input_data):
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
+    prospective = test_config.get("prospective", False)
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+
+    results = model_mfd_eval_fn(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        mag_bins,
+        test_config["investigation_time"],
+    )
+
+    return results
 
 
 def moment_over_under_eval(cfg, input_data):

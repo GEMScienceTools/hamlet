@@ -18,6 +18,7 @@ from openquake.hme.utils.plots import (
     plot_likelihood_map,
     plot_S_test_map,
     plot_over_under_map,
+    plot_mfd,
 )
 
 BASE_DATA_PATH = os.path.dirname(__file__)
@@ -86,8 +87,7 @@ def render_result_text(
 
     if "gem" in results.keys():
         if "model_mfd" in results["gem"].keys():
-            logging.warn("model_mfd reporting not implemented")
-            # render_mfd(env=env, cfg=cfg, results=results)
+            render_mfd_eval(env=env, cfg=cfg, results=results)
 
         # will remove likelhood eval
         # if "likelihood" in results["gem"].keys():
@@ -100,13 +100,11 @@ def render_result_text(
         #    )
 
         if "moment_over_under" in results["gem"].keys():
-            # logging.warn("moment_over_under reporting not implemented")
             render_moment_over_under(
                 env=env, cfg=cfg, results=results, cell_gdf=results["cell_gdf"]
             )
 
         if "max_mag_check" in results["gem"].keys():
-            # logging.warn("max_mag_check reporting not implemented")
             render_max_mag(env=env, cfg=cfg, results=results)
 
         if "N_test" in results["gem"].keys():
@@ -115,17 +113,11 @@ def render_result_text(
             )
 
         if "M_test" in results["gem"].keys():
-            # logging.warn(" GEM M test reporting not implemented")
-            # render_gem_M_test(env=env, cfg=cfg, results=results)
             render_M_test(
                 env=env, cfg=cfg, results=results, model_test_framework="gem"
             )
 
         if "S_test" in results["gem"].keys():
-            # logging.warn("GEM S test reporting not implemented")
-            # render_gem_S_test(
-            #    env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
-            # )
             render_S_test(
                 env=env,
                 cfg=cfg,
@@ -144,13 +136,11 @@ def render_result_text(
             )
 
         if "M_test" in results["relm"].keys():
-            # logging.warn("M test reporting not implemented")
             render_M_test(
                 env=env, cfg=cfg, results=results, model_test_framework="relm"
             )
 
         if "S_test" in results["relm"].keys():
-            # logging.warn("S test reporting not implemented")
             render_S_test(
                 env=env,
                 cfg=cfg,
@@ -168,10 +158,6 @@ def render_result_text(
     if "model_description" in results.keys():
         if "describe_model" in results["model_description"].keys():
             logging.warn("describe_model reporting not implemented.")
-
-
-def render_mfd(env: Environment, cfg: dict, results: dict):
-    mfd_template = env.get_template("mfd.html")
 
 
 def render_N_test(
@@ -331,7 +317,7 @@ def render_moment_over_under(
 ) -> None:
 
     over_under = env.get_template("moment_over_under.html")
-    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
+    # test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
 
     if "map_epsg" in cfg["report"]["basic"].keys():
         map_epsg = cfg["report"]["basic"]["map_epsg"]
@@ -343,6 +329,25 @@ def render_moment_over_under(
     results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
         res=results["gem"]["moment_over_under"]["val"]["test_data"],
         over_under_map_str=over_under_map_str,
+    )
+
+
+def render_mfd_eval(env: Environment, cfg: dict, results: dict):
+
+    test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
+    mfd_df = results["gem"]["model_mfd"]["val"]["test_data"]["mfd_df"]
+
+    results["gem"]["model_mfd"]["val"]["mfd_plot"] = plot_mfd(
+        model=mfd_df["mod_mfd_cum"].to_dict(),
+        observed=mfd_df["obs_mfd_cum"].to_dict(),
+        t_yrs=test_config["investigation_time"],
+        return_fig=False,
+        return_string=True,
+    )
+
+    mfd_template = env.get_template("mfd.html")
+    results["gem"]["model_mfd"]["rendered_text"] = mfd_template.render(
+        cfg=cfg, results=results
     )
 
 

@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import poisson, nbinom
 
-from openquake.hme.utils.io.source_processing import make_cell_gdf_from_ruptures
+from openquake.hme.utils.io.source_processing import (
+    make_cell_gdf_from_ruptures,
+)
 
 
 def process_results(cfg, input_data, results):
