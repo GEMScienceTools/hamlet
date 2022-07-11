@@ -17,6 +17,11 @@ def process_results(cfg, input_data, results):
                 results["gem"]["S_test"], cell_gdf, model_test_framework="gem"
             )
 
+        if "moment_over_under" in test_cfg["model_framework"]["gem"]:
+            add_moment_over_under_results_to_cell_gdf(
+                results["gem"]["moment_over_under"], cell_gdf
+            )
+
     if "relm" in test_cfg["model_framework"]:
         if "S_test" in test_cfg["model_framework"]["relm"]:
             add_s_test_fracs_to_cell_gdf(
@@ -59,3 +64,28 @@ def add_s_test_fracs_to_cell_gdf(
     cell_gdf[f"{model_test_framework}_S_test_log_like"] = likes
 
     return
+
+
+def add_moment_over_under_results_to_cell_gdf(mo_ov_un_results, cell_gdf):
+
+    cell_ids = cell_gdf.index
+
+    fracs = pd.Series(
+        mo_ov_un_results["val"]["test_data"]["cell_fracs"],
+        # {c: mo_ov_un_results["val"]["test_data"]["cell_fracs"][i]
+        # for i, c in enumerate(cell_ids)},
+        name="moment_over_under_frac",
+    )
+
+    cell_gdf["moment_over_under_frac"] = fracs
+
+    rats = pd.Series(
+        {
+            c: mo_ov_un_results["val"]["test_data"]["obs_cell_moments"][c]
+            / mo_ov_un_results["val"]["test_data"]["cell_model_moments"][c]
+            for c in cell_ids
+        },
+        name="moment_ratio",
+    )
+
+    cell_gdf["moment_over_under_ratio"] = rats

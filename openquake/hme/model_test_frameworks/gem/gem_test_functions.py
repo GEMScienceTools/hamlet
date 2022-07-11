@@ -5,6 +5,7 @@ import logging
 from typing import Sequence, Dict, List, Optional, Union
 
 import numpy as np
+import pandas as pd
 from geopandas import GeoSeries
 
 from openquake.hme.utils import (
@@ -15,6 +16,24 @@ from openquake.hme.utils import (
     get_model_mfd,
     get_obs_mfd,
 )
+
+
+def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
+    if rup_groups == None:
+        rup_groups = rupture_gdf.groupby("cell_id")
+
+    moment_sums = pd.Series(
+        {
+            name: (
+                mag_to_mo(group["magnitude"]) * group["occurrence_rate"] * t_yrs
+            ).sum()
+            for name, group in rup_groups
+        }
+    )
+
+    total_moment = moment_sums.sum()
+
+    return moment_sums, total_moment
 
 
 def get_catalog_moment(eq_df, eq_groups=None):
@@ -31,36 +50,48 @@ def get_catalog_moment(eq_df, eq_groups=None):
 
 
 def moment_over_under_eval_fn(
-    rup_df, eq_gdf, t_yrs, min_mag=1.0, max_mag=10.0, n_iters=1000
+    rup_df, eq_gdf, cell_groups, t_yrs, min_mag=1.0, max_mag=10.0, n_iters=1000
 ):
 
     cell_ids = sorted(rup_df.cell_id.unique())
 
+    cell_model_moments, total_model_moment = get_rupture_gdf_cell_moment(
+        rup_df, t_yrs, rup_groups=cell_groups
+    )
+
     cell_moment_iterations = {
         cell_id: np.zeros(n_iters) for cell_id in cell_ids
     }
-    # cell_moment_iterations = pd.DataFrame(index=cell_ids, columns=np.arange(n_iters),
-    #                                      data=np.zeros((len(cell_ids), n_iters)))
+
     total_moment_iterations = np.zeros(n_iters)
+
+    iter_moments = {}
 
     for i in range(n_iters):
         rup_sample = sample_rups(
             rup_df, t_yrs, min_mag=min_mag, max_mag=max_mag
         )
-        iter_moments, iter_moment_sum = get_catalog_moment(rup_sample)
+        iter_moments[i], iter_moment_sum = get_catalog_moment(rup_sample)
 
-        # cell_moment_iterations[i].add(pd.Series(iter_moments), fill_value=0.)
-
-        for cell_id, moment_sum in iter_moments.items():
+        for cell_id, moment_sum in iter_moments[i].items():
             cell_moment_iterations[cell_id][i] += moment_sum
 
         total_moment_iterations[i] += iter_moment_sum
 
     cat_cell_moments, cat_total_moment = get_catalog_moment(eq_gdf)
 
+    cat_cell_moments = pd.Series(
+        index=cell_model_moments.index,
+        data=np.zeros(
+            len(
+                cell_ids,
+            )
+        ),
+    ).add(pd.Series(cat_cell_moments), fill_value=0.0)
+
     cell_fracs = {
         cell_id: sum(
-            cell_moment_iterations[cell_id] < cat_cell_moments.get(cell_id, 0.0)
+            cell_moment_iterations[cell_id] < cat_cell_moments[cell_id]
         )
         / n_iters
         for cell_id in cell_ids
@@ -70,6 +101,8 @@ def moment_over_under_eval_fn(
 
     results = {
         "test_data": {
+            "total_model_moment": total_model_moment,
+            "cell_model_moments": cell_model_moments,
             "total_obs_moment": cat_total_moment,
             "modeled_obs_moment": {
                 "mean": total_moment_iterations.mean(),
@@ -80,6 +113,7 @@ def moment_over_under_eval_fn(
             "stoch_total_moments": total_moment_iterations,
             "stoch_cell_moments": iter_moments,
             "obs_cell_moments": cat_cell_moments,
+            "model_moment_ratio": total_model_moment / cat_total_moment,
         }
     }
 

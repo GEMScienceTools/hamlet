@@ -149,7 +149,7 @@ def plot_likelihood_map(
                 ax.scatter(
                     eq_gdf.longitude,
                     eq_gdf.latitude,
-                    s=(eq_gdf.magnitude ** 3) / 10.0,
+                    s=(eq_gdf.magnitude**3) / 10.0,
                     edgecolor="blue",
                     facecolors="none",
                     alpha=0.3,
@@ -223,19 +223,19 @@ def plot_S_test_map(
     return fig_svg
 
 
-def plot_over_under_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
+def plot_over_under_map(cell_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
     fig, axs = plt.subplots(2, 1, figsize=(10, 18))
 
     # plot moment ratio
 
     # get colorbar bounds so that 1 is in the middle
-    max_ratio = bin_gdf.moment_ratio.max()
-    min_ratio = bin_gdf.moment_ratio.min()
+    max_ratio = cell_gdf.moment_over_under_ratio.max()
+    min_ratio = cell_gdf.moment_over_under_ratio.min()
     max_r_dist = np.max(np.abs([(1 - max_ratio), (1 - min_ratio)]))
 
     if map_epsg is None:
-        bin_gdf.plot(
-            column="moment_ratio",
+        cell_gdf.plot(
+            column="moment_over_under_ratio",
             ax=axs[0],
             vmin=1 - max_r_dist,
             vmax=1 + max_r_dist,
@@ -243,8 +243,8 @@ def plot_over_under_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
             legend=True,
         )
     else:
-        bin_gdf.to_crs(epsg=map_epsg).plot(
-            column="moment_ratio",
+        cell_gdf.to_crs(epsg=map_epsg).plot(
+            column="moment_over_under_ratio",
             ax=axs[0],
             vmin=1 - max_r_dist,
             vmax=1 + max_r_dist,
@@ -269,8 +269,8 @@ def plot_over_under_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
 
     # plot rank
     if map_epsg is None:
-        bin_gdf.plot(
-            column="moment_rank_pctile",
+        cell_gdf.plot(
+            column="moment_over_under_frac",
             ax=axs[1],
             vmin=0.0,
             vmax=1.0,
@@ -278,8 +278,8 @@ def plot_over_under_map(bin_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
             legend=True,
         )
     else:
-        bin_gdf.to_crs(epsg=map_epsg).plot(
-            column="moment_rank_pctile",
+        cell_gdf.to_crs(epsg=map_epsg).plot(
+            column="moment_over_under_frac",
             ax=axs[1],
             vmin=0.0,
             vmax=1.0,

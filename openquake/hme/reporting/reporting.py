@@ -100,14 +100,14 @@ def render_result_text(
         #    )
 
         if "moment_over_under" in results["gem"].keys():
-            logging.warn("moment_over_under reporting not implemented")
-            # render_moment_over_under(
-            #    env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
-            # )
+            # logging.warn("moment_over_under reporting not implemented")
+            render_moment_over_under(
+                env=env, cfg=cfg, results=results, cell_gdf=results["cell_gdf"]
+            )
 
         if "max_mag_check" in results["gem"].keys():
-            logging.warn("max_mag_check reporting not implemented")
-            # render_max_mag(env=env, cfg=cfg, results=results)
+            # logging.warn("max_mag_check reporting not implemented")
+            render_max_mag(env=env, cfg=cfg, results=results)
 
         if "N_test" in results["gem"].keys():
             render_N_test(
@@ -115,14 +115,24 @@ def render_result_text(
             )
 
         if "M_test" in results["gem"].keys():
-            logging.warn(" GEM M test reporting not implemented")
+            # logging.warn(" GEM M test reporting not implemented")
             # render_gem_M_test(env=env, cfg=cfg, results=results)
+            render_M_test(
+                env=env, cfg=cfg, results=results, model_test_framework="gem"
+            )
 
         if "S_test" in results["gem"].keys():
-            logging.warn("GEM S test reporting not implemented")
+            # logging.warn("GEM S test reporting not implemented")
             # render_gem_S_test(
             #    env=env, cfg=cfg, results=results, bin_gdf=bin_gdf
             # )
+            render_S_test(
+                env=env,
+                cfg=cfg,
+                results=results,
+                cell_gdf=results["cell_gdf"],
+                model_test_framework="gem",
+            )
 
         if "L_test" in results["gem"].keys():
             logging.warn("GEM L test reporting not implemented.")
@@ -236,9 +246,10 @@ def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
 def render_M_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ) -> None:
-    n_test = env.get_template("m_test.html")
-    results[model_test_framework]["M_test"]["rendered_text"] = n_test.render(
-        res=results[model_test_framework]["M_test"]["val"]
+    m_test = env.get_template("m_test.html")
+    results[model_test_framework]["M_test"]["rendered_text"] = m_test.render(
+        mtf=model_test_framework,
+        res=results[model_test_framework]["M_test"]["val"],
     )
 
 
@@ -271,12 +282,14 @@ def render_S_test(
     S_test_map_str = plot_S_test_map(
         cell_gdf,
         map_epsg=map_epsg,
-        bad_bins=results["relm"]["S_test"]["val"]["bad_bins"],
+        bad_bins=results[model_test_framework]["S_test"]["val"]["bad_bins"],
         model_test_framework=model_test_framework,
     )
 
-    results["relm"]["S_test"]["rendered_text"] = s_test.render(
-        res=results["relm"]["S_test"]["val"], S_test_map_str=S_test_map_str
+    results[model_test_framework]["S_test"]["rendered_text"] = s_test.render(
+        mtf=model_test_framework,
+        res=results[model_test_framework]["S_test"]["val"],
+        S_test_map_str=S_test_map_str,
     )
 
 
@@ -314,7 +327,7 @@ def render_moment_over_under(
     env: Environment,
     cfg: dict,
     results: dict,
-    bin_gdf: GeoDataFrame,
+    cell_gdf: GeoDataFrame,
 ) -> None:
 
     over_under = env.get_template("moment_over_under.html")
@@ -325,10 +338,10 @@ def render_moment_over_under(
     else:
         map_epsg = None
 
-    over_under_map_str = plot_over_under_map(bin_gdf, map_epsg)
+    over_under_map_str = plot_over_under_map(cell_gdf, map_epsg)
 
     results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
-        res=results["gem"]["moment_over_under"]["val"],
+        res=results["gem"]["moment_over_under"]["val"]["test_data"],
         over_under_map_str=over_under_map_str,
     )
 

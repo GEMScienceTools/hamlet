@@ -235,6 +235,9 @@ def model_mfd_eval():
 
 
 def moment_over_under_eval(cfg, input_data):
+
+    logging.info("Running GEM Moment Over-Under Eval")
+
     test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
     mag_bins = get_mag_bins_from_cfg(cfg)
     min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
@@ -252,7 +255,13 @@ def moment_over_under_eval(cfg, input_data):
         eq_gdf = input_data["eq_gdf"]
 
     test_results = moment_over_under_eval_fn(
-        input_data["rupture_gdf"], eq_gdf, t_yrs, min_mag, max_mag, n_iters
+        input_data["rupture_gdf"],
+        eq_gdf,
+        input_data["cell_groups"],
+        t_yrs,
+        min_mag,
+        max_mag,
+        n_iters,
     )
 
     results_for_print = {
