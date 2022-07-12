@@ -1,9 +1,8 @@
-import os
 import json
 import logging
-from typing import Union, Optional, Sequence
+from typing import Union  # , Optional, Sequence
 
-from h3 import h3
+# from h3 import h3
 import pandas as pd
 from tqdm import tqdm
 from geopandas import GeoDataFrame
@@ -29,7 +28,7 @@ from openquake.hme.utils.io.source_processing import (
 def write_ruptures_to_file(
     rupture_gdf: GeoDataFrame,
     rupture_file_path: str,
-    simple_ruptures: bool = True,
+    # simple_ruptures: bool = True,
 ):
     ruptures_out = rupture_gdf
     rup_file_type = rupture_file_path.split(".")[-1]
@@ -128,11 +127,11 @@ def read_rupture_file(
     elif rup_file_type == "feather":
         rupture_df = pd.read_feather(rupture_file)
     elif rup_file_type == "csv":
-        rupture_df = pd.read_csv(rupture_file)
+        rupture_df = pd.read_csv(rupture_file, index_col=0)
     else:
         raise ValueError("Cannot read filetype {}".format(rup_file_type))
 
-    if parallel == False:
+    if parallel is False:
         _get_h3_cell_for_rupture_df(rupture_df, h3_res)
     else:
         _get_h3_cell_for_rupture_df_parallel(rupture_df, h3_res)

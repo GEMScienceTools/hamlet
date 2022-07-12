@@ -75,20 +75,4 @@ test_cfg = {
 cfg = deepcopy(cfg_defaults)
 cfg = deep_update(cfg, test_cfg)
 
-bin_gdf, obs_seis_catalog = load_inputs(cfg)
-
-
-def test_sample_ruptures():
-    """
-    Test used during debugging, not a good unit test
-    """
-    sb = bin_gdf.iloc[0].SpacemagBin
-    evs = []
-    rnd = []
-    for i in range(5):
-        print(i)
-        rs = sb.sample_ruptures(5000.0, clean=True, return_rups=True)
-        for k, v in rs.items():
-            print(k, len(v))
-        evs.append(rs.copy())
-        rnd.append(np.random.get_state())
+input_data = load_inputs(cfg)

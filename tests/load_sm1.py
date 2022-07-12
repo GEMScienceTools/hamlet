@@ -5,9 +5,12 @@ from copy import deepcopy
 import numpy as np
 
 from openquake.hme.utils import deep_update
-from openquake.hme.core.core import (load_obs_eq_catalog,
-                                     load_ruptures_from_ssm, load_inputs,
-                                     cfg_defaults)
+from openquake.hme.core.core import (
+    load_obs_eq_catalog,
+    load_ruptures_from_ssm,
+    load_inputs,
+    cfg_defaults,
+)
 
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     get_model_mfd,
@@ -28,8 +31,7 @@ RUP_CSV = os.path.join(SM1_PATH, "sm1_rups.csv")
 
 # Doing this here because it takes several seconds and should be done once
 test_cfg = {
-    "meta": {
-            "description": "test"},
+    "meta": {"description": "test"},
     "config": {
         "model_framework": {
             "relm": {
@@ -54,7 +56,7 @@ test_cfg = {
             "h3_res": 3,
             "mfd_bin_min": 6.0,
             "mfd_bin_max": 8.5,
-            "mfd_bin_width": 0.2
+            "mfd_bin_width": 0.2,
         },
         "subset": {
             "file": None,
@@ -78,7 +80,7 @@ test_cfg = {
         "rupture_file": {
             "rupture_file_path": RUP_CSV,
             "read_rupture_file": False,
-            "save_rupture_file": False
+            "save_rupture_file": False,
         },
     },
 }
@@ -86,6 +88,6 @@ test_cfg = {
 cfg = deepcopy(cfg_defaults)
 cfg = deep_update(cfg, test_cfg)
 
-bin_gdf, eq_gdf = load_inputs(cfg)
+input_data = load_inputs(cfg)
 eq_gdf = load_obs_eq_catalog(cfg)  # repeating but works for some testing
 rup_gdf = load_ruptures_from_ssm(cfg)

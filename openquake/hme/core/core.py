@@ -323,7 +323,6 @@ def load_inputs(cfg: dict) -> dict:
         write_ruptures_to_file(
             rupture_gdf,
             cfg["input"]["rupture_file"]["rupture_file_path"],
-            cfg["input"]["simple_ruptures"],
         )
 
     logging.info("grouping ruptures by cell")
