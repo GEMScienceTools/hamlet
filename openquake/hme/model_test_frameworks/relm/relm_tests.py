@@ -81,7 +81,7 @@ def S_test(
     likelihood_function = test_config.get("likelihood_function", "mfd")
     not_modeled_likelihood = 0.0  # hardcoded for RELM
 
-    test_config["parallel"] = cfg["config"]["parallel"]
+    parallel = cfg["config"]["parallel"]
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -103,6 +103,7 @@ def S_test(
         mag_bins=mag_bins,
         critical_pct=test_config["critical_pct"],
         not_modeled_likelihood=not_modeled_likelihood,
+        parallel=parallel,
     )
 
     logging.info("S-Test {}".format(test_results["test_res"]))

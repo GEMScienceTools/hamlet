@@ -181,7 +181,6 @@ def m_test_function(
 
 
 def s_test_function(
-    # bin_gdf: GeoDataFrame,
     rup_gdf: GeoDataFrame,
     eq_gdf: GeoDataFrame,
     cell_groups,
@@ -192,7 +191,7 @@ def s_test_function(
     mag_bins,
     critical_pct: float = 0.25,
     not_modeled_likelihood: float = 0.0,
-    append_results: bool = False,
+    parallel: bool = False,
 ):
 
     annual_rup_rate = rup_gdf.occurrence_rate.sum()
@@ -211,7 +210,12 @@ def s_test_function(
     }
 
     cell_likes = s_test_cells(
-        cell_groups, rup_gdf, eq_groups, eq_gdf, cell_like_cfg
+        cell_groups,
+        rup_gdf,
+        eq_groups,
+        eq_gdf,
+        cell_like_cfg,
+        parallel=parallel,
     )
 
     cells = sorted(cell_likes.keys())
@@ -225,8 +229,6 @@ def s_test_function(
     )
 
     cell_fracs = np.zeros(len(cells))
-
-    # breakpoint()
 
     for i, obs_like in enumerate(obs_likes):
         cell_stoch_likes = stoch_likes[i]
@@ -257,7 +259,9 @@ def s_test_function(
     return test_result
 
 
-def s_test_cells(cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg):
+def s_test_cells(
+    cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg, parallel: bool = False
+):
 
     s_test_cell_results = {}
 
@@ -272,8 +276,12 @@ def s_test_cells(cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg):
         for cell_id in cell_ids
     )
 
-    with Pool(_n_procs) as p:
-        s_test_cell_results_ = p.map(_s_test_cell_args, args)
+    # need to make parallel processing optional
+    if parallel is True:
+        with Pool(_n_procs) as p:
+            s_test_cell_results_ = p.map(_s_test_cell_args, args)
+    else:
+        s_test_cell_results_ = list(map(_s_test_cell_args, args))
 
     s_test_cell_results = {
         cell_id: s_test_cell_results_[i] for i, cell_id in enumerate(cell_ids)
