@@ -88,6 +88,7 @@ cfg_defaults = {
             "tectonic_region_types": None,
             "source_types": None,
             "max_depth": None,
+            "job_ini_file": None,
         },
         "rupture_file": {
             "rupture_file_path": None,
@@ -275,6 +276,7 @@ def load_ruptures_from_ssm(cfg: dict):
 
     logger.info("  processing logic tree")
     ssm_lt_sources, weights = process_source_logic_tree_oq(
+        source_cfg["job_ini_file"],
         source_cfg["ssm_dir"],
         lt_file=source_cfg["ssm_lt_file"],
         source_types=source_cfg["source_types"],

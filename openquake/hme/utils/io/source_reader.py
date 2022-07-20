@@ -1,6 +1,8 @@
 import os
 import json
 import logging
+
+# from types import NoneType
 from typing import Union, Optional, Sequence
 
 import pandas as pd
@@ -199,9 +201,11 @@ def process_source_logic_tree(
 
 
 def process_source_logic_tree_oq(
+    job_ini_file,
     base_dir: str,
     lt_file: str = "ssmLT.xml",
     gmm_lt_file: str = "gmmLT.xml",
+    sites_file: Optional[str] = None,
     branch: Optional[str] = None,
     source_types: Optional[Sequence] = None,
     tectonic_region_types: Optional[Sequence] = None,
@@ -211,9 +215,16 @@ def process_source_logic_tree_oq(
 
     branch_weights = get_branch_weights(base_dir, lt_file)
     logging.info("weights: " + str(branch_weights))
-    job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
+    if job_ini_file is not None:
+        job_ini = readinput.get_params(job_ini_file)
+    else:
+        job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
 
     oqp = readinput.get_oqparam(job_ini)
+
+    # only for incomplete models? worried about distance filtering of sources.
+    if job_ini_file is None:
+        oqp.ground_motion_fields = False
 
     if branch is not None:
         logging.info(f"reading {branch} (1/1)")
