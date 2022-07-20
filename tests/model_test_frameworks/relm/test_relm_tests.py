@@ -18,8 +18,7 @@ DATA_FILE = os.path.join(SM1_PATH, "data", "phl_eqs.csv")
 
 # Doing this here because it takes several seconds and should be done once
 test_cfg = {
-    "meta": {
-        "description": "test"},
+    "meta": {"description": "test"},
     "config": {
         "model_framework": {
             "relm": {
@@ -74,14 +73,16 @@ test_cfg = {
 cfg = deepcopy(cfg_defaults)
 cfg = deep_update(cfg, test_cfg)
 
-bin_gdf, obs_seis_catalog = load_inputs(cfg)
+input_data = load_inputs(cfg)
 
 
 class test_relm_tests(unittest.TestCase):
     def setUp(self):
         self.cfg = cfg
-        self.bin_gdf = bin_gdf
-        self.obs_seis_catalog = obs_seis_catalog
+        self.rupture_gdf = input_data["rupture_gdf"]
+        self.rup_groups = input_data["cell_groups"]
+        self.eq_gdf = input_data["eq_gdf"]
+        self.eq_groups = input_data["eq_groups"]
 
     def test_S_test(self):
         np.random.seed(self.cfg["config"]["rand_seed"])
