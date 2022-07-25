@@ -14,6 +14,7 @@ from openquake.hme.utils import (
 
 from openquake.hme.core.core import load_inputs, cfg_defaults
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
+    mfd_log_likelihood,
     s_test_cell,
     s_test_cells,
     s_test_function,
@@ -22,7 +23,7 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     # get_model_annual_eq_rate,
     # get_total_obs_eqs,
     # subdivide_observed_eqs,
-    # N_test_poisson,
+    N_test_poisson,
     # N_test_neg_binom,
     # mfd_log_likelihood,
 )
@@ -107,6 +108,10 @@ class test_relm_test_functions(unittest.TestCase):
         ]
         self.s_test_cfg["mag_bins"] = get_mag_bins_from_cfg(self.cfg)
         self.s_test_cfg["not_modeled_likelihood"] = 0.0
+
+        self.n_test_cfg = self.cfg["config"]["model_framework"]["relm"][
+            "N_test"
+        ]
 
     def test_s_test_cell(self):
         np.random.seed(69)
@@ -398,28 +403,61 @@ class test_relm_test_functions(unittest.TestCase):
                 cell_data["stoch_loglikes"], cell_data_ans["stoch_loglikes"]
             )
 
-    @unittest.skip("not yet implemented")
     def test_mfd_log_likelihood(self):
-        # this test is not specific to N test but this is where t_yrs is stored
-        # with this unit test config
-        N_test_cfg = self.cfg["config"]["model_framework"]["relm"]["N_test"]
-        t_yrs = N_test_cfg["investigation_time"]
+        rate_mfd = {
+            6.1: 1.5063278628284074,
+            6.3: 0.9366653194923473,
+            6.5: 0.5819662717863339,
+            6.7: 0.3605823827753992,
+            6.9: 0.2194124816840237,
+            7.1: 0.1270055145570363,
+            7.3: 0.06573610995542593,
+            7.5: 0.01405758018423675,
+            7.7: 0.0,
+            7.9: 0.0,
+            8.1: 0.0,
+        }
 
-        sb = self.bin_gdf.loc["836864fffffffff"].SpacemagBin
+        empirical_mfd = {
+            6.1: 2.0,
+            6.3: 0.0,
+            6.5: 0.0,
+            6.7: 0.0,
+            6.9: 0.0,
+            7.1: 0.0,
+            7.3: 0.0,
+            7.5: 0.0,
+            7.7: 0.0,
+            7.9: 0.0,
+            8.1: 0.0,
+        }
 
-        obs_eqs = sb.observed_earthquakes
-        rate_mfd = sb.get_rupture_mfd()
-        rate_mfd = {mag: t_yrs * rate for mag, rate in rate_mfd.items()}
+        loglikes = [
+            -1.3801254232186118,
+            -0.9366653194923473,
+            -0.5819662717863339,
+            -0.3605823827753992,
+            -0.2194124816840237,
+            -0.1270055145570363,
+            -0.06573610995542593,
+            -0.01405758018423675,
+            0.0,
+            0.0,
+            0.0,
+        ]
+        loglike_sum = -3.685551083653415
 
-        mfd_log_like = mfd_log_likelihood(rate_mfd, binned_events=obs_eqs)
+        ll_sum, lls = mfd_log_likelihood(
+            rate_mfd=rate_mfd, empirical_mfd=empirical_mfd, return_likes=True
+        )
 
-        np.testing.assert_almost_equal(mfd_log_like, -11.061632009308141)
+        np.testing.assert_almost_equal(loglike_sum, ll_sum)
+        np.testing.assert_array_almost_equal(np.array(loglikes), np.array(lls))
 
     @unittest.skip("not yet implemented")
     def test_subdivide_observed_eqs(self):
         pass
 
-    @unittest.skip("not yet implemented")
     def test_N_test_poisson(self):
         N_test_cfg = self.cfg["config"]["model_framework"]["relm"]["N_test"]
         n_obs_events = 3

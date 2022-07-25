@@ -393,6 +393,139 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
     return test_result
 
 
+def get_poisson_counts_from_mfd(mfd: dict):
+    return {mag: np.random.poisson(rate) for mag, rate in mfd.items()}
+
+
+def mfd_log_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    not_modeled_likelihood: float = 0.0,
+    return_likes: bool = False,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the whole MFD, which is the sum of the
+    log-likelihoods of each bin, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
+
+    likes = [
+        bin_observance_log_likelihood(
+            n_obs, rate_mfd[mag], not_modeled_likelihood
+        )
+        for mag, n_obs in num_obs_events.items()
+    ]
+
+    if return_likes:
+        return np.sum(likes), likes
+    else:
+        return np.sum(likes)
+
+
+def total_event_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    not_modeled_likelihood: float = 0.0,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the whole MFD, which is the sum of the
+    log-likelihoods of each bin, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    return bin_observance_log_likelihood(
+        total_num_events,
+        total_model_rate,
+        not_modeled_val=not_modeled_likelihood,
+    )
+
+
+def N_test_poisson(
+    num_obs_events: int, rupture_rate: float, conf_interval: float
+) -> dict:
+
+    conf_min, conf_max = poisson(rupture_rate).interval(conf_interval)
+
+    test_pass = conf_min <= num_obs_events <= conf_max
+
+    test_res = "Pass" if test_pass else "Fail"
+    logging.info(f"N-Test: {test_res}")
+
+    test_result = {
+        "conf_interval_pct": conf_interval,
+        "conf_interval": (conf_min, conf_max),
+        "inv_time_rate": rupture_rate,
+        "n_obs_earthquakes": num_obs_events,
+        "test_res": test_res,
+        "test_pass": bool(test_pass),
+    }
+
+    return test_result
+
+
+def N_test_neg_binom(
+    num_obs_events: int,
+    rupture_rate: float,
+    prob_success: float,
+    r_dispersion: float,
+    conf_interval: float,
+) -> dict:
+
+    if r_dispersion < 1:
+        logging.warn(
+            "Earthquake production temporally underdispersed, \n"
+            "switching to Poisson N-Test"
+        )
+        return N_test_poisson(num_obs_events, rupture_rate, conf_interval)
+
+    conf_min, conf_max = nbinom(r_dispersion, prob_success).interval(
+        conf_interval
+    )
+    test_pass = conf_min <= num_obs_events <= conf_max
+
+    test_res = "Pass" if test_pass else "Fail"
+    logging.info(f"N-Test: {test_res}")
+
+    test_result = {
+        "conf_interval_pct": conf_interval,
+        "conf_interval": (conf_min, conf_max),
+        "inv_time_rate": rupture_rate,
+        "n_obs_earthquakes": num_obs_events,
+        "test_res": test_res,
+        "test_pass": bool(test_pass),
+    }
+
+    return test_result
+
+
+S_TEST_FN = {"n_eqs": total_event_likelihood, "mfd": mfd_log_likelihood}
+
+
 """
 OLD AS
 """
@@ -603,82 +736,7 @@ def s_test_bin(
     return obs_L, stoch_Ls, bad_bins
 
 
-def get_poisson_counts_from_mfd(mfd: dict):
-    return {mag: np.random.poisson(rate) for mag, rate in mfd.items()}
-
-
-def mfd_log_likelihood(
-    rate_mfd: dict,
-    binned_events: Optional[dict] = None,
-    empirical_mfd: Optional[dict] = None,
-    not_modeled_likelihood: float = 0.0,
-    return_likes: bool = False,
-) -> float:
-    """
-    Calculates the log-likelihood of the observations (either `binned_events`
-    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
-    value is the log-likelihood of the whole MFD, which is the sum of the
-    log-likelihoods of each bin, calculated using Poisson statistics.
-    """
-    if binned_events is not None:
-        if empirical_mfd is None:
-            num_obs_events = {
-                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
-            }
-        else:
-            raise ValueError("Either use empirical_mfd or binned_events")
-    else:
-        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
-
-    likes = [
-        bin_observance_log_likelihood(
-            n_obs, rate_mfd[mag], not_modeled_likelihood
-        )
-        for mag, n_obs in num_obs_events.items()
-    ]
-
-    if return_likes:
-        return np.sum(likes), likes
-    else:
-        return np.sum(likes)
-
-
-def total_event_likelihood(
-    rate_mfd: dict,
-    binned_events: Optional[dict] = None,
-    empirical_mfd: Optional[dict] = None,
-    not_modeled_likelihood: float = 0.0,
-) -> float:
-    """
-    Calculates the log-likelihood of the observations (either `binned_events`
-    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
-    value is the log-likelihood of the whole MFD, which is the sum of the
-    log-likelihoods of each bin, calculated using Poisson statistics.
-    """
-    if binned_events is not None:
-        if empirical_mfd is None:
-            num_obs_events = {
-                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
-            }
-        else:
-            raise ValueError("Either use empirical_mfd or binned_events")
-    else:
-        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
-
-    total_model_rate = sum(rate_mfd.values())
-    total_num_events = sum(num_obs_events.values())
-
-    return bin_observance_log_likelihood(
-        total_num_events,
-        total_model_rate,
-        not_modeled_val=not_modeled_likelihood,
-    )
-
-
-S_TEST_FN = {"n_eqs": total_event_likelihood, "mfd": mfd_log_likelihood}
-
-
-def subdivide_observed_eqs(bin_gdf: GeoDataFrame, subcat_n_years: int):
+def subdivide_observed_eqs_old(bin_gdf: GeoDataFrame, subcat_n_years: int):
 
     # collate earthquakes from bins
     obs_eqs = get_total_obs_eqs(bin_gdf, prospective=False)
@@ -709,59 +767,7 @@ def subdivide_observed_eqs(bin_gdf: GeoDataFrame, subcat_n_years: int):
     return n_eqs
 
 
-def N_test_poisson(
-    num_obs_events: int, rupture_rate: float, conf_interval: float
-) -> dict:
+def subdivide_observed_eqs(eq_gdf, subcat_n_years, t_yrs, start_year=None):
 
-    conf_min, conf_max = poisson(rupture_rate).interval(conf_interval)
-
-    test_pass = conf_min <= num_obs_events <= conf_max
-
-    test_res = "Pass" if test_pass else "Fail"
-    logging.info(f"N-Test: {test_res}")
-
-    test_result = {
-        "conf_interval_pct": conf_interval,
-        "conf_interval": (conf_min, conf_max),
-        "inv_time_rate": rupture_rate,
-        "n_obs_earthquakes": num_obs_events,
-        "test_res": test_res,
-        "test_pass": bool(test_pass),
-    }
-
-    return test_result
-
-
-def N_test_neg_binom(
-    num_obs_events: int,
-    rupture_rate: float,
-    prob_success: float,
-    r_dispersion: float,
-    conf_interval: float,
-) -> dict:
-
-    if r_dispersion < 1:
-        logging.warn(
-            "Earthquake production temporally underdispersed, \n"
-            "switching to Poisson N-Test"
-        )
-        return N_test_poisson(num_obs_events, rupture_rate, conf_interval)
-
-    conf_min, conf_max = nbinom(r_dispersion, prob_success).interval(
-        conf_interval
-    )
-    test_pass = conf_min <= num_obs_events <= conf_max
-
-    test_res = "Pass" if test_pass else "Fail"
-    logging.info(f"N-Test: {test_res}")
-
-    test_result = {
-        "conf_interval_pct": conf_interval,
-        "conf_interval": (conf_min, conf_max),
-        "inv_time_rate": rupture_rate,
-        "n_obs_earthquakes": num_obs_events,
-        "test_res": test_res,
-        "test_pass": bool(test_pass),
-    }
-
-    return test_result
+    if start_year is None:
+        pass
