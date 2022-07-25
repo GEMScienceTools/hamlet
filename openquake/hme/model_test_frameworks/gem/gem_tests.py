@@ -297,6 +297,11 @@ def moment_over_under_eval(cfg, input_data):
     return test_results
 
 
+def mfd_likelihood_test(cfg, input_data):
+    logging.warn("GEM Likelihood test deprecated")
+    return
+
+
 ##########
 # old tests
 ##########
@@ -409,7 +414,7 @@ def model_mfd_test_old(cfg: dict, bin_gdf: GeoDataFrame) -> None:
         )
 
 
-def mfd_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame):
+def mfd_likelihood_test_old(cfg: dict, bin_gdf: GeoDataFrame):
     """
     Calculates the likelihood of the Seismic Source Model for each SpacemagBin.
     The likelihood calculation is (currently) treated as the geometric mean of
