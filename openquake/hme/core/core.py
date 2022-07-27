@@ -89,6 +89,8 @@ cfg_defaults = {
             "source_types": None,
             "max_depth": None,
             "job_ini_file": None,
+            "ssm_dir": None,
+            "ssm_lt_file": None,
         },
         "rupture_file": {
             "rupture_file_path": None,
@@ -275,7 +277,7 @@ def load_ruptures_from_ssm(cfg: dict):
     source_cfg: dict = cfg["input"]["ssm"]
 
     logger.info("  processing logic tree")
-    ssm_lt_sources, weights = process_source_logic_tree_oq(
+    ssm_lt_sources, weights, source_rup_counts = process_source_logic_tree_oq(
         source_cfg["job_ini_file"],
         source_cfg["ssm_dir"],
         lt_file=source_cfg["ssm_lt_file"],
@@ -288,6 +290,7 @@ def load_ruptures_from_ssm(cfg: dict):
     logger.info("  making dictionary of ruptures")
     rupture_dict = rupture_dict_from_logic_tree_dict(
         ssm_lt_sources,
+        source_rup_counts=source_rup_counts,
         parallel=cfg["config"]["parallel"],
     )
 
@@ -423,7 +426,7 @@ def run_tests(cfg: dict) -> None:
 
     logger.info("trimming rupture and earthquake data to test magnitude range")
     trim_inputs(input_data, cfg)
-    logger.info(" {} ruptures".format(len(input_data["rupture_gdf"])))
+    logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
 
     for framework, tests in test_lists.items():
         results[framework] = {}
@@ -437,19 +440,14 @@ def run_tests(cfg: dict) -> None:
         "Done evaluating model in {0:.2f} s".format(t_done_eval - t_done_load)
     )
 
-    # breakpoint()
-
     process_results(cfg, input_data, results)
-
-    # if "output" in cfg.keys():
-    #    raise NotImplementedError()
-    #    write_outputs(cfg, bin_gdf=bin_gdf, eq_gdf=eq_gdf)
 
     if "report" in cfg.keys():
         write_reports(cfg, results=results, input_data=input_data)
 
     if "json" in cfg.keys():
-        raise NotImplementedError()
+        # raise NotImplementedError()
+        logging.warn("JSON output not implemented")
         write_json(cfg, results)
 
     t_out_done = time.time()

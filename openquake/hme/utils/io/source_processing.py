@@ -49,7 +49,10 @@ def _put_sources_in_chunks(sources, source_counts, n_chunks, unweighted=None):
 
 
 def _chunk_source_list(
-    sources: list, n_chunks: int = _n_procs, n_rup_threshold=10_000_000
+    sources: list,
+    source_counts_unweighted: list = [],
+    n_chunks: int = _n_procs,
+    n_rup_threshold=10_000_000,
 ) -> Tuple[list, list]:
 
     sources_temp = []
@@ -70,7 +73,9 @@ def _chunk_source_list(
 
         return weight
 
-    source_counts_unweighted = [s.count_ruptures() for s in sources]
+    if source_counts_unweighted == []:
+        logging.info("     no rup counts provided; counting...")
+        source_counts_unweighted = [s.count_ruptures() for s in sources]
     source_counts = [
         source_counts_unweighted[i] * source_weight(s)
         for i, s in enumerate(sources)
@@ -213,13 +218,12 @@ def _process_source(
     rup_df.index = ["{}_{}".format(source.source_id, i) for i in rup_df.index]
     rup_df.index.name = "rup_id"
 
-    # if hasattr(source, "weight"):
-    #    rup_df["occurrence_rate"] *= source.weight
-
     return rup_df
 
 
-def rupture_df_from_source_list(source_list, h3_res=3):
+def rupture_df_from_source_list(
+    source_list: list, source_rup_counts: list = [], h3_res: int = 3
+):
     rup_counts = [s.count_ruptures() for s in source_list]
     n_rups = sum(rup_counts)
     source_df_list = []
@@ -237,11 +241,16 @@ def rupture_df_from_source_list(source_list, h3_res=3):
 
 
 def rupture_list_from_source_list_parallel(
-    source_list, n_procs: int = _n_procs, h3_res: int = 3
+    source_list: list,
+    source_rup_counts: list = [],
+    n_procs: int = _n_procs,
+    h3_res: int = 3,
 ) -> pd.DataFrame:
 
     logger.info("    chunking sources")
-    source_chunks, chunk_sums = _chunk_source_list(source_list, n_procs)
+    source_chunks, chunk_sums = _chunk_source_list(
+        source_list, source_rup_counts, n_procs
+    )
 
     chunks_with_args = [
         {
@@ -294,6 +303,7 @@ def rupture_list_from_source_list_parallel(
 
 def rupture_dict_from_logic_tree_dict(
     logic_tree_dict: dict,
+    source_rup_counts: dict,
     parallel: bool = True,
     n_procs: int = _n_procs,
     h3_res: int = 3,
@@ -338,7 +348,10 @@ def rupture_dict_from_logic_tree_dict(
                 f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
             )
             rup_dict[branch_name] = rupture_list_from_source_list_parallel(
-                source_list, h3_res=h3_res, n_procs=n_procs
+                source_list,
+                source_rup_counts=source_rup_counts[branch_name],
+                h3_res=h3_res,
+                n_procs=n_procs,
             )
     else:
         rup_dict = {}

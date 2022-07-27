@@ -5,12 +5,12 @@ import logging
 # from types import NoneType
 from typing import Union, Optional, Sequence
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from geopandas import GeoDataFrame
-from openquake.hazardlib.geo.point import Point
-
-
+from openquake.baselib.general import AccumDict
+from openquake.calculators.base import run_calc
 from openquake.commonlib import readinput, logs
 from openquake.commonlib.logictree import SourceModelLogicTree
 from openquake.hazardlib.source import (
@@ -200,6 +200,44 @@ def process_source_logic_tree(
     return lt, weights
 
 
+def csm_from_job_ini(job_ini):
+
+    calc = run_calc(
+        job_ini,
+        calculation_mode="preclassical",
+        split_sources="true",
+        ground_motion_fields=False,
+    )
+
+    sources = calc.csm.get_sources()
+    source_info = calc.datastore["source_info"][:]
+
+    for i, source in enumerate(sources):
+        source.source_id = i
+
+    # breakpoint()
+
+    return calc.csm, sources, source_info
+
+
+def get_rlz_source(rlz, csm):
+    srcs = []
+    grp = csm.get_groups(rlz)
+    for g in grp:
+        srcs.extend(g)
+    return srcs
+
+
+def get_csm_rlzs(csm):
+    csm_rlz_groups = {}
+    for i, rlz in enumerate(csm.sm_rlzs):
+        csm_rlz_groups[i] = {
+            "weight": rlz.weight,
+            "sources": get_rlz_source(i, csm),
+        }
+        return csm_rlz_groups
+
+
 def process_source_logic_tree_oq(
     job_ini_file,
     base_dir: str,
@@ -213,59 +251,65 @@ def process_source_logic_tree_oq(
     verbose: bool = False,
 ):
 
-    branch_weights = get_branch_weights(base_dir, lt_file)
-    logging.info("weights: " + str(branch_weights))
     if job_ini_file is not None:
-        job_ini = readinput.get_params(job_ini_file)
+        job_ini = job_ini_file
     else:
         job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
 
-    oqp = readinput.get_oqparam(job_ini)
+    csm, _sources, _source_info = csm_from_job_ini(job_ini)
 
-    # only for incomplete models? worried about distance filtering of sources.
-    if job_ini_file is None:
-        oqp.ground_motion_fields = False
+    logging.info("Realizations:")
+    logging.info(csm.sm_rlzs)
 
-    if branch is not None:
-        logging.info(f"reading {branch} (1/1)")
-        branch_csms = {
-            branch: readinput.get_composite_source_model(oqp, branchID=branch)
+    rlzs = get_csm_rlzs(csm)
+    branch_sources = {k: v["sources"] for k, v in rlzs.items()}
+    branch_weights = {k: v["weight"] for k, v in rlzs.items()}
+
+    if (branch is not None) and (branch != "iterate"):
+        ssm_lt_sources = {branch: branch_sources[branch]}
+        ssm_lt_weights = {branch: 1.0}
+        ssm_lt_rup_counts = {
+            branch: [s.num_ruptures for s in branch_sources[branch]]
         }
-        branch_weights = {branch: 1.0}
+
+    elif branch == "iterate":
+        raise NotImplementedError()
+
     else:
-        branch_csms = {}
-        try:
-            # br: readinput.get_composite_source_model(oqp, branchID=br) }
-            for i, br in enumerate(branch_weights.keys()):
-                logging.info(
-                    f"reading {br} ({i+1}/{len(branch_weights.keys())})"
-                )
-                branch_csms[br] = readinput.get_composite_source_model(
-                    oqp, branchID=br
-                )
-        except Exception as e:
-            logging.warn("Can't parse branches in source model... Combining.")
-            branch_csms["composite"] = readinput.get_composite_source_model(oqp)
-            branch_weights = {"composite": 1.0}
+        n_total_sources = sum(
+            len(br_source) for br_source in branch_sources.values()
+        )
+        logging.info(f"Model has {n_total_sources:_} sources")
+        sources_w_weights = make_composite_source(
+            branch_sources, branch_weights
+        )
+        ssm_lt_sources = {"composite": list(sources_w_weights.keys())}
+        ssm_lt_rup_counts = {
+            "composite": [s.num_ruptures for s in ssm_lt_sources["composite"]]
+        }
+        source_weights = list(sources_w_weights.values())
+        ssm_lt_weights = {"composite": []}
 
-    branch_sources = {}
+        for i, rup_count in enumerate(ssm_lt_rup_counts["composite"]):
+            ssm_lt_weights["composite"].append(
+                np.ones(rup_count) * source_weights[i]
+            )
 
-    for br, branch_csm in branch_csms.items():
-        br_sources = []
-        for src_group in branch_csm.src_groups:
-            if (
-                tectonic_region_types is None
-                or src_group.trt in tectonic_region_types
-            ):
-                for src in src_group.sources:
-                    if (
-                        source_types is None
-                        or src.__class__.__name__ in source_types
-                    ):
-                        br_sources.append(src)
-        branch_sources[br] = br_sources
+        ssm_lt_weights["composite"] = np.hstack(ssm_lt_weights["composite"])
+        logging.info(
+            f"{len(ssm_lt_weights['composite']):_} rups in composite model"
+        )
 
-    return branch_sources, branch_weights
+    return ssm_lt_sources, ssm_lt_weights, ssm_lt_rup_counts
+
+
+def make_composite_source(branch_sources, branch_weights):
+    sources_w_weights = AccumDict()
+    for br, br_sources in branch_sources.items():
+        brr = {src: branch_weights[br] for src in br_sources}
+        sources_w_weights += brr
+
+    return sources_w_weights
 
 
 def get_branch_weights(base_dir: str, lt_file: str = "ssmLT.xml"):
