@@ -6,7 +6,7 @@ import pandas as pd
 from openquake.hme.utils.io import read_rupture_file
 from openquake.hme.utils.simple_rupture import SimpleRupture
 
-from .load_sm1 import cfg, input_data, eq_gdf, rup_gdf
+from openquake.hme.utils.tests.load_sm1 import cfg, input_data, eq_gdf, rup_gdf
 
 
 def test_read_rupture_file():

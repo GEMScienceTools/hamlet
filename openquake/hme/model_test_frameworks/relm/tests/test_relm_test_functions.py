@@ -28,72 +28,8 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     # mfd_log_likelihood,
 )
 
-BASE_PATH = os.path.dirname(__file__)
-SM1_PATH = os.path.join(BASE_PATH, "..", "..", "data", "source_models", "sm1")
-DATA_FILE = os.path.join(SM1_PATH, "data", "phl_synth_catalog.csv")
 
-# Doing this here because it takes several seconds and should be done once
-test_cfg = {
-    "meta": {"description": "test"},
-    "config": {
-        "model_framework": {
-            "relm": {
-                "N_test": {
-                    "prob_model": "poisson",
-                    "conf_interval": 0.96,
-                    "investigation_time": 40.0,
-                },
-                "M_test": {
-                    "prospective": False,
-                    "critical_pct": 0.25,
-                    "investigation_time": 40.0,
-                    "n_iters": 5,
-                },
-                "S_test": {
-                    "prospective": False,
-                    "investigation_time": 40.0,
-                    "n_iters": 5,
-                    "critical_pct": 0.25,
-                    "append": True,
-                    "likelihood_fn": "mfd",
-                },
-            }
-        },
-        "parallel": False,
-        "rand_seed": 69,
-    },
-    "input": {
-        "bins": {
-            "mfd_bin_min": 6.1,
-            "mfd_bin_max": 8.0,
-            "mfd_bin_width": 0.2,
-            "h3_res": 3,
-        },
-        "subset": {"file": None},
-        "ssm": {
-            "ssm_dir": SM1_PATH + "/",
-            "ssm_lt_file": "ssmLT.xml",
-            "branch": "b1",
-            "tectonic_region_types": ["Active Shallow Crust"],
-            "source_types": None,
-        },
-        "seis_catalog": {
-            "seis_catalog_file": DATA_FILE,
-            "columns": {"event_id": "event_id"},
-        },
-        "rupture_file": {
-            "rupture_file_path": None,
-            "read_rupture_file": False,
-            "save_rupture_file": False,
-        },
-    },
-}
-
-cfg = deepcopy(cfg_defaults)
-cfg = deep_update(cfg, test_cfg)
-
-input_data = load_inputs(cfg)
-
+from openquake.hme.utils.tests.load_sm1 import cfg, input_data, eq_gdf, rup_gdf
 
 class test_relm_test_functions(unittest.TestCase):
     def setUp(self):

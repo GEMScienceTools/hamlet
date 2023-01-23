@@ -58,15 +58,15 @@ input:
         mfd_bin_width: 0.2
         #h3_res: 3
     ssm:
-        ssm_dir: ../../../../data/source_models/sm1/
+        ssm_dir: ../../../../utils/tests/data/source_models/sm1/
         ssm_lt_file: ssmLT.xml
-        branch: b1
         tectonic_region_types:
             - Active Shallow Crust
         source_types: null
 
     seis_catalog:
-        seis_catalog_file: ../../../../data/source_models/sm1/data/phl_synth_catalog.csv
+      #seis_catalog_file: ../../../../data/source_models/sm1/data/phl_synth_catalog.csv
+        seis_catalog_file: ../../../../utils/tests/data/source_models/sm1/data/phl_synth_catalog.csv
         columns:
             # time: time
             event_id: event_id
