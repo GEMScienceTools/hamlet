@@ -1,6 +1,8 @@
 import os
+import io
 import json
 import logging
+import configparser
 
 # from types import NoneType
 from typing import Union, Optional, Sequence
@@ -202,20 +204,26 @@ def process_source_logic_tree(
 
 def csm_from_job_ini(job_ini):
 
-    calc = run_calc(
-        job_ini,
-        calculation_mode="preclassical",
+    if isinstance(job_ini, dict):
+        calc = run_calc(job_ini,
+        #calclation_mode="preclassical",
         split_sources="true",
         ground_motion_fields=False,
-    )
+        )
+
+    else:
+        calc = run_calc(
+            job_ini,
+            calculation_mode="preclassical",
+            split_sources="true",
+            ground_motion_fields=False,
+        )
 
     sources = calc.csm.get_sources()
     source_info = calc.datastore["source_info"][:]
 
     for i, source in enumerate(sources):
         source.source_id = i
-
-    # breakpoint()
 
     return calc.csm, sources, source_info
 
@@ -333,20 +341,33 @@ def make_job_ini(
 ):
     ssm_lt_path = os.path.join(base_dir, lt_file)
     gmm_lt_path = os.path.join(base_dir, gmm_lt_file)
-    job_ini = dict(
-        calculation_mode="preclassical",
-        description=description,
-        rupture_mesh_spacing="2.0",
-        area_source_discretization="15.0",
-        width_of_mfd_bin="0.1",  # typically smaller than from cfg; use cfg?
-        reference_vs30_type="measured",
-        reference_vs30_value="800.0",
-        reference_depth_to_1pt0km_per_sec="30.0",
-        maximum_distance="200",
-        investigation_time="1.0",
-        inputs=dict(
-            source_model_logic_tree=ssm_lt_path, gsim_logic_tree=gmm_lt_path
-        ),
-    )
+    job_ini_params = {
+        "general": {
+            "calculation_mode": "preclassical",
+            "description": description,
+        },
+        "calculation": {
+            "rupture_mesh_spacing": 2.0,
+            "area_source_discretization": 15.0,
+            "width_of_mfd_bin": 0.1,  # typically smaller than from cfg; use cfg?
+            "maximum_distance": 200,
+            "investigation_time": 1.0,
+            "source_model_logic_tree": ssm_lt_path,
+            "gsim_logic_tree": gmm_lt_path,
+        },
+        "site_params": {
+            "reference_vs30_type": "measured",
+            "reference_vs30_value": 800.0,
+            "reference_depth_to_1pt0km_per_sec": 30.0,
+        },
+    }
 
-    return job_ini
+
+    job_ini_params_flat = {k:v for k, v in job_ini_params['general'].items()}
+    job_ini_params_flat.update(job_ini_params['calculation'])
+    job_ini_params_flat.update(job_ini_params['site_params'])
+
+    job_ini_params_flat = {k:str(v) for k, v in job_ini_params_flat.items()}
+    job_ini_params_flat['inputs'] = {'source_model_logic_tree': str(ssm_lt_path)}
+
+    return job_ini_params_flat
