@@ -44,6 +44,7 @@ class test_relm_test_functions(unittest.TestCase):
         ]
         self.s_test_cfg["mag_bins"] = get_mag_bins_from_cfg(self.cfg)
         self.s_test_cfg["not_modeled_likelihood"] = 0.0
+        self.s_test_cfg["likelihood_fn"] = "mfd"
 
         self.n_test_cfg = self.cfg["config"]["model_framework"]["relm"][
             "N_test"

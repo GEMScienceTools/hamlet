@@ -208,7 +208,7 @@ def s_test_function(
         "N_norm": N_norm,
         "mag_bins": mag_bins,
     }
-
+    
     cell_likes = s_test_cells(
         cell_groups,
         rup_gdf,
