@@ -17,14 +17,14 @@ test_file = os.path.join(BASE_PATH, 'test_sm1_poisson.yml')
 
 
 def test_read_cfg():
-    cfg = read_yaml_config(test_file, validate=False)
+    cfg = read_yaml_config(test_file)
 
     assert True
 
 
 def test_run_tests():
 
-    cfg = read_yaml_config(test_file, validate=False)
+    cfg = read_yaml_config(test_file, validate=True)
 
     curr_dir = os.getcwd()
     os.chdir(BASE_PATH)

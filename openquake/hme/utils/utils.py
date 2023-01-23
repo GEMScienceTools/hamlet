@@ -796,7 +796,7 @@ def make_earthquake_gdf_from_csv(
     """
 
     df = pd.read_csv(eq_csv)
-
+    
     if time is not None:
         df["time"] = df.apply(_parse_eq_time, time_cols=time, axis=1)
 

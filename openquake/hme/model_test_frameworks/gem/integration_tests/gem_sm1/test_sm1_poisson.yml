@@ -67,8 +67,10 @@ input:
     seis_catalog:
       #seis_catalog_file: ../../../../data/source_models/sm1/data/phl_synth_catalog.csv
         seis_catalog_file: ../../../../utils/tests/data/source_models/sm1/data/phl_synth_catalog.csv
+        duration: 40.
+        stop_date: 2013-01-01
         columns:
-            # time: time
+            time: time
             event_id: event_id
         #        seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
         #        columns:
@@ -86,6 +88,3 @@ report:
     basic:
         outfile: outputs/sm1_poisson_report.html
 
-output:
-    bin_gdf:
-        file: outputs/sm1_bins.geojson
