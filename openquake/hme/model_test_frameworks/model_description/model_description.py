@@ -25,9 +25,9 @@ def _get_inclusive_min_max_mags(
     :rtype: Tuple[float]
     """
 
-    mfd_min_mag = round(cfg["input"]["bins"]["mfd_bin_min"], 2)
-    mfd_max_mag = round(cfg["input"]["bins"]["mfd_bin_max"], 2)
-    mfd_bin_width = cfg["input"]["bins"]["mfd_bin_width"]
+    mfd_min_mag = round(cfg["input"]["mfd_bin_min"], 2)
+    mfd_max_mag = round(cfg["input"]["mfd_bin_max"], 2)
+    mfd_bin_width = cfg["input"]["mfd_bin_width"]
     half_width = mfd_bin_width / 2.0
 
     data_min_mag = np.min(mags)
@@ -53,14 +53,14 @@ def describe_mfds(cfg, input_data):
         input_data["rupture_gdf"].magnitude, cfg
     )
     model_mag_bins = get_mag_bins(
-        model_min_mag, model_max_mag, cfg["input"]["bins"]["mfd_bin_width"]
+        model_min_mag, model_max_mag, cfg["input"]["mfd_bin_width"]
     )
 
     obs_min_mag, obs_max_mag = _get_inclusive_min_max_mags(
         input_data["eq_gdf"].magnitude, cfg
     )
     obs_mag_bins = get_mag_bins(
-        obs_min_mag, obs_max_mag, cfg["input"]["bins"]["mfd_bin_width"]
+        obs_min_mag, obs_max_mag, cfg["input"]["mfd_bin_width"]
     )
 
     # need to scale by investigation time to compare
