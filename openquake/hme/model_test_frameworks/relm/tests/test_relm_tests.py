@@ -48,9 +48,7 @@ class test_relm_tests(unittest.TestCase):
     def test_N_test_poisson(self):
         np.random.seed(self.cfg["config"]["rand_seed"])
         N_test_res = N_test(self.cfg, self.input_data)
-        print(N_test_res)
         rate = 15.581590799999995
-
         assert N_test_res["conf_interval_pct"] == 0.96
         assert N_test_res["conf_interval"] == (8.0, 24.0)
         np.testing.assert_almost_equal(N_test_res["inv_time_rate"], rate)
