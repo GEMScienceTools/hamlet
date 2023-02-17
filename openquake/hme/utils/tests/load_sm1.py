@@ -36,6 +36,18 @@ test_cfg = {
                     "critical_pct": 0.25,
                     "append": True,
                 },
+                "L_test": {
+                    "investigation_time": 40.0,
+                    "n_iters": 5,
+                    "critical_pct": 0.25,
+                    "append": True,
+                },
+                "M_test": {
+                    "investigation_time": 40.0,
+                    "n_iters": 10,
+                    "critical_pct": 0.25,
+                    "append": True,
+                },
             }
         },
         "parallel": False,
@@ -55,17 +67,17 @@ test_cfg = {
         "ssm": {
             "ssm_dir": SM1_PATH + "/",
             "ssm_lt_file": "ssmLT.xml",
-            #"branch": "b1",  does not work with oq source processing
+            # "branch": "b1",  does not work with oq source processing
             "tectonic_region_types": ["Active Shallow Crust"],
             "source_types": None,
         },
         "seis_catalog": {
             "seis_catalog_file": DATA_FILE,
             "stop_date": "2013-01-01",
-            "duration": 40.,
+            "duration": 40.0,
             "columns": {
                 "time": "time",
-                #"source": "Agency",
+                # "source": "Agency",
                 "event_id": "eventID",
             },
         },
