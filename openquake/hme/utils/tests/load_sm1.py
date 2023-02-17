@@ -5,6 +5,7 @@ from copy import deepcopy
 import numpy as np
 
 from openquake.hme.utils import deep_update
+from openquake.hme.utils.validate_inputs import validate_cfg
 from openquake.hme.core.core import (
     load_obs_eq_catalog,
     load_ruptures_from_ssm,
@@ -15,7 +16,7 @@ from openquake.hme.core.core import (
 BASE_PATH = os.path.dirname(__file__)
 
 SM1_PATH = os.path.join(BASE_PATH, "data", "source_models", "sm1")
-DATA_FILE = os.path.join(SM1_PATH, "data", "phl_eqs.csv")
+DATA_FILE = os.path.join(SM1_PATH, "data", "phl_synth_catalog.csv")
 RUP_CSV = os.path.join(SM1_PATH, "sm1_rups.csv")
 
 # Doing this here because it takes several seconds and should be done once
@@ -43,7 +44,7 @@ test_cfg = {
     "input": {
         "bins": {
             "h3_res": 3,
-            "mfd_bin_min": 6.0,
+            "mfd_bin_min": 6.1,
             "mfd_bin_max": 8.5,
             "mfd_bin_width": 0.2,
         },
@@ -60,9 +61,11 @@ test_cfg = {
         },
         "seis_catalog": {
             "seis_catalog_file": DATA_FILE,
+            "stop_date": "2013-01-01",
+            "duration": 40.,
             "columns": {
-                "time": ["year", "month", "day", "hour", "minute", "second"],
-                "source": "Agency",
+                "time": "time",
+                #"source": "Agency",
                 "event_id": "eventID",
             },
         },
@@ -76,6 +79,7 @@ test_cfg = {
 
 cfg = deepcopy(cfg_defaults)
 cfg = deep_update(cfg, test_cfg)
+validate_cfg(cfg)
 
 input_data = load_inputs(cfg)
 eq_gdf = load_obs_eq_catalog(cfg)  # repeating but works for some testing

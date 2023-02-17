@@ -47,7 +47,13 @@ def check_fix_date(date):
         except:
             err_msg = "cannot convert {} to date".format(date)
             raise ValueError(err_msg)
-
+    elif isinstance(date, str):
+        try:
+            date = dateutil.parser.parse(date)
+        except:
+            err_msg = "cannot convert {} to date".format(date)
+            raise ValueError(err_msg)
+        
     else:
         err_msg = "cannot convert {} to date".format(date)
         raise ValueError(err_msg)
