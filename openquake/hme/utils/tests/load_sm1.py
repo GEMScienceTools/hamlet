@@ -48,7 +48,32 @@ test_cfg = {
                     "critical_pct": 0.25,
                     "append": True,
                 },
-            }
+            },
+            "gem": {
+                "N_test": {
+                    "prob_model": "poisson",
+                    "conf_interval": 0.96,
+                    "investigation_time": 40.0,
+                },
+                "S_test": {
+                    "investigation_time": 40.0,
+                    "n_iters": 5,
+                    "critical_pct": 0.25,
+                    "append": True,
+                },
+                "L_test": {
+                    "investigation_time": 40.0,
+                    "n_iters": 5,
+                    "critical_pct": 0.25,
+                    "append": True,
+                },
+                "M_test": {
+                    "investigation_time": 40.0,
+                    "n_iters": 10,
+                    "critical_pct": 0.25,
+                    "append": True,
+                },
+            },
         },
         "parallel": False,
         "rand_seed": 69,

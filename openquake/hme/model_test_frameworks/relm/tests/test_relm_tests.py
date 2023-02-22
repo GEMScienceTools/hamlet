@@ -2,7 +2,6 @@ import unittest
 
 import numpy as np
 
-from openquake.hme.core.core import cfg_defaults
 from openquake.hme.model_test_frameworks.relm.relm_tests import (
     S_test,
     N_test,

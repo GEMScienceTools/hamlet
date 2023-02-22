@@ -1,18 +1,14 @@
-import os
-from re import M
 import unittest
-from copy import deepcopy
 
 import numpy as np
 
 from openquake.hme.utils import (
-    deep_update,
     get_cell_rups,
     get_cell_eqs,
     get_mag_bins_from_cfg,
 )
 
-from openquake.hme.core.core import load_inputs, cfg_defaults
+from openquake.hme.core.core import cfg_defaults
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     mfd_log_likelihood,
     s_test_cell,
@@ -29,7 +25,8 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
 )
 
 
-from openquake.hme.utils.tests.load_sm1 import cfg, input_data, eq_gdf, rup_gdf
+from openquake.hme.utils.tests.load_sm1 import cfg, input_data
+
 
 class test_relm_test_functions(unittest.TestCase):
     def setUp(self):
@@ -218,7 +215,6 @@ class test_relm_test_functions(unittest.TestCase):
             assert cell_like["bad_bins"] == cell_like_ans["bad_bins"]
 
     def test_s_test_function(self):
-
         s_test_results = s_test_function(
             self.rupture_gdf,
             self.eq_gdf,
