@@ -26,7 +26,7 @@ from openquake.hazardlib.source import (
     MultiFaultSource,
 )
 
-
+''' Deprecated, but may be needed in future, commenting out for now.
 try:
     from openquake.hazardlib.geo.mesh import surface_to_array
 except ImportError:
@@ -37,7 +37,6 @@ except ImportError:
 
 
 def _source_to_series(source):
-
     if isinstance(source, AreaSource):
         source_type = "area"
     elif isinstance(source, (SimpleFaultSource, CharacteristicFaultSource)):
@@ -97,7 +96,6 @@ def sort_sources(
 
     for branch_name, source_file_list in branch_sources.items():
         if branch_name == branch or branch is None:
-
             source_list = []
 
             for source_file in source_file_list:
@@ -201,14 +199,16 @@ def process_source_logic_tree(
 
     return lt, weights
 
+'''
+
 
 def csm_from_job_ini(job_ini):
-
     if isinstance(job_ini, dict):
-        calc = run_calc(job_ini,
-        #calclation_mode="preclassical",
-        split_sources="true",
-        ground_motion_fields=False,
+        calc = run_calc(
+            job_ini,
+            # calclation_mode="preclassical",
+            split_sources="true",
+            ground_motion_fields=False,
         )
 
     else:
@@ -258,7 +258,6 @@ def process_source_logic_tree_oq(
     description: Optional[str] = None,
     verbose: bool = False,
 ):
-
     if job_ini_file is not None:
         job_ini = job_ini_file
     else:
@@ -320,6 +319,7 @@ def make_composite_source(branch_sources, branch_weights):
     return sources_w_weights
 
 
+""" unused?
 def get_branch_weights(base_dir: str, lt_file: str = "ssmLT.xml"):
     ssm_lt_path = os.path.join(base_dir, lt_file)
 
@@ -331,6 +331,7 @@ def get_branch_weights(base_dir: str, lt_file: str = "ssmLT.xml"):
     }
 
     return weights
+"""
 
 
 def make_job_ini(
@@ -362,12 +363,13 @@ def make_job_ini(
         },
     }
 
+    job_ini_params_flat = {k: v for k, v in job_ini_params["general"].items()}
+    job_ini_params_flat.update(job_ini_params["calculation"])
+    job_ini_params_flat.update(job_ini_params["site_params"])
 
-    job_ini_params_flat = {k:v for k, v in job_ini_params['general'].items()}
-    job_ini_params_flat.update(job_ini_params['calculation'])
-    job_ini_params_flat.update(job_ini_params['site_params'])
-
-    job_ini_params_flat = {k:str(v) for k, v in job_ini_params_flat.items()}
-    job_ini_params_flat['inputs'] = {'source_model_logic_tree': str(ssm_lt_path)}
+    job_ini_params_flat = {k: str(v) for k, v in job_ini_params_flat.items()}
+    job_ini_params_flat["inputs"] = {
+        "source_model_logic_tree": str(ssm_lt_path)
+    }
 
     return job_ini_params_flat

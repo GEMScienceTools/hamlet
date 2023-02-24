@@ -20,7 +20,7 @@ import pandas as pd
 from geopandas import GeoDataFrame
 
 from openquake.hme.utils.io import (
-    process_source_logic_tree,
+    # process_source_logic_tree,
     process_source_logic_tree_oq,
     write_mfd_plots_to_gdf,
 )
@@ -523,7 +523,6 @@ def write_outputs(
 
         else:
             try:
-
                 bin_gdf.drop("SpacemagBin", axis=1).to_file(
                     outfile,
                     driver=OUTPUT_FILE_MAP[out_format],

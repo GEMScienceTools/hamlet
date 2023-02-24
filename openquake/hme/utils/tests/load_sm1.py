@@ -1,8 +1,5 @@
 import os
-import unittest
 from copy import deepcopy
-
-import numpy as np
 
 from openquake.hme.utils import deep_update
 from openquake.hme.utils.validate_inputs import validate_cfg
