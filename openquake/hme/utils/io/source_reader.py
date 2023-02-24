@@ -36,9 +36,12 @@ def csm_from_job_ini(job_ini):
 
 def get_rlz_source(rlz, csm):
     srcs = []
-    grp = csm.get_groups(rlz)
-    for g in grp:
-        srcs.extend(g)
+    try:
+        grp = csm.get_groups(rlz)
+        for g in grp:
+            srcs.extend(g)
+    except AttributeError:
+        srcs.extend(csm.get_sources(rlz))
     return srcs
 
 
