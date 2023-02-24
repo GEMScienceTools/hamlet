@@ -1,4 +1,8 @@
+{% if mtf == "relm" %}
 <h3> CSEP-RELM M-Test</h3>
+{% elif mtf == "gem" %}
+<h3> GEM M-Test</h3>
+{% endif %}
 
 Observed catalog percentile (compared to stochastic event sets): {{ res.percentile
 }} </br>

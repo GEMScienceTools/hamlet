@@ -1,0 +1,90 @@
+meta:
+    model_name: GEM SM1
+    description: "A small test suite containing one fault"
+
+config:
+    model_framework:
+        gem:
+            likelihood:
+                likelihood_method: poisson
+                investigation_time: 40.
+                default_likelihood: 1.
+                not_modeled_val: 0.00001
+            model_mfd:
+                investigation_time: 40.
+            max_mag_check:
+                append_check: True
+                warn: True
+            moment_over_under:
+                investigation_time: 40.
+                n_iters: 100
+            M_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
+            S_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
+                append: True
+                likelihood_fn: mfd
+        relm:
+            N_test:
+                conf_interval: 0.95
+                investigation_time: 40.
+                prob_model: poisson
+            M_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
+            S_test:
+                prospective: False
+                critical_pct: 0.25
+                investigation_time: 40.
+                n_iters: 1000
+                append: True
+                likelihood_fn: mfd
+
+    parallel: False
+    rand_seed: 69
+
+input:
+    bins:
+        mfd_bin_max: 8.5
+        mfd_bin_min: 6.0
+        mfd_bin_width: 0.2
+        #h3_res: 3
+    ssm:
+        ssm_dir: ../../../../utils/tests/data/source_models/sm1/
+        ssm_lt_file: ssmLT.xml
+        tectonic_region_types:
+            - Active Shallow Crust
+        source_types: null
+
+    seis_catalog:
+      #seis_catalog_file: ../../../../data/source_models/sm1/data/phl_synth_catalog.csv
+        seis_catalog_file: ../../../../utils/tests/data/source_models/sm1/data/phl_synth_catalog.csv
+        duration: 40.
+        stop_date: 2013-01-01
+        columns:
+            time: time
+            event_id: event_id
+        #        seis_catalog_file: ../../../../data/source_models/sm1/data/phl_eqs.csv
+        #        columns:
+        #            time:
+        #                - year
+        #                - month
+        #                - day
+        #                - hour
+        #                - minute
+        #                - second
+        #            source: Agency
+        #            event_id: eventID
+
+report:
+    basic:
+        outfile: outputs/sm1_poisson_report.html
+

@@ -1,8 +1,0 @@
-{
-"type": "FeatureCollection",
-"name": "phl_f",
-"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
-"features": [
-{ "type": "Feature", "properties": { "ogc_fid": 88, "name": "Offshore Ticao-Guinayangan", "slip_type": "Sinistral", "strike_slip_rate": null, "average_dip": null, "dip_dir": null, "downthrown_side_dir": null, "net_slip_rate": "(7.0, 3.5, 10.5)", "shortening_rate": null, "vert_slip_rate": null, "reference": null, "upper_seis_depth": null, "lower_seis_depth": null, "aseismic_coefficient": null, "notes": null }, "geometry": { "type": "LineString", "coordinates": [ [ 122.5197755, 13.76966245 ], [ 122.5782265, 13.72410418 ], [ 122.6557075, 13.64902266 ], [ 122.9403071, 13.26683528 ], [ 123.1826915, 12.98842111 ], [ 123.2698994, 12.91915342 ], [ 123.5539567, 12.63464015 ], [ 123.6013767, 12.55516434 ], [ 123.6716068, 12.44597986 ], [ 123.7368287, 12.36176221 ], [ 123.8514795, 12.23126759 ] ] } }
-]
-}

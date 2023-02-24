@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nrml
+xmlns="http://openquake.org/xmlns/nrml/0.5"
+xmlns:gml="http://www.opengis.net/gml"
+>
+    <sourceModel
+    name="phl_fault"
+    >
+        <sourceGroup
+        rup_interdep="indep"
+        src_interdep="indep"
+        tectonicRegion="Active Shallow Crust"
+        >
+            <simpleFaultSource
+            id="88"
+            name="Offshore Ticao-Guinayangan"
+            tectonicRegion="Active Shallow Crust"
+            >
+                <simpleFaultGeometry>
+                    <gml:LineString>
+                        <gml:posList>
+                            122.5197755 13.76966245 122.5782265 13.72410418 122.6557075 13.64902266 122.9403071 13.26683528 123.1826915 12.98842111 123.2698994 12.91915342 123.5539567 12.63464015 123.6013767 12.55516434 123.6716068 12.44597986 123.7368287 12.36176221 123.8514795 12.23126759
+                        </gml:posList>
+                    </gml:LineString>
+                    <dip>
+                        90.0
+                    </dip>
+                    <upperSeismoDepth>
+                        0.0
+                    </upperSeismoDepth>
+                    <lowerSeismoDepth>
+                        25
+                    </lowerSeismoDepth>
+                </simpleFaultGeometry>
+                <magScaleRel>
+                    Leonard2014_Interplate
+                </magScaleRel>
+                <ruptAspectRatio>
+                    2.0
+                </ruptAspectRatio>
+                <incrementalMFD
+                binWidth="0.1"
+                minMag="6.05"
+                >
+                <occurRates>
+                    <!-- 0.01162965084494623 0.009237760026125905 0.007337813614359125 0.0058286325350296875 0.004629847392406652 0.0036776185062531892 0.0029212362160614524 0.002320420406716735 0.0018431754454855042 0.001464086297899644 0.001162965084494631 0.0009237760026125966 0.0007337813614359198 0.0005828632535029728 0.0004629847392406685 0.00036776185062532276 0.00029212362160614723 0.000232042040671675 -->
+                      0.08140756 0.06466432 0.0513647  0.04080043 0.03240893 0.02574333 0.02044865 0.01624294 0.01290223 0.0102486  0.00814076 0.00646643 0.00513647 0.00408004 0.00324089 0.00257433 0.00204487 0.00162429  
+                    </occurRates>
+                </incrementalMFD>
+                <rake>
+                    0.0
+                </rake>
+            </simpleFaultSource>
+        </sourceGroup>
+    </sourceModel>
+</nrml>

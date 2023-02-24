@@ -1,45 +1,41 @@
+from multiprocessing.dummy import current_process
 import os
 import json
 import logging
 import datetime
-from time import time, sleep
+from time import sleep
 from functools import partial
 from multiprocessing import Pool
-from collections import deque
 from collections.abc import Mapping
-from typing import Sequence, List, Optional, Union, Tuple
+from typing import Sequence, List, Optional, Union, Tuple, Dict
 
 import attr
 import dateutil
 import numpy as np
 import pandas as pd
 import geopandas as gpd
+from scipy.stats import poisson
 
 from h3 import h3
 
-# from tqdm import tqdm, trange
-from tqdm.autonotebook import tqdm, trange
-from shapely.geometry import Point, Polygon
+from tqdm.autonotebook import tqdm
+from shapely.geometry import Point
 from openquake.hazardlib.geo.point import Point as OQPoint
 
-# from openquake.hazardlib.source.rupture_collection import split # broken
-from openquake.hazardlib.source import MultiPointSource, ComplexFaultSource
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture,
     ParametricProbabilisticRupture,
 )
 
-from .simple_rupture import SimpleRupture
-from .bins import SpacemagBin
-from .stats import (
-    sample_event_times_in_interval,
-    sample_event_times_in_interval_array,
-    sample_num_events_in_interval,
-    sample_num_events_in_interval_array,
-)
+
+try:
+    from .numba_stat_funcs import poisson_sample_vec
+except ImportError:
+    poisson_sample_vec = np.random.poisson
 
 _n_procs = max(1, os.cpu_count() - 1)
 # _n_procs = 2  # parallel testing
+os.environ["NUMEXPR_MAX_THREADS"] = str(_n_procs)
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -132,160 +128,6 @@ def flatten_list(lol: List[list]) -> list:
     return [item for sublist in lol for item in sublist]
 
 
-def rupture_dict_from_logic_tree_dict(
-    logic_tree_dict: dict,
-    simple_ruptures: bool = True,
-    parallel: bool = True,
-    n_procs: Optional[int] = _n_procs,
-) -> dict:
-    """
-    Creates a dictionary of ruptures from a dictionary representation of a
-    logic tree (as produced by
-    :func:`~hztest.utils.io.process_source_logic_tree`). Each branch in the
-    logic tree dict is a value (with the branch name as a key) and this
-    structure is retained in the resulting rupture dict. However all of the
-    ruptures from each source within a branch will be flattened to a single
-    list.
-
-    Use the `source_types` argument to specify which types of sources should be
-    used to collect ruptures.
-
-    :param logic_tree_dict:
-        Seismic source logic tree
-
-    :param simple_ruptures:
-        Whether to use
-        :class:`openquake.hme.utils.simple_rupture.simple_rupture` to represent
-        ruptures, instead of the full OpenQuake version.
-
-    :param parallel:
-        Flag to use a parallel input method (parallelizing with each source
-        branch). Defaults to `True`.
-
-    :param n_procs:
-        Number of parallel processes. If `None` is passed, it defaults to
-        `os.cpu_count() -1`. Only used if `parallel` is `True`.
-
-    :returns:
-        Ruptures from the logic tree collected into each logic tree branch.
-
-    """
-
-    if parallel is True:
-        rup_dict = {}
-        for i, (branch_name, source_list) in enumerate(logic_tree_dict.items()):
-            logging.info(
-                f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
-            )
-            rup_dict[branch_name] = rupture_list_from_source_list_parallel(
-                source_list, simple_ruptures=simple_ruptures, n_procs=n_procs
-            )
-    else:
-        rup_dict = {}
-        for i, (branch_name, source_list) in enumerate(logic_tree_dict.items()):
-            logging.info(
-                f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
-            )
-            rup_dict[branch_name] = rupture_list_from_source_list(
-                source_list, simple_ruptures=simple_ruptures
-            )
-    return rup_dict
-
-
-def rupture_list_from_source_list(
-    source_list: list, simple_ruptures: bool = True
-) -> list:
-    """
-    Creates a list of ruptures from all of the sources within a single logic
-    tree branch, adding the `source_id` of each source to the rupture as an
-    attribute called `source`.
-
-    :param source_list:
-        List of sources containing ruptures.
-
-    :param simple_ruptures:
-        Whether to use
-        :class:`openquake.hme.utils.simple_rupture.SimpleRupture` to represent
-        ruptures, instead of the full OpenQuake version.
-
-    :returns:
-        All of the ruptures from all sources of `sources_types` in the logic
-        tree branch.
-    """
-    rup_counts = [s.count_ruptures() for s in source_list]
-    n_rups = sum(rup_counts)
-    rupture_list = []
-    pbar = tqdm(total=n_rups)
-
-    logging.info("{} ruptures".format(n_rups))
-
-    for i, source in enumerate(source_list):
-        rups = list(
-            tqdm(
-                map(
-                    partial(
-                        _process_rup,
-                        source=source,
-                        simple_ruptures=simple_ruptures,
-                    ),
-                    source.iter_ruptures(),
-                ),
-                total=rup_counts[i],
-                leave=False,
-            )
-        )
-        pbar.update(n=rup_counts[i])
-        rupture_list.extend(rups)
-
-    pbar.close()
-
-    return rupture_list
-
-
-def _process_rup(
-    rup: Union[
-        ParametricProbabilisticRupture, NonParametricProbabilisticRupture
-    ],
-    source,
-    simple_ruptures=True,
-):
-
-    try:
-        if simple_ruptures is False:
-            rup.source = source.source_id
-            if isinstance(rup, NonParametricProbabilisticRupture):
-                rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(
-                    rup
-                )
-        elif isinstance(rup, ParametricProbabilisticRupture):
-            rup = SimpleRupture(
-                strike=rup.surface.get_strike(),
-                dip=rup.surface.get_dip(),
-                rake=rup.rake,
-                mag=rup.mag,
-                hypocenter=rup.hypocenter,
-                occurrence_rate=rup.occurrence_rate,
-                source=source.source_id,
-            )
-
-        elif isinstance(rup, NonParametricProbabilisticRupture):
-            occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
-            rup = SimpleRupture(
-                strike=rup.surface.get_strike(),
-                dip=rup.surface.get_dip(),
-                rake=rup.rake,
-                mag=rup.mag,
-                hypocenter=rup.hypocenter,
-                occurrence_rate=occurrence_rate,
-            )
-        return rup
-    except:
-        rup.source = source.source_id
-        if isinstance(rup, NonParametricProbabilisticRupture):
-            rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
-        return rup
-
-
 def get_nonparametric_rupture_occurrence_rate(
     rup: NonParametricProbabilisticRupture,
 ) -> float:
@@ -293,161 +135,6 @@ def get_nonparametric_rupture_occurrence_rate(
         i * prob_occur for i, prob_occur in enumerate(rup.probs_occur)
     )
     return occurrence_rate
-
-
-def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
-
-    ruptures = list(
-        map(
-            partial(
-                _process_rup, source=source, simple_ruptures=simple_ruptures
-            ),
-            source.iter_ruptures(),
-        )
-    )
-
-    if pbar is not None:
-        pbar.update(n=len(ruptures))
-
-    return ruptures
-
-
-def _process_source_chunk(source_chunk_w_args) -> list:
-
-    sc = source_chunk_w_args
-
-    pos = str(sc["position"] + 1)
-    if len(pos) == 1:
-        pos = f"0{pos}"
-
-    text = f"source chunk #{pos}"
-
-    pbar = tqdm(total=sc["chunk_sum"], position=sc["position"], desc=text)
-
-    # wait so that processes don't finish at same time and take too much RAM
-    sleep(sc["position"] * 0.5)
-
-    rups = (
-        [
-            _process_source(
-                source, simple_ruptures=sc["simple_ruptures"], pbar=pbar
-            )
-            for source in sc["source_chunk"]
-        ],
-    )
-
-    del sc["source_chunk"]
-
-    rups = flatten_list(rups)
-
-    return rups
-
-
-def _chunk_source_list(
-    sources: list, n_chunks: int = _n_procs
-) -> Tuple[list, list]:
-
-    sources_temp = []
-    for s in sources:
-        if isinstance(s, MultiPointSource):
-            for ps in s:
-                sources_temp.append(ps)
-        else:
-            sources_temp.append(s)
-
-    sources = sources_temp
-
-    source_counts = [s.count_ruptures() for s in sources]
-
-    sources = [
-        s
-        for c, s in sorted(
-            zip(source_counts, sources), key=lambda pair: pair[0], reverse=True
-        )
-    ]
-
-    source_counts.sort(reverse=True)
-
-    source_chunks = [list() for i in range(n_chunks)]
-    chunk_sums = np.zeros(n_chunks, dtype=int)
-
-    for i, source in enumerate(sources):
-        min_bin = np.argmin(chunk_sums)
-        source_chunks[min_bin].append(source)
-        chunk_sums[min_bin] += source_counts[i]
-
-    logging.info("     chunk_sums:\n{}".format(str(chunk_sums)))
-
-    source_chunks = [
-        chunk for i, chunk in enumerate(source_chunks) if chunk_sums[i] != 0
-    ]
-
-    return (source_chunks, chunk_sums.tolist())
-
-
-def rupture_list_from_source_list_parallel(
-    source_list: list,
-    simple_ruptures: bool = True,
-    n_procs: Optional[int] = _n_procs,
-) -> list:
-    """
-    Creates a list of ruptures from all of the sources within list,
-    adding the `source_id` of each source to the rupture as an
-    attribute called `source`.
-
-    Works in parallel.
-
-    :param simple_ruptures:
-        Whether to use
-        :class:`openquake.hme.utils.simple_rupture.simple_rupture` to represent
-        ruptures, instead of the full OpenQuake version.
-
-    :param n_procs:
-        Number of parallel processes. If `None` is passed, it defaults to
-        `os.cpu_count() -1`.
-
-    :returns:
-        All of the ruptures from all sources of `sources_types` in the logic
-        tree branch.
-    """
-    logger.info("    chunking sources")
-    source_chunks, chunk_sums = _chunk_source_list(source_list, n_procs)
-
-    if n_procs > len(source_chunks):
-        logging.info("    fewer chunks than processes.")
-
-    logger.info("    beginning multiprocess source processing")
-    with Pool(n_procs, maxtasksperchild=None) as pool:
-
-        rupture_list = []
-
-        chunks_with_args = [
-            {
-                "source_chunk": source_chunk,
-                "position": i,
-                "chunk_sum": chunk_sums[i],
-                "simple_ruptures": simple_ruptures,
-            }
-            for i, source_chunk in enumerate(source_chunks)
-        ]
-
-        pbar = tqdm([n for n in range(n_procs)])
-
-        for rups in pool.imap_unordered(
-            _process_source_chunk, chunks_with_args
-        ):
-            rupture_list.extend(rups)
-            rups = ""
-
-        pbar.write("\n" * n_procs)
-        pbar.close()
-        logging.info(
-            "    finishing multiprocess source processing, cleaning up."
-        )
-
-    while isinstance(rupture_list[0], list):
-        rupture_list = flatten_list(rupture_list)
-    return rupture_list
 
 
 def _add_rupture_geom(df):
@@ -504,202 +191,6 @@ def scale_rup_rate(rup, rate_scale: float):
     rup.occurrence_rate *= rate_scale
 
 
-def rupture_dict_to_gdf(
-    rupture_dict, weights, gdf: bool = False, parallel: bool = True
-) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
-
-    gdfs = []
-    for branch, branch_sources in rupture_dict.items():
-        branch_gdf = rupture_list_to_gdf(
-            branch_sources, parallel=parallel, gdf=gdf
-        )
-
-        branch_gdf["rupture"].apply(scale_rup_rate, args=(weights[branch],))
-
-        gdfs.append(branch_gdf)
-
-    if len(gdfs) == 1:
-        return gdfs[0]
-    else:
-        gdf = pd.concat(gdfs, axis=0)
-        return gdf
-
-
-def _h3_bin_from_rupture(
-    rupture: Union[
-        SimpleRupture,
-        NonParametricProbabilisticRupture,
-        ParametricProbabilisticRupture,
-    ],
-    h3_res: int = 3,
-) -> str:
-    """
-    Returns the hexadecimal string that is the index of the `h3` spatial bin
-    which contains the hypocenter of the `rupture` at the given level of
-    resolution (`res`).
-
-    See the documentation for `h3` (https://uber.github.io/h3/) for more
-    information.
-    """
-
-    return h3.geo_to_h3(
-        rupture.hypocenter.latitude, rupture.hypocenter.longitude, h3_res
-    )
-
-
-def make_bin_gdf_from_rupture_gdf(
-    rupture_gdf: gpd.GeoDataFrame,
-    h3_res: int = 3,
-    parallel: bool = False,
-    n_procs: Optional[int] = None,
-    min_mag: Optional[float] = 6.0,
-    max_mag: Optional[float] = 9.0,
-    bin_width: Optional[float] = 0.2,
-    max_depth: Optional[float] = None,
-) -> gpd.GeoDataFrame:
-    """
-    Takes all of the ruptures, finds the `h3` spatial bins for each, and then
-    makes a new `GeoDataFrame` of all of the spatial bins, with
-    :class:`~openquake.hme.utils.bins.SpacemagBin` initialized for each of the
-    bins.
-
-    :param rupture_gdf:
-        `GeoDataFrame` with all of the ruptures.
-
-    :param h3_res:
-        Resolution for the `h3` bins (spatial cells). See
-        https://uber.github.io/h3/#/ for more information. Defaults to "3",
-        which seems good for earthquake analysis. Larger numbers are smaller
-        grid cells.
-
-    :param parallel:
-        Boolean flag determining whether to find the spatial indices of the
-        ruptures in parallel or not. The parallel algorithm has a lot of
-        overhead and will be slower with a relatively low number of
-        ruptures (hundreds of thousands or so, depending on the computer).
-
-    :param n_procs:
-        Number of simultaneous processes run if `parallel` is `True`. Defaults
-        to os.cpu_count() - 1 for multicore systems.
-
-    :param min_mag:
-        Minimum magnitude of the :class:`~openquake.hme.utils.bins.SpacemagBin`
-
-    :param max_mag:
-        Maximum magnitude of the :class:`~openquake.hme.utils.bins.SpacemagBin`
-
-    :param bin_width:
-        Width of the :class:`~openquake.hme.utils.bins.SpacemagBin` bins in
-        magnitude units.
-
-    """
-
-    n_procs = n_procs or _n_procs
-
-    if max_depth:
-        include = np.array(
-            [
-                rup.hypocenter.depth <= max_depth
-                for rup in rupture_gdf["rupture"]
-            ]
-        )
-        rupture_gdf = rupture_gdf[include]
-        del include
-
-    logging.info("starting rupture-bin spatial join")
-
-    if (parallel is False) or (n_procs == 1):
-        rupture_gdf["bin_id"] = list(
-            tqdm(
-                map(
-                    partial(_h3_bin_from_rupture, h3_res=h3_res),
-                    rupture_gdf["rupture"].values,
-                ),
-                total=rupture_gdf.shape[0],
-            )
-        )
-    else:
-        with Pool(n_procs) as pool:
-            rupture_gdf["bin_id"] = tqdm(
-                pool.imap(
-                    partial(_h3_bin_from_rupture, h3_res=h3_res),
-                    rupture_gdf["rupture"].values,
-                    chunksize=500,
-                ),
-                total=rupture_gdf.shape[0],
-            )
-
-    logging.info("finished rupture-bin spatial join")
-
-    hex_codes = list(set(rupture_gdf["bin_id"].values))
-
-    polies = [
-        Polygon(h3.h3_to_geo_boundary(hex_code, geo_json=True))
-        for hex_code in hex_codes
-    ]
-
-    bin_gdf = gpd.GeoDataFrame(
-        index=hex_codes,
-        geometry=polies,
-        crs={"init": "epsg:4326", "no_defs": True},
-    )
-    bin_gdf = make_SpacemagBins_from_bin_gdf(
-        bin_gdf, min_mag=min_mag, max_mag=max_mag, bin_width=bin_width
-    )
-    return bin_gdf
-
-
-def add_ruptures_to_bins(
-    rupture_gdf: gpd.GeoDataFrame, bin_gdf: gpd.GeoDataFrame
-) -> None:
-    """
-    Takes a GeoPandas GeoDataFrame of ruptures and adds them to the ruptures
-    list that is an attribute of each
-    :class:`~openquake.hme.utils.bins.SpacemagBin` based on location and
-    magnitude. This function modifies both GeoDataFrames in memory and does not
-    return any value.
-
-    :param rupture_gdf: GeoDataFrame of ruptures; this should have two columns,
-        one of them being the `rupture` column with the :class:`Rupture` object,
-        and the other being the `geometry` column, with a GeoPandas/Shapely
-        geometry class.
-
-    :param bin_gdf: GeoDataFrame of the bins. This should have a `geometry`
-        column with a GeoPandas/Shapely geometry and a `SpacemagBin` column that
-        has a :class:`~openquake.hme.utils.bins.SpacemagBin` object.
-
-    :Returns: `None`.
-    """
-    logger.info("    adding ruptures to bins")
-
-    bin_edges = bin_gdf.iloc[0].SpacemagBin.get_bin_edges()
-    bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
-
-    logging.info("\tgetting mag bin vals")
-    rupture_gdf["mag_r"] = pd.cut(
-        list(map(lambda r: r.mag, rupture_gdf["rupture"])),
-        bin_edges,
-        labels=bin_centers,
-    )
-
-    rup_groups = rupture_gdf.groupby(["bin_id"])
-
-    pbar = tqdm(total=len(rupture_gdf))
-
-    for (bin_id, rup_group) in rup_groups:
-        sbin = bin_gdf.loc[bin_id, "SpacemagBin"]
-
-        mag_groups = rup_group.groupby("mag_r")
-
-        for mag_bin, mag_group in mag_groups:
-            sbin.mag_bins[mag_bin].ruptures.extend(mag_group["rupture"].values)
-        pbar.update(len(rup_group))
-
-    pbar.close()
-    logging.info("\tdone adding ruptures to bins")
-    return
-
-
 def _parse_eq_time(
     eq,
     time_cols: Union[List[str], Tuple[str], str, None] = None,
@@ -742,6 +233,7 @@ def make_earthquake_gdf_from_csv(
     source: Optional[str] = None,
     event_id: Optional[str] = None,
     epsg: int = 4326,
+    h3_res: int = 3,
 ) -> gpd.GeoDataFrame:
     """
     Reads an earthquake catalog from a CSV file and returns a GeoDataFrame. The
@@ -800,7 +292,7 @@ def make_earthquake_gdf_from_csv(
     df.drop([x_col, y_col], axis=1)
 
     eq_gdf = gpd.GeoDataFrame(df)
-    eq_gdf.crs = {"init": "epsg:{}".format(epsg)}
+    eq_gdf.crs = f"EPSG:{epsg}"
 
     if epsg != 4326:
         eq_gdf = eq_gdf.to_crs(epsg=4326)
@@ -812,13 +304,17 @@ def make_earthquake_gdf_from_csv(
         eq["geometry"].xy[1][0] for i, eq in eq_gdf.iterrows()
     ]
 
+    eq_gdf["cell_id"] = [
+        h3.geo_to_h3(row.latitude, row.longitude, h3_res)
+        for i, row in eq_gdf.iterrows()
+    ]
+
     return eq_gdf
 
 
 def trim_eq_catalog(
     eq_gdf: gpd.GeoDataFrame, start_date=None, stop_date=None, duration=None
 ) -> gpd.GeoDataFrame:
-
     if duration is not None:
         duration_delta = dateutil.relativedelta.relativedelta(years=duration)
 
@@ -864,409 +360,6 @@ def trim_eq_catalog(
     return out_gdf
 
 
-@attr.s(auto_attribs=True)
-# @dataclass
-class Earthquake:
-    magnitude: Optional[float] = None
-    longitude: Optional[float] = None
-    latitude: Optional[float] = None
-    depth: Optional[float] = None
-    time: Optional[datetime.datetime] = None
-    source: Optional[str] = None
-    event_id: Optional[Union[float, str, int]] = None
-
-
-def _make_earthquake_from_row(row):
-
-    eq_args = [
-        "magnitude",
-        "longitude",
-        "latitude",
-        "depth",
-        "time",
-        "source",
-        "event_id",
-    ]
-
-    eq_d = {}
-
-    for arg in eq_args:
-        try:
-            eq_d[arg] = row[arg]
-        except KeyError:
-            eq_d[arg] = None
-
-    return Earthquake(**eq_d)
-
-
-def _nearest_bin(val, bin_centers):
-    bca = np.array(bin_centers)
-    return bin_centers[np.argmin(np.abs(val - bca))]
-
-
-def add_earthquakes_to_bins(
-    earthquake_gdf: gpd.GeoDataFrame,
-    bin_df: gpd.GeoDataFrame,
-    category: str = "observed",
-    h3_res: int = 3,
-) -> None:
-    """
-    Takes a GeoPandas GeoDataFrame of observed earthquakes (i.e., an
-    instrumental earthquake catalog) and adds them to the ruptures
-    list that is an attribute of each :class:`SpacemagBin` based on location and
-    magnitude. The spatial binning is performed through a left join via
-    GeoPandas, and should use RTree if available for speed. This function
-    modifies both GeoDataFrames in memory and does not return any value.
-
-    :param rupture_gdf:
-        GeoDataFrame of ruptures; this should have two columns, one of them
-        being the `rupture` column with the :class:`Rupture` object, and the
-        other being the `geometry` column, with a GeoPandas/Shapely geometry
-        class.
-
-    :param bin_df:
-        GeoDataFrame of the bins. This should have a `geometry` column with a
-        GeoPandas/Shapely geometry and a `SpacemagBin` column that has a
-        :class:`SpacemagBin` object.
-
-    :param category:
-        Type of earthquake catalog. Default value is `observed` which is,
-        typically, the catalog used to make the model. If a separate testing
-        catalog is to be considered, then this is added using the `prospective`
-        value.
-
-    :Returns:
-        `None`.
-    """
-
-    earthquake_gdf["Eq"] = earthquake_gdf.apply(
-        _make_earthquake_from_row, axis=1
-    )
-    earthquake_gdf["bin_id"] = [
-        h3.geo_to_h3(eq.latitude, eq.longitude, h3_res)
-        for eq in earthquake_gdf.Eq
-    ]
-
-    for i, eq in earthquake_gdf.iterrows():
-        try:
-            spacemag_bin = bin_df.loc[eq.bin_id, "SpacemagBin"]
-
-            if eq.magnitude < spacemag_bin.min_mag - spacemag_bin.bin_width / 2:
-                pass
-            elif eq.magnitude > (
-                spacemag_bin.max_mag + spacemag_bin.bin_width / 2
-            ):
-                pass
-            else:
-                nearest_bc = _nearest_bin(
-                    eq.Eq.magnitude, spacemag_bin.mag_bin_centers
-                )
-
-                if category == "observed":
-                    spacemag_bin.mag_bins[
-                        nearest_bc
-                    ].observed_earthquakes.append(eq["Eq"])
-                    spacemag_bin.observed_earthquakes[nearest_bc].append(
-                        eq["Eq"]
-                    )
-                elif category == "prospective":
-                    spacemag_bin.mag_bins[
-                        nearest_bc
-                    ].prospective_earthquakes.append(eq["Eq"])
-                    spacemag_bin.prospective_earthquakes[nearest_bc].append(
-                        eq["Eq"]
-                    )
-        except:
-            pass
-
-
-def make_SpacemagBins_from_bin_gis_file(
-    bin_filepath: str,
-    min_mag: Optional[float] = 6.0,
-    max_mag: Optional[float] = 9.0,
-    bin_width: Optional[float] = 0.2,
-) -> gpd.GeoDataFrame:
-    """
-    Creates a GeoPandas GeoDataFrame with
-    :class:`~openquake.hme.utils.bins.SpacemagBin` that forms the
-    basis of most of the spatial hazard model testing.
-
-    :param bin_filepath:
-        Path to GIS polygon file that contains the spatial bins for analysis.
-
-    :param min_mag:
-        Minimum earthquake magnitude for MFD-based analysis.
-
-    :param max_mag:
-        Maximum earthquake magnitude for MFD-based analysis.
-
-    :param bin_width:
-        Width of earthquake/MFD bins.
-
-    :returns:
-        GeoDataFrame with
-        :class:`~openquake.hme.utils.bins.SpacemagBin` as a column.
-    """
-
-    bin_gdf = gpd.read_file(bin_filepath)
-    return make_SpacemagBins_from_bin_gdf(
-        bin_gdf, min_mag=min_mag, max_mag=max_mag, bin_width=bin_width
-    )
-
-
-def make_SpacemagBins_from_bin_gdf(
-    bin_gdf: gpd.GeoDataFrame,
-    min_mag: Optional[float] = 6.0,
-    max_mag: Optional[float] = 9.0,
-    bin_width: Optional[float] = 0.2,
-) -> gpd.GeoDataFrame:
-    """
-    Creates a GeoPandas GeoDataFrame with
-    :class:`~openquake.hme.utils.bins.SpacemagBin` that forms the
-    basis of most of the spatial hazard model testing.
-
-    :param bin_filepath:
-        Path to GIS polygon file that contains the spatial bins for analysis.
-
-    :param min_mag:
-        Minimum earthquake magnitude for MFD-based analysis.
-
-    :param max_mag:
-        Maximum earthquake magnitude for MFD-based analysis.
-
-    :param bin_width:
-        Width of earthquake/MFD bins.
-
-    :returns:
-        GeoDataFrame with
-        :class:`~openquake.hme.utils.bins.SpacemagBin` as a column.
-    """
-
-    def bin_to_mag(row):
-        return SpacemagBin(
-            row.geometry,
-            bin_id=row._name,
-            min_mag=min_mag,
-            max_mag=max_mag,
-            bin_width=bin_width,
-        )
-
-    bin_gdf["SpacemagBin"] = bin_gdf.apply(bin_to_mag, axis=1)
-
-    # create serialization functions and add to instantiated GeoDataFrame
-    def to_dict():
-        out_dict = {
-            i: bin_gdf.loc[i, "SpacemagBin"].to_dict() for i in bin_gdf.index
-        }
-
-        return out_dict
-
-    bin_gdf.to_dict = to_dict
-
-    def to_json(fp):
-        def to_serializable(val):
-            """
-            modified from Hynek (https://hynek.me/articles/serialization/)
-            """
-            if isinstance(val, datetime.datetime):
-                return val.isoformat() + "Z"
-            # elif isinstance(val, enum.Enum):
-            #    return val.value
-            elif attr.has(val.__class__):
-                return attr.asdict(val)
-            elif isinstance(val, np.integer):
-                return int(val)
-            elif isinstance(val, Exception):
-                return {
-                    "error": val.__class__.__name__,
-                    "args": val.args,
-                }
-            return str(val)
-
-        with open(fp, "w") as ff:
-            json.dump(bin_gdf.to_dict(), ff, default=to_serializable)
-
-    bin_gdf.to_json = to_json
-
-    return bin_gdf
-
-
-def get_source_bins(bin_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """
-    Returns a subset of all of the spatial bins, where each bin actually
-    contains earthquake sources.
-
-    :param bin_gdf:
-        GeoDataFrame of bins
-
-    :returns:
-        GeoDataFrame of bins with sources
-    """
-    source_list = []
-    for i, row in bin_gdf.iterrows():
-        cum_mfd = row.SpacemagBin.get_rupture_mfd(cumulative=True)
-        if sum(cum_mfd.values()) > 0:
-            source_list.append(i)
-
-    source_bin_gdf = bin_gdf.loc[source_list]
-    return source_bin_gdf
-
-
-def subset_source(
-    bin_gdf: gpd.GeoDataFrame, subset_file: str, buffer: float = 0.0
-) -> gpd.GeoDataFrame:
-    """
-    Takes a subset of the source model where each bin intersects (or is within)
-    a geographic region. This is useful for testing a regional model's
-    performance in a single country, for example.
-
-    Please note that the SpacemagBins are not cut at the intersection, so any
-    SpacemagBin intersecting the border will be included completely.
-
-    :param bin_gdf:
-        GeoDataFrame of bins
-
-    :param subset_file:
-        File name/path for a vector GIS file with geographic feature(s)
-        representing the study area. Should be derived from a Polygon or
-        MultiPolygon-type GIS file, but Points or Polyline types may work
-        too, especially with a buffer.
-
-    :param buffer:
-        Spatial buffer (in degrees) to be applied to `sub_gdf` before
-        subsetting. This allows for ruptures with hypocenters outside the
-        `sub_gdf` areas that may still affect the study area to be included.
-        Defaults to zero.
-    """
-    sub_gdf = gpd.read_file(subset_file)
-    sub_gdf.crs = bin_gdf.crs
-
-    if buffer != 0:
-        sub_gdf["geometry"] = sub_gdf["geometry"].buffer(buffer)
-
-    sj = gpd.sjoin(bin_gdf, sub_gdf)
-
-    return bin_gdf.loc[sj.index]
-
-
-def make_earthquake_sample_from_rupture(
-    rupture: Union[
-        ParametricProbabilisticRupture,
-        NonParametricProbabilisticRupture,
-        SimpleRupture,
-    ],
-    time: float = 0.0,
-) -> Earthquake:
-
-    try:
-        source = rupture.source
-    except AttributeError:
-        source = None
-
-    eq = Earthquake(
-        magnitude=rupture.mag,
-        latitude=rupture.hypocenter.latitude,
-        longitude=rupture.hypocenter.longitude,
-        depth=rupture.hypocenter.depth,
-        source=source,
-        time=time,
-    )
-
-    return eq
-
-
-def sample_earthquakes(
-    rupture: Union[
-        ParametricProbabilisticRupture,
-        NonParametricProbabilisticRupture,
-        SimpleRupture,
-    ],
-    interval_length: float,
-    get_event_times: Optional[bool] = False,
-    t0: float = 0.0,
-    rand_seed: Optional[int] = None,
-) -> List[Earthquake]:
-    """
-    Creates a random sample (in time) of earthquakes from a single rupture.
-    Currently only uniformly random (Poissonian) earthquakes are supported.
-    Other than the event time, the generated earthquakes should be identical.
-
-    :param rupture:
-        Rupture from which the earthquakes will be generated.
-
-    :param interval_length:
-        Length of time over which the earthquakes will be sampled.
-
-    :param t0:
-        Start time of analysis (in years).  No real need to change this.
-
-    :param rand_seed:
-        Seed for random time generation.
-
-    :returns:
-        List of :class:`Earthquake`.
-    """
-
-    if get_event_times:
-        event_times = sample_event_times_in_interval(
-            rupture.occurrence_rate, interval_length, t0, rand_seed
-        )
-        eqs = [
-            make_earthquake_sample_from_rupture(rupture, et)
-            for et in event_times
-        ]
-    else:
-        raise NotImplementedError
-    return eqs
-
-
-def sample_earthquakes_from_ruptures(
-    ruptures: List[
-        Union[
-            ParametricProbabilisticRupture,
-            NonParametricProbabilisticRupture,
-            SimpleRupture,
-        ]
-    ],
-    interval_length: float,
-    get_event_times: Optional[bool] = False,
-    t0: float = 0.0,
-    rand_seed: Optional[int] = None,
-) -> List[Earthquake]:
-
-    if get_event_times:
-        event_times_for_all = sample_event_times_in_interval_array(
-            np.array([r.occurrence_rate for r in ruptures]),
-            interval_length,
-            t0=t0,
-            rand_seed=rand_seed,
-        )
-
-        eqs = [
-            [
-                make_earthquake_sample_from_rupture(rup, et)
-                for et in event_times_for_all[i]
-            ]
-            for i, rup in enumerate(ruptures)
-        ]
-    else:
-        num_events = sample_num_events_in_interval_array(
-            np.array([r.occurrence_rate for r in ruptures]),
-            interval_length,
-            rand_seed=rand_seed,
-        )
-
-        eqs = [
-            [
-                make_earthquake_sample_from_rupture(rup, 0)
-                for n in range(num_events[i])
-            ]
-            for i, rup in enumerate(ruptures)
-        ]
-
-    return eqs
-
-
 def mag_to_mo(mag: float, c: float = 9.05):
     """
     Scalar moment [in Nm] from moment magnitude
@@ -1288,99 +381,211 @@ def mo_to_mag(mo: float, c: float = 9.05):
 
 
 def get_n_eqs_from_mfd(mfd: dict):
-
     if np.isscalar(list(mfd.values())[1]):
         return sum(mfd.values())
     else:
         return sum(len(val) for val in mfd.values())
 
 
-def get_model_mfd(bin_gdf: gpd.GeoDataFrame, cumulative: bool = False) -> dict:
-    mod_mfd = bin_gdf.iloc[0].SpacemagBin.get_rupture_mfd()
-    mag_bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+def get_mag_bins(min_mag, max_mag, bin_width):
+    bc = round(min_mag, 2)
+    bcs = [bc]
+    while bc <= max_mag:
+        bc += bin_width
+        bcs.append(round(bc, 2))
 
-    for i, row in bin_gdf.iloc[1:].iterrows():
-        bin_mod_mfd = row.SpacemagBin.get_rupture_mfd()
-        for bin_center, rate in bin_mod_mfd.items():
-            mod_mfd[bin_center] += rate
+    def get_mag_bin(bc, bin_width=bin_width):
+        half_width = bin_width / 2.0
+        return (round(bc - half_width, 2), round(bc + half_width, 2))
+
+    mag_bins = {bc: get_mag_bin(bc) for bc in bcs}
+
+    return mag_bins
+
+
+def get_bin_edges_from_mag_bins(mag_bins: dict):
+    bin_centers = sorted(mag_bins.keys())
+
+    bin_edges = [mag_bins[bc][0] for bc in bin_centers]
+    bin_edges.append(mag_bins[bin_centers[-1]][1])
+
+    return bin_edges
+
+
+def get_mag_bins_from_cfg(cfg):
+    return get_mag_bins(
+        cfg["input"]["bins"]["mfd_bin_min"],
+        cfg["input"]["bins"]["mfd_bin_max"],
+        cfg["input"]["bins"]["mfd_bin_width"],
+    )
+
+
+def get_model_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
+    return get_rup_df_mfd(
+        rdf, mag_bins, cumulative=cumulative, delete_col=delete_col
+    )
+
+
+def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
+    bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
+
+    if "mag_bin" not in rdf.columns:
+        rdf["mag_bin"] = pd.cut(
+            rdf.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
+
+    mag_bin_groups = rdf.groupby("mag_bin")
+
+    mfd = {}
+
+    for bc in bin_centers:
+        mfd[bc] = 0.0
+        if bc in mag_bin_groups.groups.keys():
+            mfd[bc] += rdf.loc[mag_bin_groups.groups[bc]].occurrence_rate.sum()
 
     if cumulative is True:
         cum_mfd = {}
         cum_mag = 0.0
         # dict has descending order
-        for cb in mag_bin_centers[::-1]:
-            cum_mag += mod_mfd[cb]
+        for cb in bin_centers[::-1]:
+            cum_mag += mfd[cb]
             cum_mfd[cb] = cum_mag
 
-        # make new dict with ascending order
-        mod_mfd = {cb: cum_mfd[cb] for cb in mag_bin_centers}
+        # makde new dict with ascending order
+        mfd = {cb: cum_mfd[cb] for cb in bin_centers}
 
-    return mod_mfd
+    if delete_col:
+        del rdf["mag_bin"]
+
+    return mfd
 
 
 def get_obs_mfd(
-    bin_gdf: gpd.GeoDataFrame,
-    t_yrs: float,
-    prospective: bool = False,
-    cumulative: bool = False,
-) -> dict:
-    mag_bin_centers = bin_gdf.iloc[0].SpacemagBin.mag_bin_centers
+    rdf, mag_bins, t_yrs: float = 1.0, cumulative=False, delete_col=False
+):
+    bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
-    if prospective is False:
-        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_empirical_mfd(t_yrs=t_yrs)
-    else:
-        obs_mfd = bin_gdf.iloc[0].SpacemagBin.get_prospective_mfd(t_yrs=t_yrs)
+    if "mag_bin" not in rdf.columns:
+        rdf["mag_bin"] = pd.cut(
+            rdf.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
 
-    for i, row in bin_gdf.iloc[1:].iterrows():
-        if prospective is False:
-            bin_obs_mfd = row.SpacemagBin.get_empirical_mfd(t_yrs=t_yrs)
-        else:
-            bin_obs_mfd = row.SpacemagBin.get_prospective_mfd(t_yrs=t_yrs)
+    mag_bin_groups = rdf.groupby("mag_bin")
 
-        for bin_center, rate in bin_obs_mfd.items():
-            obs_mfd[bin_center] += rate
+    mfd = {}
+
+    for bc in bin_centers:
+        mfd[bc] = 0.0
+        if bc in mag_bin_groups.groups.keys():
+            mfd[bc] += (
+                rdf.loc[mag_bin_groups.groups[bc]].magnitude.count() / t_yrs
+            )
 
     if cumulative is True:
         cum_mfd = {}
         cum_mag = 0.0
         # dict has descending order
-        for cb in mag_bin_centers[::-1]:
-            cum_mag += obs_mfd[cb]
+        for cb in bin_centers[::-1]:
+            cum_mag += mfd[cb]
             cum_mfd[cb] = cum_mag
 
-        # make new dict with ascending order
-        obs_mfd = {cb: cum_mfd[cb] for cb in mag_bin_centers}
+        # makde new dict with ascending order
+        mfd = {cb: cum_mfd[cb] for cb in bin_centers}
 
-    return obs_mfd
+    if delete_col:
+        del rdf["mag_bin"]
 
-
-def get_model_annual_eq_rate(bin_gdf: gpd.GeoDataFrame) -> float:
-    annual_rup_rate = 0.0
-    for i, row in bin_gdf.iterrows():
-        sb = row.SpacemagBin
-        min_bin_center = np.min(sb.mag_bin_centers)
-        bin_mfd = sb.get_rupture_mfd(cumulative=True)
-        annual_rup_rate += bin_mfd[min_bin_center]
-
-    return annual_rup_rate
+    return mfd
 
 
-def get_total_obs_eqs(
-    bin_gdf: gpd.GeoDataFrame, prospective: bool = False
-) -> list:
-    """
-    Returns a list of all of the observed earthquakes within the model domain.
-    """
-    obs_eqs = []
+def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
+    mag_idx = (rup_df["magnitude"] >= min_mag) & (
+        rup_df["magnitude"] <= max_mag
+    )
 
-    for i, row in bin_gdf.iterrows():
-        sb = row.SpacemagBin
+    rup_rates = rup_df["occurrence_rate"].values * t_yrs
+    n_rups = poisson_sample_vec(rup_rates)
+    sample_idx = n_rups > 0
 
-        if prospective is False:
-            for mb in sb.observed_earthquakes.values():
-                obs_eqs.extend(mb)
-        else:
-            for mb in sb.prospective_earthquakes.values():
-                obs_eqs.extend(mb)
+    final_idx = sample_idx & mag_idx
 
-    return obs_eqs
+    n_samples_per_rup = n_rups[final_idx]
+    rup_rows = rup_df.index[final_idx]
+
+    sampled_rups_idx = [
+        row
+        for i, row in enumerate(rup_rows)
+        for j in range(n_samples_per_rup[i])
+    ]
+
+    sampled_rups = rup_df.loc[pd.Index(sampled_rups_idx)]
+
+    return sampled_rups
+
+
+def trim_inputs(input_data, cfg):
+    mag_bins = get_mag_bins_from_cfg(cfg)
+
+    min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
+    max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
+
+    rup_gdf = input_data["rupture_gdf"]
+    eq_gdf = input_data["eq_gdf"]
+
+    mag_range_idxs = (rup_gdf.magnitude >= min_bin_mag) & (
+        rup_gdf.magnitude <= max_bin_mag
+    )
+    input_data["rupture_gdf"] = rup_gdf.loc[mag_range_idxs]
+    input_data["cell_groups"] = input_data["rupture_gdf"].groupby("cell_id")
+
+    eq_mag_range_idxs = (eq_gdf.magnitude >= min_bin_mag) & (
+        eq_gdf.magnitude <= max_bin_mag
+    )
+
+    input_data["eq_gdf"] = eq_gdf.loc[eq_mag_range_idxs]
+    input_data["eq_groups"] = input_data["eq_gdf"].groupby("cell_id")
+
+    if "pro_gdf" in input_data.keys():
+        pro_gdf = input_data["pro_gdf"]
+        pro_mag_range_idxs = (pro_gdf.magnitude >= min_bin_mag) & (
+            pro_gdf.magnitude <= max_bin_mag
+        )
+
+        input_data["pro_gdf"] = pro_gdf.loc[pro_mag_range_idxs]
+        input_data["pro_groups"] = input_data["pro_gdf"].groupby("cell_id")
+
+
+def get_poisson_counts_from_mfd_iter(mfd: Dict[float, float], n_iters: int):
+    samples = {
+        mag: np.random.poisson(rate, n_iters) for mag, rate in mfd.items()
+    }
+
+    sample_mfds = {
+        i: {mag: rate[i] for mag, rate in samples.items()}
+        for i in range(n_iters)
+    }
+
+    return sample_mfds
+
+
+def get_cell_rups(cell_id, rupture_gdf, cell_groups):
+    cell_rup_df = rupture_gdf.loc[cell_groups.groups[cell_id]]
+    return cell_rup_df
+
+
+def get_cell_eqs(cell_id, eq_gdf, eq_groups):
+    if cell_id in eq_groups.groups:
+        cell_eqs = eq_gdf.loc[eq_groups.groups[cell_id]]
+    else:
+        cell_eqs = pd.DataFrame(columns=eq_gdf.columns)
+    return cell_eqs

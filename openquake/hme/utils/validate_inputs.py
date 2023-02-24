@@ -14,8 +14,10 @@ def validate_cfg(cfg: dict) -> None:
 def check_fix_seis_catalog(seis_cat_cfg) -> None:
     if "start_date" in seis_cat_cfg:
         seis_cat_cfg["start_date"] = check_fix_date(seis_cat_cfg["start_date"])
+
     if "stop_date" in seis_cat_cfg:
         seis_cat_cfg["stop_date"] = check_fix_date(seis_cat_cfg["stop_date"])
+
     if "duration" in seis_cat_cfg:
         if "start_date" in seis_cat_cfg and "stop_date" in seis_cat_cfg:
             check_duration(
@@ -23,6 +25,10 @@ def check_fix_seis_catalog(seis_cat_cfg) -> None:
                 seis_cat_cfg["stop_date"],
                 seis_cat_cfg["duration"],
             )
+    else:
+        seis_cat_cfg["duration"] = (
+            seis_cat_cfg["stop_date"] - seis_cat_cfg["start_date"]
+        )
 
 
 def check_seis_catalog_path(seis_cat_cfg) -> None:
@@ -41,7 +47,13 @@ def check_fix_date(date):
         except:
             err_msg = "cannot convert {} to date".format(date)
             raise ValueError(err_msg)
-
+    elif isinstance(date, str):
+        try:
+            date = dateutil.parser.parse(date)
+        except:
+            err_msg = "cannot convert {} to date".format(date)
+            raise ValueError(err_msg)
+        
     else:
         err_msg = "cannot convert {} to date".format(date)
         raise ValueError(err_msg)
