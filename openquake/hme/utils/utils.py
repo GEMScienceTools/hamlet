@@ -30,7 +30,8 @@ from openquake.hazardlib.source.rupture import (
 )
 
 from .simple_rupture import SimpleRupture
-from .bins import SpacemagBin
+
+# from .bins import SpacemagBin
 from .stats import (
     sample_event_times_in_interval,
     sample_event_times_in_interval_array,
@@ -138,6 +139,7 @@ def flatten_list(lol: List[list]) -> list:
     return [item for sublist in lol for item in sublist]
 
 
+'''
 def rupture_dict_from_logic_tree_dict(
     logic_tree_dict: dict,
     simple_ruptures: bool = True,
@@ -299,6 +301,7 @@ def _process_rup(
             rup.occurrence_rate = get_nonparametric_rupture_occurrence_rate(rup)
         rup.occurrence_rate *= source_weight
         return rup
+'''
 
 
 def get_nonparametric_rupture_occurrence_rate(
@@ -310,8 +313,10 @@ def get_nonparametric_rupture_occurrence_rate(
     return occurrence_rate
 
 
-def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
+'''
 
+
+def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
     ruptures = list(
         map(
             partial(
@@ -325,6 +330,7 @@ def _process_source(source, simple_ruptures: bool = True, pbar: tqdm = None):
         pbar.update(n=len(ruptures))
 
     return ruptures
+
 
 
 def _process_source_chunk(source_chunk_w_args) -> list:
@@ -463,6 +469,7 @@ def rupture_list_from_source_list_parallel(
     while isinstance(rupture_list[0], list):
         rupture_list = flatten_list(rupture_list)
     return rupture_list
+'''
 
 
 def _add_rupture_geom(df):
@@ -519,10 +526,10 @@ def scale_rup_rate(rup, rate_scale: float):
     rup.occurrence_rate *= rate_scale
 
 
+'''
 def rupture_dict_to_gdf(
     rupture_dict, weights, gdf: bool = False, parallel: bool = True
 ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
-
     gdfs = []
     for branch, branch_sources in rupture_dict.items():
         branch_gdf = rupture_list_to_gdf(
@@ -701,7 +708,7 @@ def add_ruptures_to_bins(
 
     pbar = tqdm(total=len(rupture_gdf))
 
-    for (bin_id, rup_group) in rup_groups:
+    for bin_id, rup_group in rup_groups:
         sbin = bin_gdf.loc[bin_id, "SpacemagBin"]
 
         mag_groups = rup_group.groupby("mag_r")
@@ -713,6 +720,9 @@ def add_ruptures_to_bins(
     pbar.close()
     logging.info("\tdone adding ruptures to bins")
     return
+
+
+'''
 
 
 def _parse_eq_time(
@@ -796,7 +806,7 @@ def make_earthquake_gdf_from_csv(
     """
 
     df = pd.read_csv(eq_csv)
-    
+
     if time is not None:
         df["time"] = df.apply(_parse_eq_time, time_cols=time, axis=1)
 
@@ -839,7 +849,6 @@ def make_earthquake_gdf_from_csv(
 def trim_eq_catalog(
     eq_gdf: gpd.GeoDataFrame, start_date=None, stop_date=None, duration=None
 ) -> gpd.GeoDataFrame:
-
     if duration is not None:
         duration_delta = dateutil.relativedelta.relativedelta(years=duration)
 
@@ -885,6 +894,9 @@ def trim_eq_catalog(
     return out_gdf
 
 
+'''
+
+
 @attr.s(auto_attribs=True)
 # @dataclass
 class Earthquake:
@@ -898,7 +910,6 @@ class Earthquake:
 
 
 def _make_earthquake_from_row(row):
-
     eq_args = [
         "magnitude",
         "longitude",
@@ -1178,7 +1189,6 @@ def make_earthquake_sample_from_rupture(
     ],
     time: float = 0.0,
 ) -> Earthquake:
-
     try:
         source = rupture.source
     except AttributeError:
@@ -1254,7 +1264,6 @@ def sample_earthquakes_from_ruptures(
     t0: float = 0.0,
     rand_seed: Optional[int] = None,
 ) -> List[Earthquake]:
-
     if get_event_times:
         event_times_for_all = sample_event_times_in_interval_array(
             np.array([r.occurrence_rate for r in ruptures]),
@@ -1288,6 +1297,9 @@ def sample_earthquakes_from_ruptures(
     return eqs
 
 
+'''
+
+
 def mag_to_mo(mag: float, c: float = 9.05):
     """
     Scalar moment [in Nm] from moment magnitude
@@ -1309,11 +1321,13 @@ def mo_to_mag(mo: float, c: float = 9.05):
 
 
 def get_n_eqs_from_mfd(mfd: dict):
-
     if np.isscalar(list(mfd.values())[1]):
         return sum(mfd.values())
     else:
         return sum(len(val) for val in mfd.values())
+
+
+'''
 
 
 def get_model_mfd_old(
@@ -1407,6 +1421,7 @@ def get_total_obs_eqs(
                 obs_eqs.extend(mb)
 
     return obs_eqs
+'''
 
 
 def get_mag_bins(min_mag, max_mag, bin_width):
@@ -1443,14 +1458,12 @@ def get_mag_bins_from_cfg(cfg):
 
 
 def get_model_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
-
     return get_rup_df_mfd(
         rdf, mag_bins, cumulative=cumulative, delete_col=delete_col
     )
 
 
 def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
-
     bin_centers = np.array(sorted(mag_bins.keys()))
     bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 

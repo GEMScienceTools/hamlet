@@ -1,17 +1,20 @@
 from typing import Union, Dict
 
 import numpy as np
-from culpable.stats import pdf_from_samples
+
+# from culpable.stats import pdf_from_samples
 
 from openquake.hme.utils.stats import poisson_likelihood
-from openquake.hme.utils import SpacemagBin
-
-from .gem_test_functions import get_stochastic_moment_set, get_moment_from_mfd
 
 
-def calc_mag_bin_empirical_likelihood(n_eqs: int,
-                                      bin_rate: Dict[int, float],
-                                      not_modeled_val: float = 1e-5) -> float:
+# from openquake.hme.utils import SpacemagBin
+
+# from .gem_test_functions import get_stochastic_moment_set, get_moment_from_mfd
+
+
+def calc_mag_bin_empirical_likelihood(
+    n_eqs: int, bin_rate: Dict[int, float], not_modeled_val: float = 1e-5
+) -> float:
     """
     Calculation of the likelihood of observing a certain number of earthquakes
     in a magnitude bin based on an empirical distribution of earthquake
@@ -34,8 +37,8 @@ def calc_mag_bin_empirical_likelihood(n_eqs: int,
         present in the magnitude bin, but an earthquake has been observed. This
         value should be low, but because the total spatial bin likelihood is the
         product of each of the magnitude bin likelihoods, a value of zero for a
-        single magnitude bin (which could be due to rounding or uncertainty in 
-        an earthquake catalog, or some coarseness in source model construction) 
+        single magnitude bin (which could be due to rounding or uncertainty in
+        an earthquake catalog, or some coarseness in source model construction)
         will propagate create a likelihood of zero for the whole spatial bin and
         perhaps the model, depending on assumptions.
 
@@ -50,10 +53,12 @@ def calc_mag_bin_empirical_likelihood(n_eqs: int,
         return not_modeled_val
 
 
-def calc_mag_bin_poisson_likelihood(n_eqs: int,
-                                    bin_rate: float,
-                                    time_interval: float = 1.,
-                                    not_modeled_val: float = 1e-5) -> float:
+def calc_mag_bin_poisson_likelihood(
+    n_eqs: int,
+    bin_rate: float,
+    time_interval: float = 1.0,
+    not_modeled_val: float = 1e-5,
+) -> float:
     """
     Calculation of the likelihood of observing a certain number of earthquakes
     using a poisson calculation.
@@ -75,8 +80,8 @@ def calc_mag_bin_poisson_likelihood(n_eqs: int,
         present in the magnitude bin, but an earthquake has been observed. This
         value should be low, but because the total spatial bin likelihood is the
         product of each of the magnitude bin likelihoods, a value of zero for a
-        single magnitude bin (which could be due to rounding or uncertainty in 
-        an earthquake catalog, or some coarseness in source model construction) 
+        single magnitude bin (which could be due to rounding or uncertainty in
+        an earthquake catalog, or some coarseness in source model construction)
         will propagate create a likelihood of zero for the whole spatial bin and
         perhaps the model, depending on assumptions.
 
@@ -89,12 +94,14 @@ def calc_mag_bin_poisson_likelihood(n_eqs: int,
     return poisson_likelihood(n_eqs, bin_rate, time_interval, not_modeled_val)
 
 
-def calc_mag_bin_likelihood(n_eqs: int,
-                            bin_rate: Union[dict, float],
-                            dispersion: Union[float, None] = None,
-                            time_interval: float = 1.,
-                            not_modeled_val: float = 1e-5,
-                            likelihood_method='poisson') -> float:
+def calc_mag_bin_likelihood(
+    n_eqs: int,
+    bin_rate: Union[dict, float],
+    dispersion: Union[float, None] = None,
+    time_interval: float = 1.0,
+    not_modeled_val: float = 1e-5,
+    likelihood_method="poisson",
+) -> float:
     """
     Shell function to calculate the likelihood of a magnitude bin given the
     observed earthquakes within the bin. Several methods exist for these
@@ -114,7 +121,7 @@ def calc_mag_bin_likelihood(n_eqs: int,
         poisson analysis, this should be a float representing the mean rate.
 
     :param dispersion:
-        The dispersion parameter for non-Poisson likelihoods (not yet 
+        The dispersion parameter for non-Poisson likelihoods (not yet
         implemented).
 
     :param time_interval:
@@ -126,8 +133,8 @@ def calc_mag_bin_likelihood(n_eqs: int,
         present in the magnitude bin, but an earthquake has been observed. This
         value should be low, but because the total spatial bin likelihood is the
         product of each of the magnitude bin likelihoods, a value of zero for a
-        single magnitude bin (which could be due to rounding or uncertainty in 
-        an earthquake catalog, or some coarseness in source model construction) 
+        single magnitude bin (which could be due to rounding or uncertainty in
+        an earthquake catalog, or some coarseness in source model construction)
         will propagate create a likelihood of zero for the whole spatial bin and
         perhaps the model, depending on assumptions.
 
@@ -140,24 +147,28 @@ def calc_mag_bin_likelihood(n_eqs: int,
         Likelihood of observing a certain number of earthquakes given a rate of
         earthquake occurrence.
     """
-    if likelihood_method == 'empirical':
-        return calc_mag_bin_empirical_likelihood(n_eqs, bin_rate,
-                                                 not_modeled_val)
+    if likelihood_method == "empirical":
+        return calc_mag_bin_empirical_likelihood(
+            n_eqs, bin_rate, not_modeled_val
+        )
 
-    elif likelihood_method == 'poisson':
-        return calc_mag_bin_poisson_likelihood(n_eqs, bin_rate, time_interval,
-                                               not_modeled_val)
+    elif likelihood_method == "poisson":
+        return calc_mag_bin_poisson_likelihood(
+            n_eqs, bin_rate, time_interval, not_modeled_val
+        )
 
     else:
         raise NotImplementedError
 
 
-def calc_mfd_log_likelihood_independent(obs_eqs: dict,
-                                        mfd: dict,
-                                        dispersion: Union[float, None] = None,
-                                        time_interval: float = 1.,
-                                        not_modeled_val: float = 1e-5,
-                                        likelihood_method='poisson') -> float:
+def calc_mfd_log_likelihood_independent(
+    obs_eqs: dict,
+    mfd: dict,
+    dispersion: Union[float, None] = None,
+    time_interval: float = 1.0,
+    not_modeled_val: float = 1e-5,
+    likelihood_method="poisson",
+) -> float:
     """
     Calculation of the log-likelihood of observing earthquakes of a range of
     sizes in a spatial bin (containing many magnitude bins).
@@ -166,18 +177,21 @@ def calc_mfd_log_likelihood_independent(obs_eqs: dict,
     n_bins: int = len(obs_eqs.keys())
 
     bin_likes = [
-        calc_mag_bin_likelihood(len(eqs), 
-                                mfd[bin_center], 
-                                dispersion=dispersion,
-                                time_interval=time_interval,
-                                not_modeled_val=not_modeled_val, 
-                                likelihood_method=likelihood_method)
+        calc_mag_bin_likelihood(
+            len(eqs),
+            mfd[bin_center],
+            dispersion=dispersion,
+            time_interval=time_interval,
+            not_modeled_val=not_modeled_val,
+            likelihood_method=likelihood_method,
+        )
         for bin_center, eqs in obs_eqs.items()
     ]
 
     return np.exp(np.sum(np.log(bin_likes)) / n_bins)
 
 
+"""
 def calc_stochastic_moment_log_likelihood(spacemag_bin: SpacemagBin,
                                           interval_length: float,
                                           n_iters: int = 1000) -> float:
@@ -192,3 +206,4 @@ def calc_stochastic_moment_log_likelihood(spacemag_bin: SpacemagBin,
     stoch_moment_pdf = pdf_from_samples(stoch_moments)
 
     return np.log(stoch_moment_pdf(obs_moment))
+"""

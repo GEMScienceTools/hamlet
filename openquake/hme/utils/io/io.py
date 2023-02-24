@@ -15,7 +15,7 @@ from openquake.hazardlib.source.rupture import (
 )
 
 
-from ..bins import SpacemagBin
+# from ..bins import SpacemagBin
 from ..plots import plot_mfd
 from ..utils import rupture_list_to_gdf
 from ..simple_rupture import SimpleRupture, rup_to_dict
@@ -45,7 +45,6 @@ def write_ruptures_to_file(
 def write_simple_ruptures_to_file(
     rupture_gdf: GeoDataFrame, rupture_file_path: str
 ):
-
     ruptures_out = rupture_gdf.drop("cell_id", axis=1)
 
     rup_file_type = rupture_file_path.split(".")[-1]
@@ -80,7 +79,6 @@ def write_simple_ruptures_to_file_old(
 def write_oq_ruptures_to_file(
     rupture_gdf: GeoDataFrame, rupture_file_path: str
 ):
-
     outfile_type = rupture_file_path.split(".")[-1]
     if outfile_type != "json":
         logging.warn("Writing JSON to {}".format(rupture_file_path))
@@ -98,7 +96,6 @@ def oq_rupture_to_json(
         ParametricProbabilisticRupture, NonParametricProbabilisticRupture
     ]
 ):
-
     mesh = surface_to_array(rupture.surface)
 
     rec = {}
@@ -157,19 +154,6 @@ def read_rupture_file_old(rupture_file):
     return rupture_gdf
 
 
-def _rupture_from_df_row(row):
-    rup = SimpleRupture(
-        strike=row["strike"],
-        dip=row["dip"],
-        rake=row["rake"],
-        mag=row["mag"],
-        hypocenter=Point(row["lon"], row["lat"], row["depth"]),
-        occurrence_rate=row["occurrence_rate"],
-        source=row["source"],
-    )
-    return rup
-
-
 def _rupture_from_namedtuple(row):
     rup = SimpleRupture(
         strike=row.strike,
@@ -202,6 +186,7 @@ def read_ruptures_from_dataframe(rup_df):
     return new_rup_df
 
 
+'''
 def make_mfd_plot(
     sbin: SpacemagBin,
     model: bool = True,
@@ -257,3 +242,4 @@ def write_bin_gdf_to_csv(filename, bin_gdf: GeoDataFrame, index: bool = False):
     bin_wkt = bin_gdf.drop(["geometry", "SpacemagBin"], axis=1)
 
     bin_wkt.to_csv(filename, index=index)
+'''

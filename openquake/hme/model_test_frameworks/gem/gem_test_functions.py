@@ -9,7 +9,7 @@ import pandas as pd
 from geopandas import GeoSeries
 
 from openquake.hme.utils import (
-    SpacemagBin,
+    # SpacemagBin,
     parallelize,
     mag_to_mo,
     sample_rups,
@@ -52,7 +52,6 @@ def get_catalog_moment(eq_df, eq_groups=None):
 def moment_over_under_eval_fn(
     rup_df, eq_gdf, cell_groups, t_yrs, min_mag=1.0, max_mag=10.0, n_iters=1000
 ):
-
     cell_ids = sorted(rup_df.cell_id.unique())
 
     cell_model_moments, total_model_moment = get_rupture_gdf_cell_moment(
@@ -142,7 +141,7 @@ def model_mfd_eval_fn(rup_gdf, eq_gdf, mag_bins, t_yrs):
 # old
 ###
 
-
+'''
 def get_mfd_freq_counts(eq_counts: Sequence[int]) -> Dict:
     """
     Makes a dictionary of frequencies of observing different numbers of
@@ -404,6 +403,7 @@ def eval_obs_moment_model(spacemag_bins, interval_length: float, n_iters: int):
         "model_moment_ratio": moment_ratio,
         "stoch_moment_sums": model_stoch_moment_sums,
     }
+'''
 
 
 def get_moment_from_mfd(mfd: dict) -> float:

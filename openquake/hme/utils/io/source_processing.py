@@ -1,8 +1,7 @@
 import logging
 from time import sleep
-from functools import partial
 from typing import Union, Optional, Tuple
-from multiprocessing import Pool, Process, Queue
+from multiprocessing import Pool
 
 from h3 import h3
 import numpy as np
@@ -20,11 +19,9 @@ from openquake.hazardlib.source import MultiPointSource, ComplexFaultSource
 
 
 from ..utils import (
-    # Pool,
     logger,
     _n_procs,
     flatten_list,
-    # _chunk_source_list,
     get_nonparametric_rupture_occurrence_rate,
 )
 
@@ -54,7 +51,6 @@ def _chunk_source_list(
     n_chunks: int = _n_procs,
     n_rup_threshold=10_000_000,
 ) -> Tuple[list, list]:
-
     sources_temp = []
     for s in sources:
         if isinstance(s, MultiPointSource):
@@ -131,7 +127,6 @@ def _process_rupture(
         ParametricProbabilisticRupture, NonParametricProbabilisticRupture
     ]
 ):
-
     rd = np.zeros(8, dtype=float)  # experiment w/ lower precision later
 
     if isinstance(rup, NonParametricProbabilisticRupture):
@@ -155,7 +150,6 @@ def _add_rup_data(i, rup, rup_data):
 
 
 def _process_source_chunk(source_chunk_w_args) -> list:
-
     sc = source_chunk_w_args
 
     pos = str(sc["position"] + 1)
@@ -187,7 +181,6 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 def _process_source(
     source, h3_res: int = 3, n_rups: Optional[int] = None, pbar: tqdm = None
 ):
-
     rup_cols = [
         "longitude",
         "latitude",
@@ -246,7 +239,6 @@ def rupture_list_from_source_list_parallel(
     n_procs: int = _n_procs,
     h3_res: int = 3,
 ) -> pd.DataFrame:
-
     logger.info("    chunking sources")
     source_chunks, chunk_sums = _chunk_source_list(
         source_list, source_rup_counts, n_procs
@@ -270,7 +262,6 @@ def rupture_list_from_source_list_parallel(
     pbar = tqdm([n for n in range(n_procs)])
 
     with Pool(n_procs, maxtasksperchild=1) as pool:
-
         rupture_dfs = []
 
         chunks_with_args = [
@@ -370,7 +361,6 @@ def rupture_dict_to_gdf(
     weights: dict,
     return_gdf: bool = False,
 ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
-
     dfs = []
 
     for branch, branch_df in rupture_dict.items():

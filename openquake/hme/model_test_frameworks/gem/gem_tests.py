@@ -5,14 +5,13 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils import get_source_bins, get_mag_bins_from_cfg
-from openquake.hme.utils.plots import plot_mfd
+from openquake.hme.utils import get_mag_bins_from_cfg  # , get_source_bins,
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
-    get_stochastic_mfd,
-    get_stochastic_mfds_parallel,
-    eval_obs_moment,
-    eval_obs_moment_model,
+    # get_stochastic_mfd,
+    # get_stochastic_mfds_parallel,
+    # eval_obs_moment,
+    # eval_obs_moment_model,
     model_mfd_eval_fn,
     moment_over_under_eval_fn,
 )
@@ -210,7 +209,6 @@ def N_test(cfg: dict, input_data: dict) -> dict:
 
 
 def max_mag_check(cfg: dict, input_data: dict):
-
     logging.info("Checking Maximum Magnitudes")
 
     max_bin_check_results = max_check(cfg, input_data, framework="gem")
@@ -252,7 +250,6 @@ def model_mfd_eval(cfg, input_data):
 
 
 def moment_over_under_eval(cfg, input_data):
-
     logging.info("Running GEM Moment Over-Under Eval")
 
     test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
@@ -306,7 +303,7 @@ def mfd_likelihood_test(cfg, input_data):
 # old tests
 ##########
 
-
+'''
 def moment_over_under_eval_old(cfg: dict, bin_gdf: GeoDataFrame):
     """
     The Moment Over-Under evaluation compares each cell's total seismic moment
@@ -565,6 +562,7 @@ def mfd_poisson_likelihood_test(cfg: dict, bin_gdf: GeoDataFrame) -> None:
 
     bin_gdf["log_like"] = test_config["default_likelihood"]
     bin_gdf["log_like"].update(source_bin_log_likes)
+'''
 
 
 gem_test_dict = {

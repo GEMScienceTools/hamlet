@@ -6,7 +6,7 @@ import numpy as np
 
 from . import utils
 
-
+'''
 class MagBin:
     def __init__(
         self,
@@ -312,3 +312,4 @@ class SpacemagBin:
             return self.pro_noncum_mfd
         else:
             return self.pro_cum_mfd
+'''

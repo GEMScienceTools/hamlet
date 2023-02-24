@@ -14,13 +14,13 @@ from geopandas import GeoDataFrame
 from scipy.stats import poisson, nbinom
 from numpy.lib.arraysetops import unique
 
-from openquake.hme.utils.bins import SpacemagBin
+# from openquake.hme.utils.bins import SpacemagBin
 from openquake.hme.utils.utils import (
     get_model_mfd,
     get_obs_mfd,
-    get_model_annual_eq_rate,
-    get_total_obs_eqs,
-    get_n_eqs_from_mfd,
+    # get_model_annual_eq_rate,
+    # get_total_obs_eqs,
+    # get_n_eqs_from_mfd,
     get_poisson_counts_from_mfd_iter,
     _n_procs,
     get_cell_eqs,
@@ -53,7 +53,6 @@ def l_test_function(
     not_modeled_likelihood: float = 0.0,
     append_results: bool = False,
 ):
-
     cell_like_cfg = {
         "investigation_time": t_yrs,
         "likelihood_fn": "mfd",
@@ -111,7 +110,6 @@ def m_test_function(
     not_modeled_likelihood: float = 0.0,
     critical_pct: float = 0.25,
 ):
-
     mod_mfd = get_model_mfd(rup_gdf, mag_bins)
     obs_mfd = get_obs_mfd(eq_gdf, mag_bins, t_yrs=t_yrs)
 
@@ -193,7 +191,6 @@ def s_test_function(
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
 ):
-
     annual_rup_rate = rup_gdf.occurrence_rate.sum()
 
     N_obs = len(eq_gdf)
@@ -208,7 +205,7 @@ def s_test_function(
         "N_norm": N_norm,
         "mag_bins": mag_bins,
     }
-    
+
     cell_likes = s_test_cells(
         cell_groups,
         rup_gdf,
@@ -262,7 +259,6 @@ def s_test_function(
 def s_test_cells(
     cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg, parallel: bool = False
 ):
-
     s_test_cell_results = {}
 
     cell_ids = sorted(cell_groups.groups.keys())
@@ -295,7 +291,6 @@ def _s_test_cell_args(cell_args):
 
 
 def s_test_cell(rup_gdf, eq_gdf, test_cfg):
-
     cell_id = rup_gdf.cell_id.values[0]
 
     t_yrs = test_cfg["investigation_time"]
@@ -354,7 +349,6 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
 
 
 def n_test_function(rup_gdf, eq_gdf, test_config: dict):
-
     prospective = test_config.get("prospective", False)
 
     conf_interval = test_config.get("conf_interval", 0.95)
@@ -468,7 +462,6 @@ def total_event_likelihood(
 def N_test_poisson(
     num_obs_events: int, rupture_rate: float, conf_interval: float
 ) -> dict:
-
     conf_min, conf_max = poisson(rupture_rate).interval(conf_interval)
 
     test_pass = conf_min <= num_obs_events <= conf_max
@@ -495,7 +488,6 @@ def N_test_neg_binom(
     r_dispersion: float,
     conf_interval: float,
 ) -> dict:
-
     if r_dispersion < 1:
         logging.warn(
             "Earthquake production temporally underdispersed, \n"
@@ -529,7 +521,7 @@ S_TEST_FN = {"n_eqs": total_event_likelihood, "mfd": mfd_log_likelihood}
 """
 OLD AS
 """
-
+"""
 
 def m_test_function_old(
     bin_gdf,
@@ -771,3 +763,5 @@ def subdivide_observed_eqs(eq_gdf, subcat_n_years, t_yrs, start_year=None):
 
     if start_year is None:
         pass
+
+"""
