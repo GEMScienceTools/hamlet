@@ -2,14 +2,7 @@ from typing import Union, Dict
 
 import numpy as np
 
-# from culpable.stats import pdf_from_samples
-
 from openquake.hme.utils.stats import poisson_likelihood
-
-
-# from openquake.hme.utils import SpacemagBin
-
-# from .gem_test_functions import get_stochastic_moment_set, get_moment_from_mfd
 
 
 def calc_mag_bin_empirical_likelihood(
@@ -189,21 +182,3 @@ def calc_mfd_log_likelihood_independent(
     ]
 
     return np.exp(np.sum(np.log(bin_likes)) / n_bins)
-
-
-"""
-def calc_stochastic_moment_log_likelihood(spacemag_bin: SpacemagBin,
-                                          interval_length: float,
-                                          n_iters: int = 1000) -> float:
-
-    obs_mfd = spacemag_bin.get_empirical_mfd(t_yrs=1.)
-
-    obs_moment = get_moment_from_mfd(obs_mfd)
-
-    stoch_moments = get_stochastic_moment_set(spacemag_bin, interval_length,
-                                              n_iters)
-
-    stoch_moment_pdf = pdf_from_samples(stoch_moments)
-
-    return np.log(stoch_moment_pdf(obs_moment))
-"""

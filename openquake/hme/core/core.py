@@ -20,27 +20,15 @@ import pandas as pd
 from geopandas import GeoDataFrame
 
 from openquake.hme.utils.io import (
-    # process_source_logic_tree,
     process_source_logic_tree_oq,
-    # write_mfd_plots_to_gdf,
 )
 
 from openquake.hme.utils.validate_inputs import validate_cfg
 
 from openquake.hme.utils import (
     deep_update,
-    # rupture_dict_from_logic_tree_dict,
-    # rupture_list_to_gdf,
-    # rupture_dict_to_gdf,
-    # rup_to_dict,
-    # rup_df_from_dict,
-    # read_ruptures_from_dataframe,
-    # add_ruptures_to_bins,
-    # add_earthquakes_to_bins,
     make_earthquake_gdf_from_csv,
     trim_eq_catalog,
-    # make_bin_gdf_from_rupture_gdf,
-    # subset_source,
     trim_inputs,
 )
 
@@ -55,7 +43,6 @@ from openquake.hme.utils.io.source_processing import (
 )
 
 from openquake.hme.utils.io import (
-    # write_bin_gdf_to_csv,
     read_rupture_file,
     write_ruptures_to_file,
 )

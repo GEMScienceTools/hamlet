@@ -14,14 +14,7 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     s_test_cell,
     s_test_cells,
     s_test_function,
-    # get_model_mfd,
-    # get_obs_mfd,
-    # get_model_annual_eq_rate,
-    # get_total_obs_eqs,
-    # subdivide_observed_eqs,
     N_test_poisson,
-    # N_test_neg_binom,
-    # mfd_log_likelihood,
 )
 
 

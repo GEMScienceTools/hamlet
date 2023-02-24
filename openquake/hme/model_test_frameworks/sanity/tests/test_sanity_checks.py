@@ -6,16 +6,10 @@ from shapely.geometry import Polygon
 from openquake.hazardlib.source import ParametricProbabilisticRupture as Rupture
 from openquake.hazardlib.geo import Point
 
-# from openquake.hme.utils import SpacemagBin, Earthquake
 from openquake.hme.model_test_frameworks.sanity.sanity_checks import (
     min_max_check,
     max_check,
 )
-
-# from openquake.hme.model_test_frameworks.sanity.sanity_test_functions import (
-# check_bin_max,
-# _get_mfd_max_mag,
-# )
 
 
 def SpacemagBin():

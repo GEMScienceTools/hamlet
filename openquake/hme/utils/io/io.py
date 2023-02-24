@@ -15,8 +15,6 @@ from openquake.hazardlib.source.rupture import (
 )
 
 
-# from ..bins import SpacemagBin
-from ..plots import plot_mfd
 from ..utils import rupture_list_to_gdf
 from ..simple_rupture import SimpleRupture, rup_to_dict
 from openquake.hme.utils.io.source_processing import (
@@ -184,62 +182,3 @@ def _process_ruptures_from_df(rup_df: pd.DataFrame):
 def read_ruptures_from_dataframe(rup_df):
     new_rup_df = _process_ruptures_from_df(rup_df)
     return new_rup_df
-
-
-'''
-def make_mfd_plot(
-    sbin: SpacemagBin,
-    model: bool = True,
-    model_format: str = "C0-",
-    model_label: str = "model",
-    observed: bool = False,
-    observed_time: float = 1.0,
-    observed_format: str = "C1o-.",
-    observed_label: str = "observed",
-    return_fig: bool = True,
-    return_string: bool = False,
-    save_fig: Union[bool, str] = False,
-    **kwargs,
-):
-    """
-    :param save_fig:
-        Either the filename to save to, or specify `False`.
-    """
-    if model is True:
-        mod_mfd = sbin.get_rupture_mfd(cumulative=True)
-    else:
-        mod_mfd = None
-
-    if observed is True:
-        obs_mfd = sbin.get_empirical_mfd(cumulative=True, t_yrs=observed_time)
-    else:
-        obs_mfd = None
-
-    return plot_mfd(
-        model=mod_mfd,
-        model_format=model_format,
-        model_label=model_label,
-        observed=obs_mfd,
-        observed_format=observed_format,
-        observed_label=observed_label,
-        return_fig=return_fig,
-        return_string=return_string,
-        save_fig=save_fig,
-        **kwargs,
-    )
-
-
-def write_mfd_plots_to_gdf(bin_gdf: GeoDataFrame, **kwargs):
-    plot_series = bin_gdf["SpacemagBin"].apply(
-        make_mfd_plot, model_iters=0, **kwargs
-    )
-    bin_gdf["mfd_plots"] = plot_series
-
-
-def write_bin_gdf_to_csv(filename, bin_gdf: GeoDataFrame, index: bool = False):
-    bin_gdf["wkt"] = bin_gdf.apply(lambda row: row.geometry.to_wkt(), axis=1)
-
-    bin_wkt = bin_gdf.drop(["geometry", "SpacemagBin"], axis=1)
-
-    bin_wkt.to_csv(filename, index=index)
-'''
