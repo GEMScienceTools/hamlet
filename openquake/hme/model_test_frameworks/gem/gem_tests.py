@@ -22,7 +22,6 @@ from ..relm.relm_tests import (
     m_test_function,
     l_test_function,
 )
-from ..relm.relm_test_functions import m_test_function, s_test_function
 
 from .gem_stats import calc_mfd_log_likelihood_independent
 
