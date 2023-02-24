@@ -231,7 +231,7 @@ def max_mag_check(cfg: dict, input_data: dict):
 
 def model_mfd_eval(cfg, input_data):
     mag_bins = get_mag_bins_from_cfg(cfg)
-    test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
+    test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
     prospective = test_config.get("prospective", False)
 
     if prospective:

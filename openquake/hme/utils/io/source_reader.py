@@ -65,7 +65,7 @@ def process_source_logic_tree_oq(
     verbose: bool = False,
 ):
     if job_ini_file is not None:
-        job_ini = job_ini_file
+        job_ini = os.path.join(base_dir, job_ini_file)
     else:
         job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
 
