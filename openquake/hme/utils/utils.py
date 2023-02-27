@@ -589,3 +589,69 @@ def get_cell_eqs(cell_id, eq_gdf, eq_groups):
     else:
         cell_eqs = pd.DataFrame(columns=eq_gdf.columns)
     return cell_eqs
+
+
+def strike_dip_to_norm_vec(strike, dip):
+    strike_rad, dip_rad = np.radians((strike, dip))
+
+    n = np.sin(strike_rad) * np.sin(dip_rad)
+    e = -np.cos(strike_rad) * np.sin(dip_rad)
+    d = np.cos(dip_rad)
+
+    return np.array([n, e, d])
+
+
+def angle_between_planes(strike1, dip1, strike2, dip2, return_radians=True):
+    nv1 = strike_dip_to_norm_vec(strike1, dip1)
+    nv2 = strike_dip_to_norm_vec(strike2, dip2)
+
+    angle = np.arccos(np.dot(nv1, nv2))
+
+    if return_radians == False:
+        angle = np.degrees(angle)
+    return angle
+
+
+def angles_between_plane_and_planes(
+    strike1, dip1, strikes, dips, return_radians=True
+):
+    nv1 = strike_dip_to_norm_vec(strike1, dip1)
+    nvs = np.array(
+        [strike_dip_to_norm_vec(s, dips[i]) for i, s in enumerate(strikes)]
+    )
+
+    dots = np.array([nv1.dot(nv) for nv in nvs])
+    angles = np.arccos(dots)
+
+    if return_radians == False:
+        angles = np.degrees(angles)
+    return angles
+
+
+def angle_between_rakes(rake1, rake2, return_radians=True):
+    rake1_rad, rake2_rad = np.radians([rake1, rake2])
+    nv1 = np.array([np.cos(rake1_rad), np.sin(rake1_rad)])
+    nv2 = np.array([np.cos(rake2_rad), np.sin(rake2_rad)])
+
+    angle = np.arccos(np.dot(nv1, nv2))
+
+    if return_radians == False:
+        angle = np.degrees(angle)
+    return angle
+
+
+def angles_between_rake_and_rakes(rake1, rakes, return_radians=True):
+    rake1_rad = np.radians(rake1)
+    rakes_rad = np.radians(rakes)
+
+    nv1 = np.array([np.cos(rake1_rad), np.sin(rake1_rad)])
+    nvs = np.array(
+        [np.array([np.cos(rake), np.sin(rake)] for rake in rakes_rad)]
+    )
+
+    dots = np.array([nv1.dot(nv) for nv in nvs])
+    angles = np.arccos(dots)
+
+    if return_radians == False:
+        angles = np.degrees(angles)
+    return angles

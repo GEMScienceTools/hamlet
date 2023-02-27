@@ -1,21 +1,28 @@
 """
 Utility functions for running tests in the GEM model test framework.
 """
-import logging
-from typing import Sequence, Dict, List, Optional, Union
+from multiprocessing import Pool
 
+from h3 import h3
 import numpy as np
 import pandas as pd
-from geopandas import GeoSeries
+from geopandas import GeoDataFrame
+from tqdm.autonotebook import tqdm
+
+from openquake.hazardlib.geo.geodetic import distance
 
 from openquake.hme.utils import (
-    # SpacemagBin,
     parallelize,
     mag_to_mo,
     sample_rups,
     get_model_mfd,
     get_obs_mfd,
+    strike_dip_to_norm_vec,
+    angles_between_plane_and_planes,
+    angles_between_rake_and_rakes,
 )
+from openquake.hme.utils.utils import _n_procs
+from openquake.hme.utils.stats import geom_mean
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
@@ -143,3 +150,253 @@ def get_moment_from_mfd(mfd: dict) -> float:
     )
 
     return mo
+
+
+def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
+    return 1 - np.abs(eq_mag - rup_mags)  # / (mag_window / 2.)
+
+
+def get_distances(eq, rup_gdf):
+    # this assumes we want 3d distance instead of separate treatment
+    # of h, v dists
+    dists = distance(
+        eq.longitude,
+        eq.latitude,
+        eq.depth,
+        rup_gdf["longitude"],
+        rup_gdf["latitude"],
+        rup_gdf["depth"],
+    )
+    return dists
+
+
+def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
+    rdf_lo = rup_df.loc[
+        rup_df.magnitude.values <= (eq.magnitude + mag_window / 2.0)
+    ]
+    rdf_in_range = rdf_lo.loc[
+        rdf_lo.magnitude.values >= eq.magnitude - mag_window / 2.0
+    ]
+
+    return rdf_in_range
+
+
+def get_nearby_rups(eq, rup_df):
+    # first find adjacent cells to pare down search space
+    closest_cells = h3.k_ring(eq.cell_id, 1)
+
+    rups_nearby = rup_df.loc[rup_df.cell_id.isin(closest_cells)]
+
+    return rups_nearby
+
+
+def get_matching_rups(
+    eq,
+    rup_gdf,
+    distance_lambda=10.0,
+    mag_window=1.0,
+    return_threshold=0.9,
+    no_attitude_default_like=0.5,
+    no_rake_default_like=0.5,
+    use_occurrence_rate=False,
+    return_one=False,
+):
+    # selection phase
+    rups = get_nearby_rups(eq, rup_df=rup_gdf)
+    rups = get_rups_in_mag_range(eq, rup_df=rups, mag_window=mag_window)
+
+    # ranking phase
+
+    # distances
+    dists = get_distances(eq, rups)
+    dist_likes = np.exp(-dists / distance_lambda)
+
+    rups = rups[dist_likes >= 0.0]  # a lil more filtering, to speed things up
+    dists = dists[dist_likes >= 0.0]
+
+    rups["eq_dist"] = dists
+
+    # magnitudes
+    mag_likes = mag_diff_likelihood(
+        eq.magnitude, rups.magnitude, mag_window=mag_window
+    )
+
+    # plane attitude diffs
+    try:
+        _ = strike_dip_to_norm_vec(eq.strike, eq.dip)  # testing for data
+        attitude_diffs = np.array(
+            [
+                angles_between_plane_and_planes(
+                    eq.strike,
+                    eq.dip,
+                    rups.strike,
+                    rups.dip,
+                    return_radians=True,
+                )
+            ]
+        )
+        attitude_likes = np.cos(attitude_diffs)
+    except:
+        attitude_likes = np.ones(len(rups)) * no_attitude_default_like
+
+    # rake
+    # not clear how to deal with focal mechs yet...
+    try:
+        _ = np.radians(eq.rake)  # testing for data
+        rake_diffs = angles_between_rake_and_rakes(
+            eq.rake, rups.rake, return_radians=True
+        )
+        # angles > pi/2 should all have zero likelihood
+        rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
+        rake_likes = np.cos(rake_diffs)
+    except:
+        rake_likes = np.ones(len(rups)) * no_rake_default_like
+
+    # put it all together
+    if use_occurrence_rate:
+        rates_norm = rups.occurrence_rate / rups.occurrence_rate.max()
+        total_likes = geom_mean(
+            dist_likes, mag_likes, attitude_likes, rake_likes, rates_norm
+        )
+    else:
+        total_likes = geom_mean(
+            dist_likes,
+            mag_likes,
+            attitude_likes,
+            rake_likes,
+        )
+
+    rups["likelihood"] = total_likes
+    rups = rups.sort_values("likelihood", ascending=False)
+    max_likes = total_likes.max()
+    rups = rups.loc[rups.likelihood >= max_likes * return_threshold]
+
+    if len(rups) == 0:
+        return None
+
+    if return_one is False:
+        return rups
+    elif return_one == "best":
+        return rups.iloc[0]
+    elif return_one == "sample":
+        weights = rups.likelihood.values / sum(rups.likelihood.values)
+        idx = np.random.choice(rups.index.values, p=weights)
+        return rups.loc[idx]
+    else:
+        raise ValueError(
+            "Choose False, 'best', or 'sample' for return_one. "
+            + f"(current value is {return_one}"
+        )
+
+
+def _get_matching_rups(args):
+    eq = args[0]
+    rup_gdf = args[1]
+    distance_lambda = args[2]
+    mag_window = args[3]
+    return_threshold = args[4]
+    no_attitude_default_like = args[5]
+    no_rake_default_like = args[6]
+    use_occurrence_rate = args[7]
+    return_one = args[8]
+
+    return get_matching_rups(
+        eq,
+        rup_gdf,
+        distance_lambda=distance_lambda,
+        mag_window=mag_window,
+        return_threshold=return_threshold,
+        no_attitude_default_like=no_attitude_default_like,
+        no_rake_default_like=no_rake_default_like,
+        use_occurrence_rate=use_occurrence_rate,
+        return_one=return_one,
+    )
+
+
+def match_eqs_to_rups(
+    eq_gdf,
+    rup_gdf,
+    distance_lambda=10.0,
+    mag_window=1.0,
+    return_threshold=0.9,
+    no_attitude_default_like=0.5,
+    no_rake_default_like=0.5,
+    use_occurrence_rate=False,
+    return_one="best",
+    parallel=False,
+):
+    match_rup_args = (
+        (
+            eq,
+            rup_gdf,
+            distance_lambda,
+            mag_window,
+            return_threshold,
+            no_attitude_default_like,
+            no_rake_default_like,
+            use_occurrence_rate,
+            return_one,
+        )
+        for i, eq in eq_gdf.iterrows()
+    )
+    if parallel is True:
+        with Pool(_n_procs) as pool:
+            match_results = list(
+                tqdm(
+                    pool.imap(_get_matching_rups, match_rup_args, chunksize=10)
+                )
+            )
+            _ = len(match_results)
+
+    else:
+        match_results = [
+            _get_matching_rups(arg)
+            for arg in tqdm(match_rup_args, total=len(eq_gdf))
+        ]
+
+    return match_results
+
+
+def rup_matching_eval(
+    eq_gdf,
+    rup_gdf,
+    distance_lambda=10.0,
+    mag_window=1.0,
+    return_threshold=0.9,
+    no_attitude_default_like=0.5,
+    no_rake_default_like=0.5,
+    use_occurrence_rate=False,
+    return_one="best",
+    parallel=False,
+):
+    match_results = match_eqs_to_rups(
+        eq_gdf,
+        rup_gdf,
+        distance_lambda=distance_lambda,
+        mag_window=mag_window,
+        return_threshold=return_threshold,
+        no_attitude_default_like=no_attitude_default_like,
+        no_rake_default_like=no_rake_default_like,
+        use_occurrence_rate=use_occurrence_rate,
+        parallel=parallel,
+        return_one=return_one,
+    )
+
+    matched_indices = []
+    unmatched_indices = []
+    matched_rup_list = []
+    for i, match in enumerate(match_results):
+        if match is not None:
+            matched_rup_list.append(match)
+            matched_indices.append(eq_gdf.index.values[i])
+        else:
+            unmatched_indices = eq_gdf.index.values[i]
+
+    matched_rups = pd.concat(matched_rup_list, axis=1).T
+
+    matched_rups["eq"] = matched_indices
+
+    matched_rups.set_index("eq", inplace=True)
+    unmatched_eqs = eq_gdf.loc[unmatched_indices]
+
+    return {"matched_rups": matched_rups, "unmatched_eqs": unmatched_eqs}

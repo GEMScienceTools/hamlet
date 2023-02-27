@@ -129,7 +129,7 @@ def poisson_likelihood(
         return poisson_likelihood_zero_rate(num_events, not_modeled_val)
     else:
         rt = rate * time_interval
-        return np.exp(-rt) * rt ** num_events / np.math.factorial(num_events)
+        return np.exp(-rt) * rt**num_events / np.math.factorial(num_events)
 
 
 def poisson_likelihood_zero_rate(
@@ -149,7 +149,6 @@ def poisson_log_likelihood(
     time_interval: float = 1.0,
     not_modeled_val: float = 0.0,
 ) -> float:
-
     if rate == 0.0:
         return np.log(poisson_likelihood_zero_rate(num_events, not_modeled_val))
     else:
@@ -175,7 +174,7 @@ def negative_binomial_distribution(
 
     term_2 = (1 - prob_success) ** r_dispersion
 
-    term_3 = prob_success ** num_events
+    term_3 = prob_success**num_events
 
     return term_1 * term_2 * term_3
 
@@ -187,7 +186,7 @@ def estimate_negative_binom_parameters(
         mean = rate or np.mean(samples)
         variance = np.var(samples, ddof=1)
         prob_success = (variance - mean) / variance
-        r_dispersion = mean ** 2 / (variance - mean)
+        r_dispersion = mean**2 / (variance - mean)
 
     else:
         # maximum likelihood estimation will go here
@@ -212,7 +211,6 @@ def kullback_leibler_divergence(p, q):
 
 
 def jensen_shannon_divergence(p, q):
-
     pp = np.asarray(p)
     qq = np.asarray(q)
 
@@ -229,3 +227,27 @@ def jensen_shannon_distance(p, q):
 
 def _mid_pt_measure(p, q):
     return 0.5 * (p + q)
+
+
+def geom_mean(*vals):
+    """
+    Calculates the geometric mean of either a sequence of numbers (returning a
+    scalar) or the element-wise geometric mean of multiple sequences of numbers
+    of equal length (i.e., the geometric mean of the i-th value across all
+    sequences), returning an array of the same length as the input sequences.
+    """
+
+    if len(vals) == 1:
+        return np.exp(np.mean(np.log(vals)))
+    else:
+        len_arrs = len(vals)
+        log_vals = [np.log(v) for v in vals]
+        log_sum = None
+        for i, v in enumerate(log_vals):
+            if i == 0:
+                log_sum = v
+            else:
+                log_sum += v
+        log_sum /= len_arrs
+
+        return np.exp(log_sum)
