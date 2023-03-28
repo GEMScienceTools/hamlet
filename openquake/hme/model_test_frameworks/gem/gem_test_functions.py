@@ -209,6 +209,8 @@ def get_matching_rups(
 
     # distances
     dists = get_distances(eq, rups)
+    rups = rups[dists <= dists.min() * distance_lambda]
+    dists = dists[dists <= dists.min() * distance_lambda]
     dist_likes = np.exp(-dists / distance_lambda)
 
     rups = rups[dist_likes >= 0.0]  # a lil more filtering, to speed things up
@@ -221,36 +223,36 @@ def get_matching_rups(
         eq.magnitude, rups.magnitude, mag_window=mag_window
     )
 
-    # plane attitude diffs
-    try:
-        _ = strike_dip_to_norm_vec(eq.strike, eq.dip)  # testing for data
-        attitude_diffs = np.array(
-            [
-                angles_between_plane_and_planes(
-                    eq.strike,
-                    eq.dip,
-                    rups.strike,
-                    rups.dip,
-                    return_radians=True,
-                )
-            ]
+    if hasattr(eq, "strike") and not np.isnan(eq.strike):
+        # plane attitude diffs
+        attitude_diffs = angles_between_plane_and_planes(
+            eq.strike,
+            eq.dip,
+            rups.strike,
+            rups.dip,
+            return_radians=True,
         )
         attitude_likes = np.cos(attitude_diffs)
-    except:
-        attitude_likes = np.ones(len(rups)) * no_attitude_default_like
+        attitude_likes[attitude_likes <= 0.0] = 1e-20
+        rups["attitude_diff"] = attitude_diffs
 
-    # rake
-    # not clear how to deal with focal mechs yet...
-    try:
-        _ = np.radians(eq.rake)  # testing for data
+        # rakes
         rake_diffs = angles_between_rake_and_rakes(
             eq.rake, rups.rake, return_radians=True
         )
         # angles > pi/2 should all have zero likelihood
-        rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
+        # rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
         rake_likes = np.cos(rake_diffs)
-    except:
+        rake_likes[rake_likes <= 0.0] = 1e-20
+        rups["rake_diff"] = rake_diffs
+    else:
+        attitude_likes = np.ones(len(rups)) * no_attitude_default_like
+        rups["attitude_diff"] = np.empty(len(rups))
+        rups["attitude_diff"].values[:] = np.nan
+
         rake_likes = np.ones(len(rups)) * no_rake_default_like
+        rups["rake_diff"] = np.empty(len(rups))
+        rups["rake_diff"].values[:] = np.nan
 
     # put it all together
     if use_occurrence_rate:
@@ -393,6 +395,10 @@ def rup_matching_eval(
             unmatched_indices = eq_gdf.index.values[i]
 
     matched_rups = pd.concat(matched_rup_list, axis=1).T
+    matched_rups["rake_diff"] = np.degrees(np.float_(matched_rups["rake_diff"]))
+    matched_rups["attitude_diff"] = np.degrees(
+        np.float_(matched_rups["attitude_diff"])
+    )
 
     matched_rups["eq"] = matched_indices
 

@@ -10,6 +10,10 @@ import numpy as np
 from math import gamma
 
 
+# import warnings
+# warnings.filterwarnings("error", category=RuntimeWarning)
+
+
 def sample_num_events_in_interval(
     annual_occurrence_rate: float,
     interval_length: float,

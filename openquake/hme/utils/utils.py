@@ -232,7 +232,12 @@ def make_earthquake_gdf_from_csv(
     time: Union[List[str], Tuple[str], str, None] = None,
     source: Optional[str] = None,
     event_id: Optional[str] = None,
+    strike1: Optional[str] = None,
+    dip1: Optional[str] = None,
+    rake1: Optional[str] = None,
     epsg: int = 4326,
+    select_nodal_planes=True,
+    nodal_plane_algorithm="pick_andersonian_nodal_plane",
     h3_res: int = 3,
 ) -> gpd.GeoDataFrame:
     """
@@ -285,6 +290,16 @@ def make_earthquake_gdf_from_csv(
     if event_id is not None:
         df.rename({event_id: "event_id"}, axis=1, inplace=True)
 
+    if strike1 is not None:
+        df.rename({strike1: "strike1"}, axis=1, inplace=True)
+        df.rename({strike1[:-1] + "2": "strike2"}, axis=1, inplace=True)
+    if dip1 is not None:
+        df.rename({dip1: "dip1"}, axis=1, inplace=True)
+        df.rename({dip1[:-1] + "2": "dip2"}, axis=1, inplace=True)
+    if rake1 is not None:
+        df.rename({rake1: "rake1"}, axis=1, inplace=True)
+        df.rename({rake1[:-1] + "2": "rake2"}, axis=1, inplace=True)
+
     def parse_geometry(row, x=x_col, y=y_col, z=depth):
         return Point(row[x], row[y], row[z])
 
@@ -303,6 +318,31 @@ def make_earthquake_gdf_from_csv(
     eq_gdf["latitude"] = [
         eq["geometry"].xy[1][0] for i, eq in eq_gdf.iterrows()
     ]
+
+    if select_nodal_planes == True:
+        if nodal_plane_algorithm == "pick_andersonian_nodal_plane":
+            nodal_plane_alg = pick_andersonian_nodal_plane
+
+        if ("strike" in eq_gdf.columns) and ("strike1" not in eq_gdf.columns):
+            # nodal plane already selected
+            pass
+        elif ("strike1" in eq_gdf.columns) and ("strike" not in eq_gdf.columns):
+            print("selecting nodal planes")
+            strikes = []
+            dips = []
+            rakes = []
+
+            for eq in eq_gdf.itertuples():
+                nodal_plane_set = nodal_plane_alg(
+                    eq.strike1, eq.dip1, eq.rake1, eq.strike2, eq.dip2, eq.rake2
+                )
+                strikes.append(nodal_plane_set[0])
+                dips.append(nodal_plane_set[1])
+                rakes.append(nodal_plane_set[2])
+
+            eq_gdf["strike"] = strikes
+            eq_gdf["dip"] = dips
+            eq_gdf["rake"] = rakes
 
     eq_gdf["cell_id"] = [
         h3.geo_to_h3(row.latitude, row.longitude, h3_res)
@@ -646,7 +686,7 @@ def angles_between_rake_and_rakes(rake1, rakes, return_radians=True):
 
     nv1 = np.array([np.cos(rake1_rad), np.sin(rake1_rad)])
     nvs = np.array(
-        [np.array([np.cos(rake), np.sin(rake)] for rake in rakes_rad)]
+        [np.array([np.cos(rake), np.sin(rake)]) for rake in rakes_rad]
     )
 
     dots = np.array([nv1.dot(nv) for nv in nvs])
@@ -655,3 +695,41 @@ def angles_between_rake_and_rakes(rake1, rakes, return_radians=True):
     if return_radians == False:
         angles = np.degrees(angles)
     return angles
+
+
+def pick_andersonian_nodal_plane(strike1, dip1, rake1, strike2, dip2, rake2):
+    """
+    Picks strike, dip and rake set most consistent with Andersonian mechanics.
+    If rake is negative (i.e., there is some normal slip), then the steeper
+    nodal plane is chosen. If there is some reverse component, then the
+    shallower nodal plane is chosen. In cases where both are the same dip
+    (i.e. 90 degrees) then the first nodal plane set (strike1, dip1, rake1)
+    is chosen.
+
+    WARNING: This is a rough heuristic!  In many cases, the correct
+    nodal plane may be known a priori, or a better selection method
+    may be used.  Additionally, a better algorithm that maps to Andersonian
+    mechanics may be derived with a bit more thought.
+    """
+
+    if np.isnan(strike1):
+        return (strike1, dip1, rake1)
+
+    if dip1 < dip2:
+        shallow_plane = (strike1, dip1, rake1)
+        steep_plane = (strike2, dip2, rake2)
+    elif dip1 > dip2:
+        shallow_plane = (strike2, dip2, rake2)
+        steep_plane = (strike1, dip1, rake1)
+    elif dip1 == dip2:
+        shallow_plane = (strike1, dip1, rake1)
+        steep_plane = (strike2, dip2, rake2)
+
+    if (rake1 < 0) & (rake1 > -180):
+        chosen_set = shallow_plane
+    elif (rake1 > 0) & (rake1 < 180):
+        chosen_set = steep_plane
+    else:
+        chosen_set = (strike1, dip1, rake1)
+
+    return chosen_set
