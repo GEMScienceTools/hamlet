@@ -216,9 +216,16 @@ def _parse_eq_time(
             elif i == 2:
                 time_string += str(int(eq[tc])) + " "
             else:
-                time_string += str(eq[tc]) + ":"
+                time_val = eq[tc]
+                if time_val in [60, '60']:
+                    time_val = 59
+                elif time_val in [60.0, '60.0']:
+                    time_val = 59.9
+                time_string += str(time_val) + ":"
 
         time_string = time_string[:-1]
+
+
 
     return dateutil.parser.parse(time_string)
 
