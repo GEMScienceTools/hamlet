@@ -68,9 +68,12 @@ def process_source_logic_tree_oq(
     verbose: bool = False,
 ):
     if job_ini_file is not None:
+        logging.info("Job ini found")
         job_ini = os.path.join(base_dir, job_ini_file)
     else:
+        logging.warning("making job ini")
         job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
+        #print(job_ini)
 
     csm, _sources, _source_info = csm_from_job_ini(job_ini)
 
