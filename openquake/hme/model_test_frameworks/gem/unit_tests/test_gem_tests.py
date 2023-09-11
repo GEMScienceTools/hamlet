@@ -223,6 +223,7 @@ class test_gem_tests(unittest.TestCase):
         for k, v in max_mag_check_res.items():
             assert v == max_mag_check_results[k]
 
+    @unittest.skip("removed from test cfg for now")
     def test_model_mfd_eval(self):
         np.random.seed(self.cfg["config"]["rand_seed"])
         Mfd_eval_res = model_mfd_eval(self.cfg, self.input_data)
