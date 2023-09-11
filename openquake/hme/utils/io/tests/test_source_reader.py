@@ -35,6 +35,7 @@ def test_single_branch_without_job_ini():
             description=load_sm1.cfg["meta"]["description"],
         )
 
+        # not sure how to easily deal with full paths during testing
         job_ini_result = {
             "calculation_mode": "preclassical",
             "description": "test",
@@ -43,18 +44,40 @@ def test_single_branch_without_job_ini():
             "width_of_mfd_bin": "0.1",
             "maximum_distance": "200",
             "investigation_time": "1.0",
-            "source_model_logic_tree": "/Users/itchy/src/gem/hamlet/openquake/hme/utils/tests/data/source_models/sm1/ssmLT.xml",
-            "gsim_logic_tree": "/Users/itchy/src/gem/hamlet/openquake/hme/utils/tests/data/source_models/sm1/gmmLT.xml",
+            # "source_model_logic_tree": "/Users/itchy/src/gem/hamlet/openquake/hme/utils/tests/data/source_models/sm1/ssmLT.xml",
+            # "gsim_logic_tree": "/Users/itchy/src/gem/hamlet/openquake/hme/utils/tests/data/source_models/sm1/gmmLT.xml",
+            "source_model_logic_tree": "ssmLT.xml",
+            "gsim_logic_tree": "gmmLT.xml",
             "reference_vs30_type": "measured",
             "reference_vs30_value": "800.0",
             "reference_depth_to_1pt0km_per_sec": "30.0",
+            "truncation_level": "3.0",
+            "job_ini": "<in-memory>",
             "inputs": {
-                "source_model_logic_tree": "/Users/itchy/src/gem/hamlet/openquake/hme/utils/tests/data/source_models/sm1/ssmLT.xml"
+                # "source_model_logic_tree": "/Users/itchy/src/gem/hamlet/openquake/hme/utils/tests/data/source_models/sm1/ssmLT.xml"
+                "source_model_logic_tree": "/ssmLT.xml"
             },
         }
 
         for k in job_ini.keys():
-            assert job_ini[k] == job_ini_result[k]
+            if k == "source_model_logic_tree":
+                ssm_file = job_ini[k].split("/")[-1]
+                ssm_file_result = job_ini_result[k].split("/")[-1]
+                assert ssm_file == ssm_file_result
+            elif k == "gsim_logic_tree":
+                gmm_file = job_ini[k].split("/")[-1]
+                gmm_file_result = job_ini_result[k].split("/")[-1]
+                assert gmm_file == gmm_file_result
+            elif k == "inputs":
+                assert (
+                    job_ini[k]["source_model_logic_tree"].split("/")[-1]
+                    == job_ini_result[k]["source_model_logic_tree"].split("/")[
+                        -1
+                    ]
+                )
+
+            else:
+                assert job_ini[k] == job_ini_result[k]
 
         return job_ini
 
