@@ -73,7 +73,7 @@ def process_source_logic_tree_oq(
     else:
         logging.warning("making job ini")
         job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
-        #print(job_ini)
+        # print(job_ini)
 
     csm, _sources, _source_info = csm_from_job_ini(job_ini)
 
@@ -152,6 +152,7 @@ def make_job_ini(
             "investigation_time": 1.0,
             "source_model_logic_tree": ssm_lt_path,
             "gsim_logic_tree": gmm_lt_path,
+            "truncation_level": 3.0,
         },
         "site_params": {
             "reference_vs30_type": "measured",
@@ -166,7 +167,8 @@ def make_job_ini(
 
     job_ini_params_flat = {k: str(v) for k, v in job_ini_params_flat.items()}
     job_ini_params_flat["inputs"] = {
-        "source_model_logic_tree": str(ssm_lt_path)
+        "job_ini": "<in-memory>",
+        "source_model_logic_tree": str(ssm_lt_path),
     }
 
     return job_ini_params_flat
