@@ -712,7 +712,13 @@ def pick_andersonian_nodal_plane(strike1, dip1, rake1, strike2, dip2, rake2):
     mechanics may be derived with a bit more thought.
     """
 
-    if np.isnan(strike1):
+    if type(strike1) == str:
+        strike1 = np.nan
+        dip1 = np.nan
+        rake1 = np.nan
+        strike2 = np.nan
+        dip2 = np.nan
+        rake2 = np.nan
         return (strike1, dip1, rake1)
 
     if dip1 < dip2:
