@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils import get_mag_bins_from_cfg  # , get_source_bins,
+from openquake.hme.utils import get_mag_bins_from_cfg, deep_update
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
     # get_stochastic_mfd,
@@ -14,6 +14,7 @@ from .gem_test_functions import (
     # eval_obs_moment_model,
     model_mfd_eval_fn,
     moment_over_under_eval_fn,
+    rupture_matching_eval_fn,
 )
 
 from ..relm.relm_tests import (
@@ -222,7 +223,11 @@ def max_mag_check(cfg: dict, input_data: dict):
     if bad_bins == []:
         results = {"test_res": "Pass", "test_pass": True, "bad_bins": bad_bins}
     else:
-        results = {"test_res": "Fail", "test_pass": False, "bad_bins": bad_bins}
+        results = {
+            "test_res": "Fail",
+            "test_pass": False,
+            "bad_bins": bad_bins,
+        }
 
     logging.info("Max Mag Check res: {}".format(results["test_res"]))
     return results
@@ -293,6 +298,74 @@ def moment_over_under_eval(cfg, input_data):
     return test_results
 
 
+def rupture_matching_eval(cfg, input_data):
+    logging.info("Running GEM Rupture Matching Eval")
+
+    default_params = {
+        "distance_lambda": 10.0,
+        "mag_window": 1.0,
+        "group_return_threshold": 0.9,
+        "min_likelihood": 0.1,
+        "no_attitude_default_like": 0.5,
+        "no_rake_default_like": 0.5,
+        "use_occurrence_rate": False,
+        "return_one": "best",
+        "parallel": False,
+    }
+
+    test_config = cfg["config"]["model_framework"]["gem"][
+        "rupture_matching_eval"
+    ]
+    prospective = test_config.get("prospective", False)
+
+    test_config = deep_update(default_params, test_config)
+
+    if prospective:
+        eq_gdf = input_data["pro_gdf"]
+    else:
+        eq_gdf = input_data["eq_gdf"]
+
+    match_results = rupture_matching_eval_fn(
+        input_data["rupture_gdf"],
+        eq_gdf,
+        distance_lambda=test_config["distance_lambda"],
+        mag_window=test_config["mag_window"],
+        group_return_threshold=test_config["group_return_threshold"],
+        no_attitude_default_like=test_config["no_attitude_default_like"],
+        no_rake_default_like=test_config["no_rake_default_like"],
+        use_occurrence_rate=test_config["use_occurrence_rate"],
+        return_one=test_config["return_one"],
+        parallel=cfg["config"]["parallel"],
+    )
+
+    n_unmatched = len(match_results["unmatched_eqs"])
+    n_total = len(eq_gdf)
+    mean_likelihood = np.round(
+        match_results["matched_rups"].likelihood.mean(), 3
+    )
+    test_results_for_print = {
+        "N total": n_total,
+        "N Unmatched": n_unmatched,
+        "Mean match likelihood": mean_likelihood,
+    }
+
+    match_results.update(
+        {
+            "num_matched": n_total - n_unmatched,
+            "num_eq": n_total,
+            "mean_match_likelihood": mean_likelihood,
+        }
+    )
+
+    logging.info(
+        "Rupture Matching Eval Results: {}".format(test_results_for_print)
+    )
+
+    test_results = match_results
+
+    return test_results
+
+
 def mfd_likelihood_test(cfg, input_data):
     logging.warn("GEM Likelihood test deprecated")
     return
@@ -307,4 +380,5 @@ gem_test_dict = {
     "S_test": S_test,
     "N_test": N_test,
     "L_test": L_test,
+    "rupture_matching_eval": rupture_matching_eval,
 }

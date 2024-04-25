@@ -3,8 +3,13 @@ from typing import Union, Optional, Tuple
 import h3
 import numpy as np
 import geopandas as gpd
+from scipy.stats import poisson
 import matplotlib.pyplot as plt
 from geopandas import GeoDataFrame
+
+from matplotlib.collections import LineCollection
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
 
 import io
 from .stats import sample_event_times_in_interval
@@ -37,6 +42,58 @@ def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
         stoch_mfd_vals.append(np.cumsum(n_event_list[::-1])[::-1])
 
     return stoch_mfd_vals
+
+
+def plot_poisson_distribution(N_e, N_o):
+    """
+    Plots the PDF and CDF of a Poisson distribution with mean N_e
+    and draws a vertical line at N_o.
+
+    Parameters:
+    - N_e: Expected number of events (mean rate of the Poisson distribution)
+    - N_o: Observed number of events
+    """
+    # Generate a range of numbers around N_e to calculate the PDF and CDF
+    x = np.arange(poisson.ppf(0.001, N_e), poisson.ppf(0.999, N_e))
+
+    # Calculate the PDF and CDF
+    pdf = poisson.pmf(x, N_e)
+    cdf = poisson.cdf(x, N_e)
+
+    fig, ax1 = plt.subplots()
+
+    # Plot PDF
+    color = "tab:blue"
+    ax1.set_xlabel("n (Number of Events)")
+    ax1.set_ylabel("p(N) (PDF)", color=color)
+    ax1.plot(x, pdf, color=color, label="PDF")
+    ax1.tick_params(axis="y", labelcolor=color)
+
+    # Create a twin Axes object to plot the CDF
+    ax2 = ax1.twinx()
+    color = "tab:red"
+    ax2.set_ylabel(
+        "CDF", color=color
+    )  # we already handled the x-label with ax1
+    ax2.plot(x, cdf, color=color, linestyle="--", label="CDF")
+    ax2.tick_params(axis="y", labelcolor=color)
+
+    # Draw a vertical line at N_o
+    plt.axvline(
+        N_o, color="green", linestyle="-", label="N_o (Observed Events)"
+    )
+
+    # Add a legend
+    lines, labels = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(lines + lines2, labels + labels2, loc="upper left")
+
+    plt.title(
+        "Poisson Distribution (PDF and CDF) with N_e = {} and N_o = {}".format(
+            N_e, N_o
+        )
+    )
+    plt.show()
 
 
 def plot_mfd(
@@ -141,7 +198,9 @@ def plot_likelihood_map(
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
-        world.to_crs(epsg=map_epsg).plot(ax=ax, color="none", edgecolor="black")
+        world.to_crs(epsg=map_epsg).plot(
+            ax=ax, color="none", edgecolor="black"
+        )
 
     if plot_eqs is True:
         if eq_gdf is not None:
@@ -212,7 +271,9 @@ def plot_S_test_map(
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
-        world.to_crs(epsg=map_epsg).plot(ax=ax, color="none", edgecolor="black")
+        world.to_crs(epsg=map_epsg).plot(
+            ax=ax, color="none", edgecolor="black"
+        )
     ax.set_xlim(x_lims)
     ax.set_ylim(y_lims)
 
@@ -223,7 +284,9 @@ def plot_S_test_map(
     return fig_svg
 
 
-def plot_over_under_map(cell_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
+def plot_over_under_map(
+    cell_gdf: GeoDataFrame, map_epsg: Optional[int] = None
+):
     fig, axs = plt.subplots(2, 1, figsize=(10, 18))
 
     # plot moment ratio
@@ -307,3 +370,143 @@ def plot_over_under_map(cell_gdf: GeoDataFrame, map_epsg: Optional[int] = None):
     fig.savefig(fig_str, format="svg")
     fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
     return fig_svg
+
+
+def plot_rup_match_map(
+    eqs, matched_rups, unmatched_eqs=None, map_epsg=None, return_str=False
+):
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+
+    matched_eqs = eqs.loc[matched_rups.index]
+    matched_eqs["likelihood"] = matched_rups["likelihood"]
+
+    # Define colormap normalization based on the likelihood range
+    norm = Normalize(vmin=0.0, vmax=1.0)
+    cmap = "viridis"
+
+    if map_epsg is None:
+        # Store the output of the plot, which is necessary for colorbar creation
+        sc = matched_eqs.plot(
+            column="likelihood",
+            ax=ax,
+            vmin=0.0,
+            vmax=1.0,
+            cmap=cmap,
+            markersize=matched_eqs.magnitude**3 * 0.1,
+        )
+
+        if unmatched_eqs is not None:
+            unmatched_eqs.plot(
+                ax=ax,
+                color="red",
+                edgecolor="black",
+                markersize=unmatched_eqs.magnitude**3 * 0.1,
+            )
+
+    else:
+        # When specifying a CRS, plotting still happens in a similar way
+        sc = matched_eqs.to_crs(epsg=map_epsg).plot(
+            column="likelihood",
+            ax=ax,
+            vmin=0.0,
+            vmax=1.0,
+            cmap=cmap,
+            markersize=matched_eqs.magnitude**3 * 0.1,
+        )
+
+        if unmatched_eqs is not None:
+            unmatched_eqs.to_crs(epsg=map_epsg).plot(
+                ax=ax,
+                color="red",
+                edgecolor="black",
+                markersize=unmatched_eqs.magnitude**3 * 0.1,
+            )
+
+    # Adjusting the limits might be necessary after plotting the world map
+    x_lims = ax.get_xlim()
+    y_lims = ax.get_ylim()
+
+    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    if map_epsg is None:
+        world.plot(ax=ax, color="none", edgecolor="black")
+    else:
+        world.to_crs(epsg=map_epsg).plot(
+            ax=ax, color="none", edgecolor="black"
+        )
+
+    ax.set_xlim(x_lims)
+    ax.set_ylim(y_lims)
+
+    # Create a ScalarMappable for the colorbar
+    sm = ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax)
+    cbar.set_label("Likelihood")
+
+    if return_str:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+    else:
+        return fig
+
+
+def plot_rup_match_mag_dist(
+    matched_rups, eqs, s=6, return_str: bool = True, **kwargs
+):
+    eq_mags = eqs.loc[matched_rups.index, "magnitude"].values
+    rup_mags = matched_rups.magnitude.values
+    dists = matched_rups.eq_dist.values
+    likes = np.float_(matched_rups.likelihood.values)
+    # norm_likes = (likes - likes.min()) / (likes.max() - likes.min())
+    colors = plt.cm.viridis(likes)
+
+    lines = [
+        [(mag1, dists[i]), (rup_mags[i], dists[i])]
+        for i, mag1 in enumerate(eq_mags)
+    ]
+
+    fig, ax = plt.subplots(**kwargs)
+    ax.scatter(
+        rup_mags,
+        dists,
+        edgecolors=colors,
+        facecolors="none",
+        label="ruptures",
+        s=s,
+        lw=0.6,
+    )
+    ax.scatter(
+        eq_mags,
+        dists,
+        edgecolors=colors,
+        facecolors=colors,
+        label="earthquakes",
+        s=s,
+    )
+
+    # lines = [[(df1.iloc[i]['mag1'], df1.iloc[i]['distance']), (df2.iloc[i]['mag2'], df1.iloc[i]['distance'])] for i in range(len(df1))]
+    line_col = LineCollection(lines, colors=colors, linewidths=0.3)
+    ax.add_collection(line_col)
+
+    sm = ScalarMappable(cmap="viridis", norm=Normalize(vmin=0.0, vmax=1.0))
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax)
+    cbar.set_label("Match Likelihood")
+    ax.legend(loc="best")
+
+    plt.xlabel("Magnitude")
+    plt.ylabel("Distance (km)")
+    plt.title("Magnitude and Distance for earthquake-rupture matches")
+
+    if return_str:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+    else:
+        return fig

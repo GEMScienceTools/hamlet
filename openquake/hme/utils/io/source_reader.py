@@ -153,6 +153,7 @@ def make_job_ini(
             "source_model_logic_tree": ssm_lt_path,
             "gsim_logic_tree": gmm_lt_path,
             "truncation_level": 3.0,
+            "intensity_measure_types_and_levels": {"PGA": [0.5]},
         },
         "site_params": {
             "reference_vs30_type": "measured",

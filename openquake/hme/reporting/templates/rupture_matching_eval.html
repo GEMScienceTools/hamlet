@@ -1,0 +1,23 @@
+<h3> GEM Rupture Matching Evaluation</h3>
+
+Matched {{ res.num_matched }} of {{ res.num_eq }} earthquakes. Mean
+likehood of matched earthquakes: {{ res.mean_match_likelihood }} </br>
+
+{{ matched_eq_table_str }}
+
+Scatterplot of magnitude vs. rupture-earthquake distance: </br>
+
+{{ mag_dist_plot_str }}
+
+</br>
+
+Table of unmatched earthquakes:
+</br>
+
+{{ unmatched_eq_table_str }}
+
+</br>
+
+Map of matched and unmatched earthquakes:
+
+{{ map_str}}

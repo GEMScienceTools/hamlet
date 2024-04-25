@@ -1,6 +1,7 @@
 """
 Utility functions for running tests in the GEM model test framework.
 """
+
 from multiprocessing import Pool
 
 from h3 import h3
@@ -32,7 +33,9 @@ def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
     moment_sums = pd.Series(
         {
             name: (
-                mag_to_mo(group["magnitude"]) * group["occurrence_rate"] * t_yrs
+                mag_to_mo(group["magnitude"])
+                * group["occurrence_rate"]
+                * t_yrs
             ).sum()
             for name, group in rup_groups
         }
@@ -198,56 +201,56 @@ def add_uncertainty_to_rups(rups):
     strike_plus, strike_minus = {}, {}
     dip_plus, dip_minus = {}, {}
     rake_plus, rake_minus = {}, {}
-    
+
     strike_unc = 60
     dip_unc = 30
-    rake_unc = 45    
+    rake_unc = 45
     for row, rup in rups.iterrows():
-    
+
         strike_plus_unc = rup.strike + strike_unc
         if strike_plus_unc > 360:
             strike_plus_unc = strike_plus_unc - 360
         strike_plus[row] = strike_plus_unc
-        
+
         strike_minus_unc = rup.strike - strike_unc
         if strike_minus_unc < 0:
             strike_minus_unc = strike_minus_unc + 360
-        strike_minus[row] = strike_minus_unc 
-            
+        strike_minus[row] = strike_minus_unc
+
         dip_plus_unc = rup.dip + dip_unc
         if dip_plus_unc > 90:
             dip_plus_unc = 90
         dip_plus[row] = dip_plus_unc
-        
+
         dip_minus_unc = rup.dip - dip_unc
         if dip_minus_unc < 0:
             dip_minus_unc = 0
         dip_minus[row] = dip_minus_unc
-        
+
         rake_plus_unc = rup.rake + rake_unc
         rake_minus_unc = rup.rake - rake_unc
-        if 0 <= rup.rake and rup.rake <= 180: # If initial rake positive
+        if 0 <= rup.rake and rup.rake <= 180:  # If initial rake positive
             if rake_plus_unc > 180:
-                rake_plus_unc = -1*(rake_plus_unc) + 180
+                rake_plus_unc = -1 * (rake_plus_unc) + 180
             if rake_minus_unc < 0:
                 rake_minus_unc = -180 - rake_minus_unc
-        
-        if rup.rake >= -180 and rup.rake < 0: # If initial rake negative
+
+        if rup.rake >= -180 and rup.rake < 0:  # If initial rake negative
             if rake_plus_unc >= 0:
                 rake_plus_unc = 180 - rake_plus_unc
             if rake_minus_unc < -180:
                 rake_minus_unc = -180 - rake_minus_unc
-        
+
         rake_plus[row] = rake_plus_unc
         rake_minus[row] = rake_minus_unc
-        
-    rups['strike_plus_unc'] = pd.Series(strike_plus)
-    rups['strike_minus_unc'] = pd.Series(strike_minus)
-    rups['dip_plus_unc'] = pd.Series(dip_plus)
-    rups['dip_minus_unc'] = pd.Series(dip_minus)
-    rups['rake_plus_unc'] = pd.Series(rake_plus)
-    rups['rake_minus_unc'] = pd.Series(rake_minus)
-    
+
+    rups["strike_plus_unc"] = pd.Series(strike_plus)
+    rups["strike_minus_unc"] = pd.Series(strike_minus)
+    rups["dip_plus_unc"] = pd.Series(dip_plus)
+    rups["dip_minus_unc"] = pd.Series(dip_minus)
+    rups["rake_plus_unc"] = pd.Series(rake_plus)
+    rups["rake_minus_unc"] = pd.Series(rake_minus)
+
     return rups
 
 
@@ -258,13 +261,13 @@ def plane_evaluate(eq, rups):
     """
     strikes = [rups.strike_plus_unc, rups.strike, rups.strike_minus_unc]
     dips = [rups.dip_plus_unc, rups.dip, rups.dip_minus_unc]
-    
+
     store_diffs, store_likes = [], []
     for strike_set in strikes:
         for dip_set in dips:
             rups_strikes = strike_set
             rups_dips = dip_set
-        
+
             attitude_diffs = angles_between_plane_and_planes(
                 eq.strike,
                 eq.dip,
@@ -274,21 +277,21 @@ def plane_evaluate(eq, rups):
             )
             attitude_likes = np.cos(attitude_diffs)
             attitude_likes[attitude_likes <= 0.0] = 1e-20
-            
+
             # Store per strike/dip combo
             store_diffs.append(attitude_diffs)
             store_likes.append(attitude_likes)
-    
+
     # Get the diff and like per rup per strike/dip combo
     all_diffs_per_rup, all_likes_per_rup = [], []
     for idx_rup, rup in rups.iterrows():
         diffs_per_rup, likes_per_rup = [], []
         for idx_set, plane_set in enumerate(store_diffs):
             diffs_per_rup.append(plane_set[idx_rup])
-            likes_per_rup.append(store_likes[idx_set][idx_rup])            
+            likes_per_rup.append(store_likes[idx_set][idx_rup])
         all_diffs_per_rup.append(diffs_per_rup)
         all_likes_per_rup.append(likes_per_rup)
-        
+
     # Per rup take the max likelihood and min diff
     max_like_store, min_diff_store = [], []
     for idx_rup, vals_per_rup in enumerate(all_likes_per_rup):
@@ -299,11 +302,11 @@ def plane_evaluate(eq, rups):
         diffs = all_diffs_per_rup[idx_rup]
         min_diff_idx = np.argmax(vals_per_rup)
         min_diff_store.append(diffs[min_diff_idx])
-        
+
     # Use optimal likelihood and min diff
     attitude_diffs = np.array(min_diff_store).flatten()
     attitude_likes = np.array(max_like_store).flatten()
-    
+
     return attitude_diffs, attitude_likes
 
 
@@ -324,7 +327,7 @@ def rake_evaluate(eq, rups):
         # rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
         rake_likes = np.cos(rake_diffs)
         rake_likes[rake_likes <= 0.0] = 1e-20
-        
+
         # Store per rake set
         store_rake_diffs.append(rake_diffs)
         store_rake_likes.append(rake_likes)
@@ -335,7 +338,7 @@ def rake_evaluate(eq, rups):
         rake_diffs_per_rup, rake_likes_per_rup = [], []
         for idx_set, rake_set in enumerate(store_rake_diffs):
             rake_diffs_per_rup.append(rake_set[idx_rup])
-            rake_likes_per_rup.append(store_rake_likes[idx_set][idx_rup])            
+            rake_likes_per_rup.append(store_rake_likes[idx_set][idx_rup])
         all_rake_diffs_per_rup.append(rake_diffs_per_rup)
         all_rake_likes_per_rup.append(rake_likes_per_rup)
 
@@ -349,20 +352,189 @@ def rake_evaluate(eq, rups):
         rake_diffs = all_rake_diffs_per_rup[idx_rup]
         rake_min_diff_idx = np.argmax(vals_per_rup)
         min_rake_diff_store.append(rake_diffs[rake_min_diff_idx])
-        
+
     # Use optimal likelihood and min diff
     rake_diffs = np.array(min_rake_diff_store).flatten()
     rake_likes = np.array(max_rake_like_store).flatten()
-    
+
     return rake_diffs, rake_likes
-    
+
+
+def add_uncertainty_to_rups(rups):
+    """
+    Added by CB to assign uncertainty to rup strike, dip and rake
+    """
+    # Set strikes, dips and rakes with some uncertainty
+    strike_plus, strike_minus = {}, {}
+    dip_plus, dip_minus = {}, {}
+    rake_plus, rake_minus = {}, {}
+
+    strike_unc = 60
+    dip_unc = 30
+    rake_unc = 45
+    for row, rup in rups.iterrows():
+
+        strike_plus_unc = rup.strike + strike_unc
+        if strike_plus_unc > 360:
+            strike_plus_unc = strike_plus_unc - 360
+        strike_plus[row] = strike_plus_unc
+
+        strike_minus_unc = rup.strike - strike_unc
+        if strike_minus_unc < 0:
+            strike_minus_unc = strike_minus_unc + 360
+        strike_minus[row] = strike_minus_unc
+
+        dip_plus_unc = rup.dip + dip_unc
+        if dip_plus_unc > 90:
+            dip_plus_unc = 90
+        dip_plus[row] = dip_plus_unc
+
+        dip_minus_unc = rup.dip - dip_unc
+        if dip_minus_unc < 0:
+            dip_minus_unc = 0
+        dip_minus[row] = dip_minus_unc
+
+        rake_plus_unc = rup.rake + rake_unc
+        rake_minus_unc = rup.rake - rake_unc
+        if 0 <= rup.rake and rup.rake <= 180:  # If initial rake positive
+            if rake_plus_unc > 180:
+                rake_plus_unc = -1 * (rake_plus_unc) + 180
+            if rake_minus_unc < 0:
+                rake_minus_unc = -180 - rake_minus_unc
+
+        if rup.rake >= -180 and rup.rake < 0:  # If initial rake negative
+            if rake_plus_unc >= 0:
+                rake_plus_unc = 180 - rake_plus_unc
+            if rake_minus_unc < -180:
+                rake_minus_unc = -180 - rake_minus_unc
+
+        rake_plus[row] = rake_plus_unc
+        rake_minus[row] = rake_minus_unc
+
+    rups["strike_plus_unc"] = pd.Series(strike_plus)
+    rups["strike_minus_unc"] = pd.Series(strike_minus)
+    rups["dip_plus_unc"] = pd.Series(dip_plus)
+    rups["dip_minus_unc"] = pd.Series(dip_minus)
+    rups["rake_plus_unc"] = pd.Series(rake_plus)
+    rups["rake_minus_unc"] = pd.Series(rake_minus)
+
+    return rups
+
+
+def plane_evaluate(eq, rups):
+    """
+    Modified from original code to consider uncertainty in rup strike and dip
+    and placed into seperate function.
+    """
+    strikes = [rups.strike_plus_unc, rups.strike, rups.strike_minus_unc]
+    dips = [rups.dip_plus_unc, rups.dip, rups.dip_minus_unc]
+
+    store_diffs, store_likes = [], []
+    for strike_set in strikes:
+        for dip_set in dips:
+            rups_strikes = strike_set
+            rups_dips = dip_set
+
+            attitude_diffs = angles_between_plane_and_planes(
+                eq.strike,
+                eq.dip,
+                rups_strikes,
+                rups_dips,
+                return_radians=True,
+            )
+            attitude_likes = np.cos(attitude_diffs)
+            attitude_likes[attitude_likes <= 0.0] = 1e-20
+
+            # Store per strike/dip combo
+            store_diffs.append(attitude_diffs)
+            store_likes.append(attitude_likes)
+
+    # Get the diff and like per rup per strike/dip combo
+    all_diffs_per_rup, all_likes_per_rup = [], []
+    for idx_rup, rup in rups.iterrows():
+        diffs_per_rup, likes_per_rup = [], []
+        for idx_set, plane_set in enumerate(store_diffs):
+            diffs_per_rup.append(plane_set[idx_rup])
+            likes_per_rup.append(store_likes[idx_set][idx_rup])
+        all_diffs_per_rup.append(diffs_per_rup)
+        all_likes_per_rup.append(likes_per_rup)
+
+    # Per rup take the max likelihood and min diff
+    max_like_store, min_diff_store = [], []
+    for idx_rup, vals_per_rup in enumerate(all_likes_per_rup):
+        # Max likelihood
+        max_like_store.append(np.max(vals_per_rup))
+
+        # Min diff
+        diffs = all_diffs_per_rup[idx_rup]
+        min_diff_idx = np.argmax(vals_per_rup)
+        min_diff_store.append(diffs[min_diff_idx])
+
+    # Use optimal likelihood and min diff
+    attitude_diffs = np.array(min_diff_store).flatten()
+    attitude_likes = np.array(max_like_store).flatten()
+
+    return attitude_diffs, attitude_likes
+
+
+def rake_evaluate(eq, rups):
+    """
+    Modified from original code to consider uncertainty in rup rake and placed
+    into seperate function
+    """
+    ### rakes
+    rakes = [rups.rake_plus_unc, rups.rake, rups.rake_minus_unc]
+    store_rake_diffs, store_rake_likes = [], []
+    for rake_set in rakes:
+        rups_rakes = rake_set
+        rake_diffs = angles_between_rake_and_rakes(
+            eq.rake, rups_rakes, return_radians=True
+        )
+        # angles > pi/2 should all have zero likelihood
+        # rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
+        rake_likes = np.cos(rake_diffs)
+        rake_likes[rake_likes <= 0.0] = 1e-20
+
+        # Store per rake set
+        store_rake_diffs.append(rake_diffs)
+        store_rake_likes.append(rake_likes)
+
+    # Get the rake diff and rake like per rup per rup set
+    all_rake_diffs_per_rup, all_rake_likes_per_rup = [], []
+    for idx_rup, rup in rups.iterrows():
+        rake_diffs_per_rup, rake_likes_per_rup = [], []
+        for idx_set, rake_set in enumerate(store_rake_diffs):
+            rake_diffs_per_rup.append(rake_set[idx_rup])
+            rake_likes_per_rup.append(store_rake_likes[idx_set][idx_rup])
+        all_rake_diffs_per_rup.append(rake_diffs_per_rup)
+        all_rake_likes_per_rup.append(rake_likes_per_rup)
+
+    # Per rup take the max likelihood and min diff
+    max_rake_like_store, min_rake_diff_store = [], []
+    for idx_rup, vals_per_rup in enumerate(all_rake_likes_per_rup):
+        # Max likelihood
+        max_rake_like_store.append(np.max(vals_per_rup))
+
+        # Min diff
+        rake_diffs = all_rake_diffs_per_rup[idx_rup]
+        rake_min_diff_idx = np.argmax(vals_per_rup)
+        min_rake_diff_store.append(rake_diffs[rake_min_diff_idx])
+
+    # Use optimal likelihood and min diff
+    rake_diffs = np.array(min_rake_diff_store).flatten()
+    rake_likes = np.array(max_rake_like_store).flatten()
+
+    return rake_diffs, rake_likes
+
 
 def get_matching_rups(
     eq,
     rup_gdf,
-    distance_lambda=10.0,
+    distance_lambda=1.0,
+    dist_by_mag=True,
     mag_window=1.0,
-    return_threshold=0.9,
+    group_return_threshold=0.9,
+    min_likelihood=0.1,
     no_attitude_default_like=0.5,
     no_rake_default_like=0.5,
     use_occurrence_rate=False,
@@ -370,14 +542,18 @@ def get_matching_rups(
 ):
     # selection phase
     rups = get_nearby_rups(eq, rup_df=rup_gdf)
-    rups = get_rups_in_mag_range(eq, rup_df=rups, mag_window=mag_window)    
+    rups = get_rups_in_mag_range(eq, rup_df=rups, mag_window=mag_window)
     # ranking phase
 
     # distances
+    if dist_by_mag:
+        dist_constant = distance_lambda * eq.magnitude
+    else:
+        dist_constant = distance_lambda
     dists = get_distances(eq, rups)
-    rups = rups[dists <= dists.min() * distance_lambda]
-    dists = dists[dists <= dists.min() * distance_lambda]
-    dist_likes = np.exp(-dists / distance_lambda)
+    rups = rups[dists <= dists.min() * dist_constant]
+    dists = dists[dists <= dists.min() * dist_constant]
+    dist_likes = np.exp(-dists / dist_constant)
 
     rups = rups[dist_likes >= 0.0]  # a lil more filtering, to speed things up
     dists = dists[dist_likes >= 0.0]
@@ -389,24 +565,29 @@ def get_matching_rups(
     mag_likes = mag_diff_likelihood(
         eq.magnitude, rups.magnitude, mag_window=mag_window
     )
-    if hasattr(eq, "strike") and not np.isnan(eq.strike) and \
-        not np.isnan(eq.dip) and not np.isnan(eq.rake) and \
-            len(rups.strike) != 0 and len(rups.dip) != 0:
+    if (
+        hasattr(eq, "strike")
+        and not np.isnan(eq.strike)
+        and not np.isnan(eq.dip)
+        and not np.isnan(eq.rake)
+        and len(rups.strike) != 0
+        and len(rups.dip) != 0
+    ):
 
         ### Modified here by CB
         rups = rups.reset_index()
-        
+
         # Add uncertainty to rups strike, dip and rake
         rups = add_uncertainty_to_rups(rups)
-        
+
         # Evaluate nodal planes
         attitude_diffs, attitude_likes = plane_evaluate(eq, rups)
         rups["attitude_diff"] = attitude_diffs
-        
+
         # Evaluate rakes
         rake_diffs, rake_likes = rake_evaluate(eq, rups)
         rups["rake_diff"] = rake_diffs
-        
+
     else:
         attitude_likes = np.ones(len(rups)) * no_attitude_default_like
         rups["attitude_diff"] = np.empty(len(rups))
@@ -436,12 +617,14 @@ def get_matching_rups(
         )
 
     rups["likelihood"] = total_likes
-    max_likes = total_likes.max()
-    rups = rups.loc[rups.likelihood >= max_likes * return_threshold]
+    max_like = total_likes.max()
+
+    rups = rups.loc[rups.likelihood >= max_like * group_return_threshold]
+    rups = rups.loc[rups.likelihood >= min_likelihood]
 
     if len(rups) == 0:
         return None
-    
+
     if return_one is False:
         return rups
     elif return_one == "best":
@@ -456,37 +639,42 @@ def get_matching_rups(
             + f"(current value is {return_one}"
         )
 
+
 # Second function, called from within match_eqs_to_rups
 def _get_matching_rups(args):
     eq = args[0]
     rup_gdf = args[1]
     distance_lambda = args[2]
-    mag_window = args[3]
-    return_threshold = args[4]
-    no_attitude_default_like = args[5]
-    no_rake_default_like = args[6]
-    use_occurrence_rate = args[7]
-    return_one = args[8]
+    dist_by_mag = args[3]
+    mag_window = args[4]
+    group_return_threshold = args[5]
+    no_attitude_default_like = args[6]
+    no_rake_default_like = args[7]
+    use_occurrence_rate = args[8]
+    return_one = args[9]
 
     return get_matching_rups(
         eq,
         rup_gdf,
         distance_lambda=distance_lambda,
+        dist_by_mag=dist_by_mag,
         mag_window=mag_window,
-        return_threshold=return_threshold,
+        group_return_threshold=group_return_threshold,
         no_attitude_default_like=no_attitude_default_like,
         no_rake_default_like=no_rake_default_like,
         use_occurrence_rate=use_occurrence_rate,
         return_one=return_one,
     )
 
+
 # First function, called from rup_matching_eval
 def match_eqs_to_rups(
     eq_gdf,
     rup_gdf,
-    distance_lambda=10.0,
+    distance_lambda=1.0,
+    dist_by_mag=True,
     mag_window=1.0,
-    return_threshold=0.9,
+    group_return_threshold=0.9,
     no_attitude_default_like=0.5,
     no_rake_default_like=0.5,
     use_occurrence_rate=False,
@@ -499,8 +687,9 @@ def match_eqs_to_rups(
             eq,
             rup_gdf,
             distance_lambda,
+            dist_by_mag,
             mag_window,
-            return_threshold,
+            group_return_threshold,
             no_attitude_default_like,
             no_rake_default_like,
             use_occurrence_rate,
@@ -529,12 +718,13 @@ def match_eqs_to_rups(
 
 
 # Begin with this function
-def rup_matching_eval(
-    eq_gdf,    # geo df
-    rup_gdf,   # geo df
-    distance_lambda=10.0,
+def rupture_matching_eval_fn(  # geo df
+    rup_gdf,  # geo df
+    eq_gdf,
+    distance_lambda=1.0,
+    dist_by_mag=True,
     mag_window=1.0,
-    return_threshold=0.9,
+    group_return_threshold=0.9,
     no_attitude_default_like=0.5,
     no_rake_default_like=0.5,
     use_occurrence_rate=False,
@@ -545,8 +735,9 @@ def rup_matching_eval(
         eq_gdf,
         rup_gdf,
         distance_lambda=distance_lambda,
+        dist_by_mag=dist_by_mag,
         mag_window=mag_window,
-        return_threshold=return_threshold,
+        group_return_threshold=group_return_threshold,
         no_attitude_default_like=no_attitude_default_like,
         no_rake_default_like=no_rake_default_like,
         use_occurrence_rate=use_occurrence_rate,
@@ -567,20 +758,23 @@ def rup_matching_eval(
 def into_outputs(matched_rup_list):
     """
     Modified and placed into new function by CB to get rup matching results
-    into ideal format for use in subsequent steps of GEESE workflow.    
+    into ideal format for use in subsequent steps of GEESE workflow.
     """
     # If rups returned...
     if matched_rup_list != []:
         matched_rups = pd.concat(matched_rup_list, axis=0)
-        if 'index' in matched_rups.columns:
-            matched_rups = matched_rups.drop(columns=['index'])
-        matched_rups = matched_rups.sort_values('likelihood', ascending=False)
-        matched_rups = matched_rups.drop_duplicates(subset = ['likelihood'])
-        matched_rups = matched_rups.drop_duplicates(subset = ['rups_for_event'])
-        matched_rups["rake_diff"] = np.degrees(np.float_(matched_rups["rake_diff"]))
-        matched_rups["attitude_diff"] = np.degrees(np.float_(
-            matched_rups["attitude_diff"]))
+        if "index" in matched_rups.columns:
+            matched_rups = matched_rups.drop(columns=["index"])
+        matched_rups = matched_rups.sort_values("likelihood", ascending=False)
+        matched_rups = matched_rups.drop_duplicates(subset=["likelihood"])
+        matched_rups = matched_rups.drop_duplicates(subset=["rups_for_event"])
+        matched_rups["rake_diff"] = np.degrees(
+            np.float_(matched_rups["rake_diff"])
+        )
+        matched_rups["attitude_diff"] = np.degrees(
+            np.float_(matched_rups["attitude_diff"])
+        )
     else:
         matched_rups = None
-        
+
     return matched_rups

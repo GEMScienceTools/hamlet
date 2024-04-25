@@ -19,6 +19,8 @@ from openquake.hme.utils.plots import (
     plot_S_test_map,
     plot_over_under_map,
     plot_mfd,
+    plot_rup_match_mag_dist,
+    plot_rup_match_map,
 )
 
 BASE_DATA_PATH = os.path.dirname(__file__)
@@ -70,7 +72,9 @@ def generate_basic_report(
     env = _init_env()
     report_template = env.get_template("basic_report.html")
 
-    render_result_text(env=env, cfg=cfg, results=results, input_data=input_data)
+    render_result_text(
+        env=env, cfg=cfg, results=results, input_data=input_data
+    )
 
     report = report_template.render(cfg=cfg, results=results)
 
@@ -128,6 +132,11 @@ def render_result_text(
 
         if "L_test" in results["gem"].keys():
             logging.warn("GEM L test reporting not implemented.")
+
+        if "rupture_matching_eval" in results["gem"].keys():
+            render_rupture_matching_eval(
+                env=env, cfg=cfg, input_data=input_data, results=results
+            )
 
     if "relm" in results.keys():
         if "N_test" in results["relm"].keys():
@@ -329,6 +338,44 @@ def render_moment_over_under(
     results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
         res=results["gem"]["moment_over_under"]["val"]["test_data"],
         over_under_map_str=over_under_map_str,
+    )
+
+
+def render_rupture_matching_eval(
+    env: Environment, cfg: dict, input_data: dict, results: dict
+) -> None:
+
+    if "map_epsg" in cfg["report"]["basic"].keys():
+        map_epsg = cfg["report"]["basic"]["map_epsg"]
+    else:
+        map_epsg = None
+
+    rup_match_env = env.get_template("rupture_matching_eval.html")
+
+    rup_match_results = results["gem"]["rupture_matching_eval"]["val"]
+
+    mag_dist_plot_str = plot_rup_match_mag_dist(
+        rup_match_results["matched_rups"],
+        input_data["eq_gdf"],
+    )
+
+    rup_match_map = plot_rup_match_map(
+        input_data["eq_gdf"],
+        rup_match_results["matched_rups"],
+        rup_match_results["unmatched_eqs"],
+        map_epsg=map_epsg,
+        return_str=True,
+    )
+
+    unmatched_eq_table_str = rup_match_results["unmatched_eqs"].to_html()
+
+    results["gem"]["rupture_matching_eval"]["rendered_text"] = (
+        rup_match_env.render(
+            res=rup_match_results,
+            mag_dist_plot_str=mag_dist_plot_str,
+            unmatched_eq_table_str=unmatched_eq_table_str,
+            map_str=rup_match_map,
+        )
     )
 
 
