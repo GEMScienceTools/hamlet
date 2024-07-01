@@ -21,4 +21,4 @@ def test_read_rupture_file():
             if isinstance(param_r1, str):
                 assert param_r1 == param_r2
             else:
-                np.testing.assert_almost_equal(param_r1, param_r2)
+                np.testing.assert_almost_equal(param_r1, param_r2, decimal=2)

@@ -53,6 +53,7 @@ def test_single_branch_without_job_ini():
             "reference_depth_to_1pt0km_per_sec": "30.0",
             "truncation_level": "3.0",
             "job_ini": "<in-memory>",
+            "intensity_measure_types_and_levels": "{'PGA': [0.5]}",
             "inputs": {
                 # "source_model_logic_tree": "/Users/itchy/src/gem/hamlet/openquake/hme/utils/tests/data/source_models/sm1/ssmLT.xml"
                 "source_model_logic_tree": "/ssmLT.xml"
