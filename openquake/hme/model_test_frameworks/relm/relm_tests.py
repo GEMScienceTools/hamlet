@@ -51,6 +51,10 @@ def M_test(cfg, input_data):
     else:
         eq_gdf = input_data["eq_gdf"]
         t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        stop_date = cfg["input"]["seis_catalog"].get("stop_date")
+        completeness_table = cfg["input"]["seis_catalog"].get(
+            "completeness_table"
+        )
 
     test_result = m_test_function(
         input_data["rupture_gdf"],
@@ -58,6 +62,8 @@ def M_test(cfg, input_data):
         mag_bins,
         t_yrs,
         test_config["n_iters"],
+        completeness_table=completeness_table,
+        stop_date=stop_date,
         not_modeled_likelihood=0.0,
         critical_pct=critical_pct,
     )
@@ -91,6 +97,10 @@ def S_test(
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
         t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        stop_date = cfg["input"]["seis_catalog"].get("stop_date")
+        completeness_table = cfg["input"]["seis_catalog"].get(
+            "completeness_table"
+        )
 
     test_results = s_test_function(
         input_data["rupture_gdf"],
@@ -100,6 +110,8 @@ def S_test(
         t_yrs,
         test_config["n_iters"],
         likelihood_function,
+        completeness_table=completeness_table,
+        stop_date=stop_date,
         mag_bins=mag_bins,
         critical_pct=test_config["critical_pct"],
         not_modeled_likelihood=not_modeled_likelihood,
@@ -133,6 +145,10 @@ def L_test(
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
         t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        stop_date = cfg["input"]["seis_catalog"].get("stop_date")
+        completeness_table = cfg["input"]["seis_catalog"].get(
+            "completeness_table"
+        )
 
     test_results = l_test_function(
         input_data["rupture_gdf"],
@@ -142,6 +158,8 @@ def L_test(
         t_yrs,
         test_config["n_iters"],
         mag_bins,
+        completeness_table=completeness_table,
+        stop_date=stop_date,
         critical_pct=test_config["critical_pct"],
         not_modeled_likelihood=not_modeled_likelihood,
         append_results=append_results,

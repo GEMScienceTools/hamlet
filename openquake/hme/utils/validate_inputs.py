@@ -12,23 +12,30 @@ def validate_cfg(cfg: dict) -> None:
 
 
 def check_fix_seis_catalog(seis_cat_cfg) -> None:
-    if "start_date" in seis_cat_cfg:
-        seis_cat_cfg["start_date"] = check_fix_date(seis_cat_cfg["start_date"])
 
-    if "stop_date" in seis_cat_cfg:
-        seis_cat_cfg["stop_date"] = check_fix_date(seis_cat_cfg["stop_date"])
+    if not seis_cat_cfg.get("completeness_table"):
 
-    if "duration" in seis_cat_cfg:
-        if "start_date" in seis_cat_cfg and "stop_date" in seis_cat_cfg:
-            check_duration(
-                seis_cat_cfg["start_date"],
-                seis_cat_cfg["stop_date"],
-                seis_cat_cfg["duration"],
+        if "start_date" in seis_cat_cfg:
+            seis_cat_cfg["start_date"] = check_fix_date(
+                seis_cat_cfg["start_date"]
             )
-    else:
-        seis_cat_cfg["duration"] = (
-            seis_cat_cfg["stop_date"] - seis_cat_cfg["start_date"]
-        )
+
+        if "stop_date" in seis_cat_cfg:
+            seis_cat_cfg["stop_date"] = check_fix_date(
+                seis_cat_cfg["stop_date"]
+            )
+
+        if "duration" in seis_cat_cfg:
+            if "start_date" in seis_cat_cfg and "stop_date" in seis_cat_cfg:
+                check_duration(
+                    seis_cat_cfg["start_date"],
+                    seis_cat_cfg["stop_date"],
+                    seis_cat_cfg["duration"],
+                )
+        else:
+            seis_cat_cfg["duration"] = (
+                seis_cat_cfg["stop_date"] - seis_cat_cfg["start_date"]
+            )
 
 
 def check_seis_catalog_path(seis_cat_cfg) -> None:
@@ -43,7 +50,7 @@ def check_fix_date(date):
     elif isinstance(date, int):
         try:
             date_str = "{}-1-1".format(date)
-            date = dateutil.parser.parse(date)
+            date = dateutil.parser.parse(date_str)
         except:
             err_msg = "cannot convert {} to date".format(date)
             raise ValueError(err_msg)
@@ -53,7 +60,7 @@ def check_fix_date(date):
         except:
             err_msg = "cannot convert {} to date".format(date)
             raise ValueError(err_msg)
-        
+
     else:
         err_msg = "cannot convert {} to date".format(date)
         raise ValueError(err_msg)

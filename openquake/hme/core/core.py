@@ -29,6 +29,7 @@ from openquake.hme.utils import (
     deep_update,
     make_earthquake_gdf_from_csv,
     trim_eq_catalog,
+    trim_eq_catalog_with_completeness_table,
     trim_inputs,
 )
 
@@ -86,6 +87,7 @@ cfg_defaults = {
         },
         "subset": {"file": None, "buffer": 0.0},
         "simple_ruptures": True,
+        # "seis_catalog": {"completeness_table": None},
     },
 }
 
@@ -168,7 +170,15 @@ def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
         seis_cat_file, **seis_cat_params, h3_res=cfg["input"]["bins"]["h3_res"]
     )
 
-    if any(
+    if seis_cat_cfg.get("completeness_table"):
+
+        eq_gdf = trim_eq_catalog_with_completeness_table(
+            eq_gdf,
+            seis_cat_cfg["completeness_table"],
+            seis_cat_cfg.get("stop_date"),
+        )
+
+    elif any(
         [d in seis_cat_cfg for d in ["stop_date", "start_date", "duration"]]
     ):
         start_date = seis_cat_cfg.get("start_date")
@@ -407,7 +417,9 @@ def run_tests(cfg: dict) -> None:
     if "model_description" in test_lists.keys():
         mod_desc_tests = test_lists.pop("model_description")
         results["model_description"] = {
-            test: {"val": test_dict["model_description"][test](cfg, input_data)}
+            test: {
+                "val": test_dict["model_description"][test](cfg, input_data)
+            }
             for test in mod_desc_tests
         }
 

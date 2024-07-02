@@ -1,6 +1,7 @@
 """
 Utility functions for running tests in the RELM model test framework.
 """
+
 import logging
 from itertools import chain
 from multiprocessing import Pool
@@ -35,11 +36,6 @@ from openquake.hme.model_test_frameworks.relm.relm_stats import (
 )
 
 
-"""
-NEW
-"""
-
-
 def l_test_function(
     # bin_gdf: GeoDataFrame,
     rup_gdf: GeoDataFrame,
@@ -49,12 +45,16 @@ def l_test_function(
     t_yrs: float,
     n_iters: int,
     mag_bins,
+    completeness_table: Optional[Sequence[Sequence[float]]] = None,
+    stop_date: Optional[datetime] = None,
     critical_pct: float = 0.25,
     not_modeled_likelihood: float = 0.0,
     append_results: bool = False,
 ):
     cell_like_cfg = {
         "investigation_time": t_yrs,
+        "completeness_table": completeness_table,
+        "stop_date": stop_date,
         "likelihood_fn": "mfd",
         "not_modeled_likelihood": not_modeled_likelihood,
         "n_iters": n_iters,
@@ -107,11 +107,19 @@ def m_test_function(
     mag_bins: dict,
     t_yrs: float,
     n_iters: int,
+    completeness_table: Optional[Sequence[Sequence[float]]] = None,
+    stop_date: Optional[datetime] = None,
     not_modeled_likelihood: float = 0.0,
     critical_pct: float = 0.25,
 ):
     mod_mfd = get_model_mfd(rup_gdf, mag_bins)
-    obs_mfd = get_obs_mfd(eq_gdf, mag_bins, t_yrs=t_yrs)
+    obs_mfd = get_obs_mfd(
+        eq_gdf,
+        mag_bins,
+        t_yrs=t_yrs,
+        completeness_table=completeness_table,
+        stop_date=stop_date,
+    )
 
     # calculate log-likelihoods
     n_bins = len(mod_mfd.keys())
@@ -136,7 +144,9 @@ def m_test_function(
     stoch_geom_mean_likes = np.array(
         [
             np.exp(
-                np.sum([bll_mag[i] for bll_mag in bin_log_likelihoods.values()])
+                np.sum(
+                    [bll_mag[i] for bll_mag in bin_log_likelihoods.values()]
+                )
                 / n_bins
             )
             for i in range(n_iters)
@@ -187,6 +197,8 @@ def s_test_function(
     n_iters: int,
     likelihood_fn: str,
     mag_bins,
+    completeness_table: Optional[Sequence[Sequence[float]]] = None,
+    stop_date: Optional[datetime] = None,
     critical_pct: float = 0.25,
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
@@ -204,6 +216,8 @@ def s_test_function(
         "n_iters": n_iters,
         "N_norm": N_norm,
         "mag_bins": mag_bins,
+        "completeness_table": completeness_table,
+        "stop_date": stop_date,
     }
 
     cell_likes = s_test_cells(
@@ -294,7 +308,9 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     cell_id = rup_gdf.cell_id.values[0]
 
     t_yrs = test_cfg["investigation_time"]
+    completeness_table = test_cfg["completeness_table"]
     mag_bins = test_cfg["mag_bins"]
+    stop_date = test_cfg["stop_date"]
     like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]
     not_modeled_likelihood = test_cfg["not_modeled_likelihood"]
     N_norm = test_cfg["N_norm"]
@@ -307,7 +323,13 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     rate_mfd = get_model_mfd(rup_gdf, mag_bins)
     rate_mfd = {mag: t_yrs * rate * N_norm for mag, rate in rate_mfd.items()}
 
-    obs_mfd = get_obs_mfd(eq_gdf, mag_bins, t_yrs=1.0)
+    obs_mfd = get_obs_mfd(
+        eq_gdf,
+        mag_bins,
+        t_yrs=t_yrs,
+        completeness_table=completeness_table,
+        stop_date=stop_date,
+    )
     obs_L, likes = like_fn(rate_mfd, empirical_mfd=obs_mfd, return_likes=True)
 
     # handle bins with eqs but no rups
@@ -412,7 +434,9 @@ def mfd_log_likelihood(
         else:
             raise ValueError("Either use empirical_mfd or binned_events")
     else:
-        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
 
     likes = [
         bin_observance_log_likelihood(
@@ -447,7 +471,9 @@ def total_event_likelihood(
         else:
             raise ValueError("Either use empirical_mfd or binned_events")
     else:
-        num_obs_events = {mag: int(rate) for mag, rate in empirical_mfd.items()}
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
 
     total_model_rate = sum(rate_mfd.values())
     total_num_events = sum(num_obs_events.values())

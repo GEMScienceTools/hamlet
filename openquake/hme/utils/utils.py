@@ -20,12 +20,15 @@ from h3 import h3
 
 from tqdm.autonotebook import tqdm
 from shapely.geometry import Point
+
 from openquake.hazardlib.geo.point import Point as OQPoint
 
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture,
     ParametricProbabilisticRupture,
 )
+
+from openquake.hme.utils.validate_inputs import check_fix_date
 
 
 try:
@@ -64,7 +67,11 @@ logger.addHandler(TqdmLoggingHandler())
 
 
 def parallelize(
-    data, func, cores: int = _n_procs, partitions: int = _n_procs * 10, **kwargs
+    data,
+    func,
+    cores: int = _n_procs,
+    partitions: int = _n_procs * 10,
+    **kwargs,
 ):
     """
     Function to execute the function `func` in parallel over the collection of
@@ -217,15 +224,13 @@ def _parse_eq_time(
                 time_string += str(int(eq[tc])) + " "
             else:
                 time_val = eq[tc]
-                if time_val in [60, '60']:
+                if time_val in [60, "60"]:
                     time_val = 59
-                elif time_val in [60.0, '60.0']:
+                elif time_val in [60.0, "60.0"]:
                     time_val = 59.9
                 time_string += str(time_val) + ":"
 
         time_string = time_string[:-1]
-
-
 
     return dateutil.parser.parse(time_string)
 
@@ -333,7 +338,9 @@ def make_earthquake_gdf_from_csv(
         if ("strike" in eq_gdf.columns) and ("strike1" not in eq_gdf.columns):
             # nodal plane already selected
             pass
-        elif ("strike1" in eq_gdf.columns) and ("strike" not in eq_gdf.columns):
+        elif ("strike1" in eq_gdf.columns) and (
+            "strike" not in eq_gdf.columns
+        ):
             print("selecting nodal planes")
             strikes = []
             dips = []
@@ -341,7 +348,12 @@ def make_earthquake_gdf_from_csv(
 
             for eq in eq_gdf.itertuples():
                 nodal_plane_set = nodal_plane_alg(
-                    eq.strike1, eq.dip1, eq.rake1, eq.strike2, eq.dip2, eq.rake2
+                    eq.strike1,
+                    eq.dip1,
+                    eq.rake1,
+                    eq.strike2,
+                    eq.dip2,
+                    eq.rake2,
                 )
                 strikes.append(nodal_plane_set[0])
                 dips.append(nodal_plane_set[1])
@@ -404,6 +416,30 @@ def trim_eq_catalog(
         (eq_gdf.time > start_date) & (eq_gdf.time <= stop_date)
     ]
 
+    return out_gdf
+
+
+def trim_eq_catalog_with_completeness_table(
+    eq_gdf, comp_table, stop_date, trim_to_completeness=True
+):
+    logging.info("Trimming EQ catalog to end date {}".format(stop_date))
+    out_gdf = eq_gdf.loc[eq_gdf.time <= pd.to_datetime(stop_date)]
+    logging.info("Trimming EQ catalog with completeness table")
+    drop_idxs = []
+    for i, eq in out_gdf.iterrows():
+        try:
+            _, comp_year = get_mag_year_from_comp_table(
+                comp_table, eq.magnitude
+            )
+            if eq.time.year < comp_year:
+                drop_idxs.append(i)
+        except MagTooSmallError:
+            if trim_to_completeness:
+                drop_idxs.append(i)
+            else:
+                pass
+
+    out_gdf = out_gdf.drop(drop_idxs)
     return out_gdf
 
 
@@ -512,30 +548,75 @@ def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
     return mfd
 
 
+def get_mag_duration_from_comp_table(comp_table, mag, end_year=None):
+    if end_year is None:
+        end_year = datetime.datetime.now().year
+
+    _, comp_year = get_mag_year_from_comp_table(comp_table, mag)
+    duration = end_year - comp_year
+    return duration
+
+
+def get_mag_year_from_comp_table(comp_table, mag):
+    yrs = np.array([c[0] for c in comp_table])
+    mags = np.array([c[1] for c in comp_table])
+
+    if mag < mags.min():
+        # default duration perhaps?
+        raise MagTooSmallError(
+            f"Mag {mag} is less than minimum mag in comp table"
+        )
+    else:
+        next_smaller_mag_idx = np.where(mags <= mag)[0][-1]
+        mag = mags[next_smaller_mag_idx]
+        comp_year = yrs[next_smaller_mag_idx]
+        # print(mags[next_smaller_mag_idx], comp_year)
+
+    return mag, comp_year
+
+
+class MagTooSmallError(Exception):
+    pass
+
+
 def get_obs_mfd(
-    rdf, mag_bins, t_yrs: float = 1.0, cumulative=False, delete_col=False
+    eq_df,
+    mag_bins,
+    t_yrs: float = 1.0,
+    stop_date: Optional[float] = None,
+    cumulative=False,
+    delete_col=False,
+    completeness_table=None,
 ):
     bin_centers = np.array(sorted(mag_bins.keys()))
     bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
-    if "mag_bin" not in rdf.columns:
-        rdf["mag_bin"] = pd.cut(
-            rdf.magnitude,
+    if "mag_bin" not in eq_df.columns:
+        eq_df["mag_bin"] = pd.cut(
+            eq_df.magnitude,
             bin_edges,
             right=False,
             include_lowest=True,
             labels=bin_centers,
         )
 
-    mag_bin_groups = rdf.groupby("mag_bin")
+    mag_bin_groups = eq_df.groupby("mag_bin")
 
     mfd = {}
 
     for bc in bin_centers:
         mfd[bc] = 0.0
         if bc in mag_bin_groups.groups.keys():
+            if completeness_table is None:
+                duration = t_yrs
+            else:
+                duration = get_mag_duration_from_comp_table(
+                    completeness_table, bc, stop_date
+                )
+
             mfd[bc] += (
-                rdf.loc[mag_bin_groups.groups[bc]].magnitude.count() / t_yrs
+                eq_df.loc[mag_bin_groups.groups[bc]].magnitude.count()
+                / duration
             )
 
     if cumulative is True:
@@ -550,7 +631,7 @@ def get_obs_mfd(
         mfd = {cb: cum_mfd[cb] for cb in bin_centers}
 
     if delete_col:
-        del rdf["mag_bin"]
+        del eq_df["mag_bin"]
 
     return mfd
 
