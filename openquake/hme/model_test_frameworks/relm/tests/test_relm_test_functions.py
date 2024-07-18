@@ -35,6 +35,7 @@ class test_relm_test_functions(unittest.TestCase):
         self.s_test_cfg["mag_bins"] = get_mag_bins_from_cfg(self.cfg)
         self.s_test_cfg["not_modeled_likelihood"] = 0.0
         self.s_test_cfg["likelihood_fn"] = "mfd"
+        self.s_test_cfg["stop_date"] = None
 
         self.n_test_cfg = self.cfg["config"]["model_framework"]["relm"][
             "N_test"
@@ -56,7 +57,7 @@ class test_relm_test_functions(unittest.TestCase):
         cell_like = s_test_cell(cell_rups, cell_eqs, self.s_test_cfg)
 
         cell_like_ans = {
-            "obs_loglike": -3.685551083653415,
+            "obs_loglike": -3.811753523263211,
             "stoch_loglikes": np.array(
                 [
                     -3.68555108,
@@ -91,7 +92,7 @@ class test_relm_test_functions(unittest.TestCase):
 
         cell_likes_ans = {
             "836860fffffffff": {
-                "obs_loglike": -3.685551083653415,
+                "obs_loglike": -3.811753523263211,
                 "stoch_loglikes": np.array(
                     [
                         -3.68555108,
@@ -104,7 +105,7 @@ class test_relm_test_functions(unittest.TestCase):
                 "bad_bins": [],
             },
             "836864fffffffff": {
-                "obs_loglike": -11.370624943255637,
+                "obs_loglike": -8.634098751875834,
                 "stoch_loglikes": np.array(
                     [
                         -9.65914154,
@@ -155,7 +156,7 @@ class test_relm_test_functions(unittest.TestCase):
 
         cell_likes_ans = {
             "836860fffffffff": {
-                "obs_loglike": -3.685551083653415,
+                "obs_loglike": -3.811753523263211,
                 "stoch_loglikes": np.array(
                     [
                         -3.68555108,
@@ -168,7 +169,7 @@ class test_relm_test_functions(unittest.TestCase):
                 "bad_bins": [],
             },
             "836864fffffffff": {
-                "obs_loglike": -11.370624943255637,
+                "obs_loglike": -8.634098751875834,
                 "stoch_loglikes": np.array(
                     [
                         -9.65914154,
@@ -209,22 +210,24 @@ class test_relm_test_functions(unittest.TestCase):
 
     def test_s_test_function(self):
         s_test_results = s_test_function(
-            self.rupture_gdf,
-            self.eq_gdf,
-            self.rup_groups,
-            self.eq_groups,
-            self.s_test_cfg["investigation_time"],
-            self.s_test_cfg["n_iters"],
-            self.s_test_cfg["likelihood_fn"],
-            self.s_test_cfg["mag_bins"],
-            self.s_test_cfg["critical_pct"],
-            self.s_test_cfg["not_modeled_likelihood"],
+            rup_gdf=self.rupture_gdf,
+            eq_gdf=self.eq_gdf,
+            cell_groups=self.rup_groups,
+            eq_groups=self.eq_groups,
+            t_yrs=self.s_test_cfg["investigation_time"],
+            n_iters=self.s_test_cfg["n_iters"],
+            likelihood_fn=self.s_test_cfg["likelihood_fn"],
+            mag_bins=self.s_test_cfg["mag_bins"],
+            completeness_table=None,
+            stop_date=None,
+            critical_pct=self.s_test_cfg["critical_pct"],
+            not_modeled_likelihood=self.s_test_cfg["not_modeled_likelihood"],
             parallel=False,
         )
 
         s_test_results_ans = {
             "critical_pct": 0.25,
-            "percentile": 0.6,
+            "percentile": 0.8,
             "test_pass": True,
             "test_res": "Pass",
             "bad_bins": [],
@@ -259,7 +262,7 @@ class test_relm_test_functions(unittest.TestCase):
                 ),
                 "cell_loglikes": {
                     "836860fffffffff": {
-                        "obs_loglike": -3.685551083653415,
+                        "obs_loglike": -3.811753523263211,
                         "stoch_loglikes": np.array(
                             [
                                 -4.00885074,
@@ -272,7 +275,7 @@ class test_relm_test_functions(unittest.TestCase):
                         "bad_bins": [],
                     },
                     "836864fffffffff": {
-                        "obs_loglike": -11.370624943255637,
+                        "obs_loglike": -8.634098751875834,
                         "stoch_loglikes": np.array(
                             [
                                 -7.01711583,

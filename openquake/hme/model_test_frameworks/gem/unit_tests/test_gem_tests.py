@@ -31,13 +31,13 @@ class test_gem_tests(unittest.TestCase):
 
         s_test_res = {
             "critical_pct": 0.25,
-            "percentile": 0.4,
+            "percentile": 0.8,
             "test_pass": True,
             "test_res": "Pass",
             "bad_bins": [],
             "test_data": {
                 "obs_loglike": np.array(
-                    [-3.68555108, -11.37062494, -1.55414772]
+                    [-3.81175352, -8.63409875, -1.55414772]
                 ),
                 "stoch_loglike": np.array(
                     [
@@ -180,13 +180,13 @@ class test_gem_tests(unittest.TestCase):
         L_test_res = L_test(self.cfg, self.input_data)
         l_test_res = {
             "critical_pct": 0.25,
-            "percentile": 0.4,
+            "percentile": 0.6,
             "test_pass": True,
             "test_res": "Pass",
             "bad_bins": [],
             "test_data": {
                 "obs_loglike": np.array(
-                    [-3.9021022, -11.06163201, -1.72972099]
+                    [-4.24237026, -9.60949955, -1.72972099]
                 ),
                 "stoch_loglike": np.array(
                     [

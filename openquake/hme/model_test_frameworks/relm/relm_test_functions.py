@@ -308,7 +308,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     cell_id = rup_gdf.cell_id.values[0]
 
     t_yrs = test_cfg["investigation_time"]
-    completeness_table = test_cfg["completeness_table"]
+    completeness_table = test_cfg.get("completeness_table")
     mag_bins = test_cfg["mag_bins"]
     stop_date = test_cfg["stop_date"]
     like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]

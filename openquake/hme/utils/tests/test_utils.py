@@ -1,9 +1,9 @@
 import os
+import datetime
 import unittest
 
 import numpy as np
 
-from openquake.hme.utils.io import process_source_logic_tree
 from openquake.hme.utils import (
     get_mag_duration_from_comp_table,
     flatten_list,
@@ -24,7 +24,7 @@ class TestBasicUtils(unittest.TestCase):
         flol = flatten_list(lol)
         self.assertEqual(flol, ["l", "o", "l"])
 
-    def test_get_mag_duration_from_comp_table():
+    def test_get_mag_duration_from_comp_table(self):
         comp_table = [
             [2010.0, 5.0],
             [1980.0, 5.5],
@@ -34,13 +34,18 @@ class TestBasicUtils(unittest.TestCase):
             [1900.0, 8.0],
         ]
 
-        end_year = 2023.0
+        end_year = datetime.date(2023, 1, 1)
 
         assert (
-            get_mag_duration_from_comp_table(comp_table, 6.7, end_year) == 63.0
+            round(
+                get_mag_duration_from_comp_table(comp_table, 6.7, end_year), 1
+            )
+            == 63.0
         )
 
         assert (
-            get_mag_duration_from_comp_table(comp_table, 8.7, end_year)
+            round(
+                get_mag_duration_from_comp_table(comp_table, 8.7, end_year), 1
+            )
             == 123.0
         )

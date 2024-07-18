@@ -385,7 +385,7 @@ def rupture_matching_eval(cfg, input_data):
 
 
 def mfd_likelihood_test(cfg, input_data):
-    logging.warn("GEM Likelihood test deprecated")
+    logging.warning("GEM Likelihood test deprecated")
     return
 
 
