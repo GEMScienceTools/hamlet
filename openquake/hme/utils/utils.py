@@ -28,7 +28,7 @@ from openquake.hazardlib.source.rupture import (
     ParametricProbabilisticRupture,
 )
 
-from openquake.hme.utils.validate_inputs import check_fix_date
+from openquake.hme.utils.validate_inputs import check_fix_date, DAYS_PER_YEAR
 
 
 try:
@@ -548,12 +548,17 @@ def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
     return mfd
 
 
-def get_mag_duration_from_comp_table(comp_table, mag, end_year=None):
-    if end_year is None:
-        end_year = datetime.datetime.now().year
+def get_mag_duration_from_comp_table(
+    comp_table, mag, stop_date: Optional[datetime.date] = None
+):
+    if stop_date is None:
+        stop_date = datetime.datetime.now().date()
 
     _, comp_year = get_mag_year_from_comp_table(comp_table, mag)
-    duration = end_year - comp_year
+    duration = stop_date - check_fix_date(int(comp_year)).date()
+
+    duration = duration.days / DAYS_PER_YEAR
+
     return duration
 
 
@@ -583,7 +588,7 @@ def get_obs_mfd(
     eq_df,
     mag_bins,
     t_yrs: float = 1.0,
-    stop_date: Optional[float] = None,
+    stop_date: Optional[datetime.date] = None,
     cumulative=False,
     delete_col=False,
     completeness_table=None,
