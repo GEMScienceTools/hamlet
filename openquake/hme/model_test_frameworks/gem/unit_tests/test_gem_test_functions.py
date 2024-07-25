@@ -10,6 +10,16 @@ from openquake.hme.model_test_frameworks.gem.gem_test_functions import (
     get_catalog_moment,
     moment_over_under_eval_fn,
     model_mfd_eval_fn,
+    get_moment_from_mfd,
+    _get_moment_from_mfd_dict,
+    mag_diff_likelihood,
+    get_distances,
+    get_rups_in_mag_range,
+    get_nearby_rups,
+    get_matching_rups,
+    _get_matching_rups,
+    match_eqs_to_rups,
+    rupture_matching_eval_fn,
 )
 
 
@@ -266,3 +276,142 @@ class test_gem_test_functions(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             mm.mod_mfd.values, mod_mfd, decimal=2
         )
+
+    def test_get_moment_from_mfd_dict(self):
+        mfd = {
+            6.0: 1e-2,
+            7.0: 1e-3,
+            8.0: 1e-4,
+        }
+
+        moment = get_moment_from_mfd(mfd)
+        assert np.isclose(moment, 1.589033688965738e17, rtol=1e-2)
+
+    def test_get_moment_from_mfd_other(self):
+        mfd = 1.0  # this is a stand-in for a different type of input
+
+        self.assertRaises(ValueError, get_moment_from_mfd, mfd)
+
+    def test__get_moment_from_mfd_dict(self):
+        mfd = {
+            6.0: 1e-2,
+            7.0: 1e-3,
+            8.0: 1e-4,
+        }
+
+        moment = _get_moment_from_mfd_dict(mfd)
+        assert np.isclose(moment, 1.589033688965738e17, rtol=1e-2)
+
+    def test_mag_diff_likelihood(self):
+        eq_mag = 7.2
+        mag_window = 1.0
+        # rup_mags = np.linspace(5.0, 8.0, num=20)
+
+        # import matplotlib.pyplot as plt
+
+        # plt.plot(rup_mags, mag_diff_likelihood(eq_mag, rup_mags, mag_window))
+        # plt.axvline(x=eq_mag, color="r")
+        # plt.axvline(x=eq_mag - mag_window / 2, color="r")
+        # plt.axvline(x=eq_mag + mag_window / 2, color="r")
+
+        # plt.show()
+        rup_mags = np.array([5.0, 6.0, 6.2, 6.5, 7.0, 7.2, 7.5, 8.0])
+        likelihood = mag_diff_likelihood(eq_mag, rup_mags, mag_window)
+        likelihood_expected = np.array(
+            [0.0, 0.0, 0.0, 0.0, 0.6, 1.0, 0.4, 0.0]
+        )
+        np.testing.assert_allclose(likelihood, likelihood_expected)
+
+    def test_get_distances(self):
+        eq = self.eq_gdf.iloc[0]
+
+        rups = self.rupture_gdf.iloc[:3]
+
+        distances = get_distances(eq, rups)
+
+        distances_expected = pd.Series(
+            data=[50.220820, 48.373561, 46.537740],
+            index=["0_0", "0_1", "0_2"],
+        )
+
+        np.testing.assert_allclose(distances, distances_expected)
+
+    def test_get_rups_in_mag_range(self):
+        eq = self.eq_gdf.loc[8]
+        mag_range = 1.0
+        rups_in_range = get_rups_in_mag_range(eq, self.rupture_gdf, mag_range)
+
+        assert rups_in_range.magnitude.min() >= eq.magnitude - mag_range / 2
+        assert rups_in_range.magnitude.max() <= eq.magnitude + mag_range / 2
+
+    def test_get_nearby_rups(self):
+        eq = self.eq_gdf.loc[8]
+
+        nearby_rups = get_nearby_rups(eq, self.rupture_gdf)
+
+        rup_cell_ids = nearby_rups["cell_id"].unique().tolist()
+        assert rup_cell_ids == [
+            "83694afffffffff",
+            "836864fffffffff",
+            "836860fffffffff",
+        ]
+
+        assert eq.cell_id in rup_cell_ids
+
+    def test_get_matching_rups_many(self):
+
+        eq = self.eq_gdf.loc[11]
+
+        matching_rups = get_matching_rups(
+            eq,
+            self.rupture_gdf,
+            return_one=False,
+            group_return_threshold=0.5,
+        )
+
+        assert len(matching_rups) == 3
+
+    def test_get_matching_rups_best(self):
+
+        eq = self.eq_gdf.loc[11]
+
+        matching_rups = get_matching_rups(
+            eq,
+            self.rupture_gdf,
+            return_one="best",
+        )
+
+        assert isinstance(matching_rups, pd.Series)
+
+    def test_get_matching_rups_sample(self):
+
+        np.random.seed(69)
+        eq = self.eq_gdf.loc[11]
+
+        matching_rup = get_matching_rups(
+            eq,
+            self.rupture_gdf,
+            return_one="sample",
+            group_return_threshold=0.5,
+        )
+
+        assert isinstance(matching_rup, pd.Series)
+        assert matching_rup.name == "4_22"
+
+    def test_match_eqs_to_rups(self):
+        match_results = match_eqs_to_rups(
+            self.eq_gdf,
+            self.rupture_gdf,
+        )
+
+        assert len(match_results) == len(self.eq_gdf)
+        for i, eq in self.eq_gdf.iterrows():
+            assert match_results[i]["eq"] == i
+
+    def test_rupture_matching_eval_fn(self):
+        rup_matching_results = rupture_matching_eval_fn(
+            self.rupture_gdf,
+            self.eq_gdf,
+        )
+
+        assert len(rup_matching_results["matched_rups"]) == len(self.eq_gdf)

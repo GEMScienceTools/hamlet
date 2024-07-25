@@ -2,6 +2,7 @@
 This module provides statistical functions that are not specific to any set of
 tests.
 """
+
 import math
 from typing import Optional, Union, Tuple
 
@@ -154,7 +155,9 @@ def poisson_log_likelihood(
     not_modeled_val: float = 0.0,
 ) -> float:
     if rate == 0.0:
-        return np.log(poisson_likelihood_zero_rate(num_events, not_modeled_val))
+        return np.log(
+            poisson_likelihood_zero_rate(num_events, not_modeled_val)
+        )
     else:
         rt = rate * time_interval
         return (
@@ -253,5 +256,33 @@ def geom_mean(*vals):
             else:
                 log_sum += v
         log_sum /= len_arrs
+
+        return np.exp(log_sum)
+
+
+def weighted_geom_mean(*vals, weights=None):
+    """
+    Calculates the weighted geometric mean of either a sequence of numbers
+    (returning a scalar) or the element-wise weighted geometric mean of
+    multiple sequences of numbers of equal length (i.e., the weighted
+    geometric mean of the i-th value across all sequences), returning an array
+    of the same length as the input sequences.
+    """
+
+    if weights is None:
+        return geom_mean(*vals)
+
+    if len(vals) == 1:
+        return np.exp(np.sum(weights * np.log(vals)) / np.sum(weights))
+    else:
+        # len_arrs = len(vals)
+        log_vals = [np.log(v) for v in vals]
+        log_sum = None
+        for i, v in enumerate(log_vals):
+            if i == 0:
+                log_sum = v * weights[i]
+            else:
+                log_sum += v * weights[i]
+        log_sum /= np.sum(weights)
 
         return np.exp(log_sum)

@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import numpy as np
@@ -10,10 +11,13 @@ from openquake.hme.model_test_frameworks.gem.gem_tests import (
     N_test,
     max_mag_check,
     model_mfd_eval,
+    rupture_matching_eval,
 )
 
 
 from openquake.hme.utils.tests.load_sm1 import cfg, input_data
+
+TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data")
 
 
 class test_gem_tests(unittest.TestCase):
@@ -332,3 +336,20 @@ class test_gem_tests(unittest.TestCase):
                 mfd_eval_res["test_data"]["mfd_df"][col].values,
                 atol=1e-4,
             )
+
+    def test_rupture_matching_eval(self):
+        rupture_matching_eval_res = rupture_matching_eval(
+            self.cfg, self.input_data
+        )
+
+        rupture_matching_eval_match_results = pd.read_csv(
+            os.path.join(
+                TEST_DATA_DIR, "rupture_matching_eval_matched_ruptures.csv"
+            ),
+            index_col=0,
+        )
+
+        pd.testing.assert_frame_equal(
+            rupture_matching_eval_res["matched_rups"],
+            rupture_matching_eval_match_results,
+        )

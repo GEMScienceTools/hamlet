@@ -70,6 +70,9 @@ test_cfg = {
                     "critical_pct": 0.25,
                     "append": True,
                 },
+                "rupture_matching_eval": {
+                    "use_occurrence_rate": False,
+                },
             },
         },
         "parallel": False,

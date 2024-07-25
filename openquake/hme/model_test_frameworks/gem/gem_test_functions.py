@@ -23,7 +23,7 @@ from openquake.hme.utils import (
     angles_between_rake_and_rakes,
 )
 from openquake.hme.utils.utils import _n_procs
-from openquake.hme.utils.stats import geom_mean
+from openquake.hme.utils.stats import geom_mean, weighted_geom_mean
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
@@ -148,6 +148,13 @@ def model_mfd_eval_fn(rup_gdf, eq_gdf, mag_bins, t_yrs):
 
 
 def get_moment_from_mfd(mfd: dict) -> float:
+    if isinstance(mfd, dict):
+        return _get_moment_from_mfd_dict(mfd)
+    else:
+        raise ValueError("Only dict mfd currently supported")
+
+
+def _get_moment_from_mfd_dict(mfd: dict) -> float:
     mo = sum(
         mag_to_mo(np.array(list(mfd.keys()))) * np.array(list(mfd.values()))
     )
@@ -156,7 +163,14 @@ def get_moment_from_mfd(mfd: dict) -> float:
 
 
 def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
-    return 1 - np.abs(eq_mag - rup_mags)  # / (mag_window / 2.)
+    likes = 1 - np.abs(eq_mag - rup_mags) / (mag_window / 2.0)
+    if np.isscalar(likes):
+        if likes < 0.0:
+            likes = 0.0
+    else:
+        likes[likes < 0.0] = 0.0
+
+    return likes
 
 
 def get_distances(eq, rup_gdf):
@@ -205,6 +219,9 @@ def get_matching_rups(
     no_rake_default_like=0.5,
     use_occurrence_rate=False,
     return_one=False,
+    attitude_rel_weight=0.01,
+    rake_rel_weight=0.01,
+    mag_rel_weight=1.0,
 ):
     # selection phase
     rups = get_nearby_rups(eq, rup_df=rup_gdf)
@@ -267,15 +284,31 @@ def get_matching_rups(
     # put it all together
     if use_occurrence_rate:
         rates_norm = rups.occurrence_rate / rups.occurrence_rate.max()
-        total_likes = geom_mean(
-            dist_likes, mag_likes, attitude_likes, rake_likes, rates_norm
-        )
-    else:
-        total_likes = geom_mean(
+        total_likes = weighted_geom_mean(
             dist_likes,
             mag_likes,
             attitude_likes,
             rake_likes,
+            rates_norm,
+            weights=np.array(
+                [
+                    1.0,
+                    mag_rel_weight,
+                    attitude_rel_weight,
+                    rake_rel_weight,
+                    1.0,
+                ]
+            ),
+        )
+    else:
+        total_likes = weighted_geom_mean(
+            dist_likes,
+            mag_likes,
+            attitude_likes,
+            rake_likes,
+            weights=np.array(
+                [1.0, mag_rel_weight, attitude_rel_weight, rake_rel_weight]
+            ),
         )
 
     rups["likelihood"] = total_likes
@@ -284,6 +317,8 @@ def get_matching_rups(
 
     rups = rups.loc[rups.likelihood >= max_like * group_return_threshold]
     rups = rups.loc[rups.likelihood >= min_likelihood]
+
+    rups["eq"] = eq.name
 
     if len(rups) == 0:
         return None
@@ -430,13 +465,10 @@ def rupture_matching_eval_fn(
     ]:
         matched_rups[col] = matched_rups[col].astype(float)
 
+    matched_rups["rupture"] = matched_rups.index.values
     matched_rups["eq"] = matched_indices
 
     matched_rups.set_index("eq", inplace=True)
     unmatched_eqs = eq_gdf.loc[unmatched_indices]
 
     return {"matched_rups": matched_rups, "unmatched_eqs": unmatched_eqs}
-
-
-def process_eq_match_results(match_results):
-    pass

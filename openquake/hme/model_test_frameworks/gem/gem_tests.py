@@ -320,7 +320,7 @@ def rupture_matching_eval(cfg, input_data):
     logging.info("Running GEM Rupture Matching Eval")
 
     default_params = {
-        "distance_lambda": 10.0,
+        "distance_lambda": 1.0,
         "mag_window": 1.0,
         "group_return_threshold": 0.9,
         "min_likelihood": 0.1,
@@ -353,7 +353,8 @@ def rupture_matching_eval(cfg, input_data):
         no_rake_default_like=test_config["no_rake_default_like"],
         use_occurrence_rate=test_config["use_occurrence_rate"],
         return_one=test_config["return_one"],
-        parallel=cfg["config"]["parallel"],
+        # parallel is often slower
+        parallel=test_config["parallel"],  # cfg["config"]["parallel"],
     )
 
     n_unmatched = len(match_results["unmatched_eqs"])
