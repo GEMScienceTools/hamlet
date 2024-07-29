@@ -7,8 +7,28 @@ import numpy as np
 from openquake.baselib.general import AccumDict
 from openquake.calculators.base import run_calc
 
+from openquake.commonlib import datastore
+from openquake.engine.engine import create_jobs, run_jobs
+
 
 def csm_from_job_ini(job_ini):
+    rups = []
+    [job] = create_jobs([job_ini])
+    job.params["calculation_mode"] = "preclassical"
+    run_jobs([job])
+    with job, datastore.read(job.calc_id) as dstore:
+        csm = dstore["_csm"]
+        sources = csm.get_sources()
+        # breakpoint()
+        # for src in sources:
+        #    logging.info("processing %s", src)
+        #    for rup in src.iter_ruptures():
+        #        rups.append(rup)
+
+    return csm, sources, dstore
+
+
+def csm_from_job_ini_old(job_ini):
     if isinstance(job_ini, dict):
         calc = run_calc(
             job_ini,
@@ -45,9 +65,25 @@ def get_rlz_source(rlz, csm):
     return srcs
 
 
+def get_rlz_source_dstore(rlz, dstore):
+
+    srcs = []
+    srcs.extend()
+
+
 def get_csm_rlzs(csm):
     csm_rlz_groups = {}
     for i, rlz in enumerate(csm.sm_rlzs):
+        csm_rlz_groups[i] = {
+            "weight": rlz.weight,
+            "sources": get_rlz_source(i, csm),
+        }
+        return csm_rlz_groups
+
+
+def get_dstore_rlzs(dstore, csm):
+    csm_rlz_groups = {}
+    for i, rlz in enumerate(dstore["full_lt"].sm_rlzs):
         csm_rlz_groups[i] = {
             "weight": rlz.weight,
             "sources": get_rlz_source(i, csm),
@@ -73,14 +109,15 @@ def process_source_logic_tree_oq(
     else:
         logging.warning("making job ini")
         job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
-        # print(job_ini)
 
-    csm, _sources, _source_info = csm_from_job_ini(job_ini)
+    # csm, _sources, _source_info = csm_from_job_ini(job_ini)
+    csm, _sources, dstore = csm_from_job_ini(job_ini)
 
     logging.info("Realizations:")
-    logging.info(csm.sm_rlzs)
+    logging.info(dstore["full_lt"].sm_rlzs)
 
-    rlzs = get_csm_rlzs(csm)
+    # rlzs = get_csm_rlzs(csm)
+    rlzs = get_dstore_rlzs(dstore, csm)
     branch_sources = {k: v["sources"] for k, v in rlzs.items()}
     branch_weights = {k: v["weight"] for k, v in rlzs.items()}
 
