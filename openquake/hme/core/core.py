@@ -37,6 +37,7 @@ from openquake.hme.utils.results_processing import process_results
 
 from openquake.hme.reporting import generate_basic_report
 
+from openquake.hme.utils.utils import breakpoint
 
 from openquake.hme.utils.io.source_processing import (
     rupture_dict_from_logic_tree_dict,

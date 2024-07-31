@@ -1,6 +1,14 @@
+{% if mtf == "relm" %}
 <h3> CSEP-RELM N-Test</h3>
+{% elif mtf == "gem" %}
+<h3> GEM N-Test</h3>
+{% endif %}
 
-Rupture rate (over investigation time): {{ res.inv_time_rate }}</br>
+{{ n_test_plot_str}}
+
+</br>
+
+Rupture rate (over investigation time): {{ res.n_pred_earthquakes }}</br>
 {{ res.conf_interval_pct }} Confidence Interval: {{ res.conf_interval }}</br>
 Observed earthquakes: {{ res.n_obs_earthquakes }}</br>
 Test pass: {{ res.test_res }}</br>

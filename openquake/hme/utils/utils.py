@@ -30,6 +30,12 @@ from openquake.hazardlib.source.rupture import (
 
 from openquake.hme.utils.validate_inputs import check_fix_date, DAYS_PER_YEAR
 
+try:
+    import ipdb
+
+    breakpoint = ipdb.set_trace
+except:
+    breakpoint = breakpoint
 
 try:
     from .numba_stat_funcs import poisson_sample_vec
@@ -503,10 +509,32 @@ def get_mag_bins_from_cfg(cfg):
     )
 
 
-def get_model_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
-    return get_rup_df_mfd(
+def get_model_mfd(
+    rdf: pd.DataFrame,
+    mag_bins,
+    cumulative: bool = False,
+    delete_col: bool = True,
+    t_yrs: Optional[float] = None,
+    completeness_table=None,  # Optional[List[List[float, float]]] = None,
+) -> Dict[float, float]:
+
+    annual_mfd = get_rup_df_mfd(
         rdf, mag_bins, cumulative=cumulative, delete_col=delete_col
     )
+
+    if t_yrs is not None:
+        model_mfd = {mag: rate * t_yrs for mag, rate in annual_mfd.items()}
+    elif completeness_table is not None:
+        model_mfd = {}
+        for mag, rate in annual_mfd.items():
+            duration = get_mag_duration_from_comp_table(
+                completeness_table, mag
+            )
+            model_mfd[mag] = rate * duration
+    else:
+        model_mfd = annual_mfd
+
+    return model_mfd
 
 
 def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
