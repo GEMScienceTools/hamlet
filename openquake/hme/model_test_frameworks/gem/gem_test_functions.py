@@ -130,15 +130,28 @@ def moment_over_under_eval_fn(
 
 
 def model_mfd_eval_fn(
-    rup_gdf, eq_gdf, mag_bins, t_yrs=None, completeness_table=None
+    rup_gdf,
+    eq_gdf,
+    mag_bins,
+    t_yrs=None,
+    completeness_table=None,
+    annualize=False,
 ):
+
+    if annualize:
+        t_yrs_model = 1.0
+        completeness_table_model = None
+
+    else:
+        completeness_table_model = completeness_table
+        t_yrs_model = t_yrs
+
     mod_mfd = get_model_mfd(
         rup_gdf,
         mag_bins,
         cumulative=False,
-        t_yrs=1.0,
-        # t_yrs=t_yrs,
-        # completeness_table=completeness_table,
+        t_yrs=t_yrs_model,
+        completeness_table=completeness_table_model,
     )
     obs_mfd = get_obs_mfd(
         eq_gdf,
@@ -146,6 +159,7 @@ def model_mfd_eval_fn(
         t_yrs=t_yrs,
         cumulative=False,
         completeness_table=completeness_table,
+        annualize=annualize,
     )
 
     mfd_df = pd.DataFrame.from_dict(

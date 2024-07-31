@@ -31,6 +31,7 @@ from openquake.hme.utils import (
     trim_eq_catalog,
     trim_eq_catalog_with_completeness_table,
     trim_inputs,
+    sample_rups,
 )
 
 from openquake.hme.utils.results_processing import process_results

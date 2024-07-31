@@ -76,7 +76,7 @@ def M_test(
         t_yrs = test_config["investigation_time"]
     else:
         eq_gdf = input_data["eq_gdf"]
-        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        t_yrs = cfg["input"]["seis_catalog"].get("duration", 1.0)
         stop_date = cfg["input"]["seis_catalog"].get("stop_date")
         completeness_table = cfg["input"]["seis_catalog"].get(
             "completeness_table"
@@ -122,7 +122,7 @@ def S_test(
     else:
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
-        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        t_yrs = cfg["input"]["seis_catalog"].get("duration")
         stop_date = cfg["input"]["seis_catalog"].get("stop_date")
         completeness_table = cfg["input"]["seis_catalog"].get(
             "completeness_table"
@@ -200,6 +200,7 @@ def N_test(cfg: dict, input_data: dict) -> dict:
 
     test_config = cfg["config"]["model_framework"]["gem"]["N_test"]
     completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
+    test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
 
     prospective = test_config.get("prospective", False)
 
@@ -273,7 +274,14 @@ def model_mfd_eval(cfg, input_data):
     mag_bins = get_mag_bins_from_cfg(cfg)
     completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
     test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
+
+    if test_config is None:
+        test_config = {}
+
     prospective = test_config.get("prospective", False)
+    test_config["investigation_time"] = test_config.get(
+        "investigation_time", cfg["input"]["seis_catalog"].get("duration")
+    )
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]

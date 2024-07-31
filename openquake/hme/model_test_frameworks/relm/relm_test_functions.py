@@ -112,21 +112,34 @@ def m_test_function(
     stop_date: Optional[datetime] = None,
     not_modeled_likelihood: float = 0.0,
     critical_pct: float = 0.25,
+    normalize_n_eqs: Optional[bool] = True,
 ):
-    mod_mfd = get_model_mfd(rup_gdf, mag_bins)
+    # normalized to duration !!
+
+    mod_mfd = get_model_mfd(
+        rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
+    )
     obs_mfd = get_obs_mfd(
         eq_gdf,
         mag_bins,
-        t_yrs=t_yrs,
-        completeness_table=completeness_table,
+        # t_yrs=t_yrs,
+        # completeness_table=completeness_table,
         stop_date=stop_date,
+        annualize=False,
     )
+
+    if normalize_n_eqs:
+        N_obs = sum(obs_mfd.values())
+        N_pred = sum(mod_mfd.values())
+        N_norm = N_obs / N_pred
+    else:
+        N_norm = 1.0
 
     # calculate log-likelihoods
     n_bins = len(mod_mfd.keys())
 
     stochastic_eq_counts = {
-        bc: np.random.poisson((rate * t_yrs), size=n_iters)
+        bc: np.random.poisson(rate, size=n_iters)
         for bc, rate in mod_mfd.items()
     }
 
@@ -134,7 +147,7 @@ def m_test_function(
         bc: [
             poisson_log_likelihood(
                 n_stoch,
-                (mod_mfd[bc] * t_yrs),
+                (mod_mfd[bc] * N_norm),
                 not_modeled_val=not_modeled_likelihood,
             )
             for n_stoch in eq_counts
@@ -157,10 +170,7 @@ def m_test_function(
     obs_geom_mean_like = np.exp(
         np.sum(
             [
-                poisson_log_likelihood(
-                    int(obs_mfd[bc] * t_yrs),
-                    rate * t_yrs,
-                )
+                poisson_log_likelihood(obs_mfd[bc], rate)
                 for bc, rate in mod_mfd.items()
             ]
         )
@@ -168,7 +178,7 @@ def m_test_function(
     )
 
     pctile = (
-        len(stoch_geom_mean_likes[stoch_geom_mean_likes >= obs_geom_mean_like])
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
         / n_iters
     )
 
@@ -205,11 +215,27 @@ def s_test_function(
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
 ):
-    annual_rup_rate = rup_gdf.occurrence_rate.sum()
-
+    # annual_rup_rate = rup_gdf.occurrence_rate.sum()
     if normalize_n_eqs:
-        N_obs = len(eq_gdf)
-        N_pred = annual_rup_rate * t_yrs
+        obs_mfd = get_obs_mfd(
+            eq_gdf,
+            mag_bins,
+            t_yrs=t_yrs,
+            stop_date=stop_date,
+            completeness_table=completeness_table,
+            annualize=False,
+            cumulative=False,
+        )
+        N_obs = sum(obs_mfd.values())
+
+        model_mfd = get_model_mfd(
+            rup_gdf,
+            mag_bins,
+            t_yrs=t_yrs,
+            completeness_table=completeness_table,
+            cumulative=False,
+        )
+        N_pred = sum(model_mfd.values())
         N_norm = N_obs / N_pred
     else:
         N_norm = 1.0
@@ -310,6 +336,7 @@ def _s_test_cell_args(cell_args):
 
 
 def s_test_cell(rup_gdf, eq_gdf, test_cfg):
+    """"""
     cell_id = rup_gdf.cell_id.values[0]
     t_yrs = test_cfg["investigation_time"]
     completeness_table = test_cfg.get("completeness_table")
@@ -324,10 +351,16 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         else np.log(not_modeled_likelihood)
     )
 
-    rate_mfd_annual = get_model_mfd(rup_gdf, mag_bins)
-    rate_mfd = {
-        mag: t_yrs * rate * N_norm for mag, rate in rate_mfd_annual.items()
-    }
+    # rate_mfd_annual = get_model_mfd(rup_gdf, mag_bins)
+    # rate_mfd = {
+    #    mag: t_yrs * rate * N_norm for mag, rate in rate_mfd_annual.items()
+    # }
+
+    rate_mfd = get_model_mfd(
+        rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
+    )
+
+    rate_mfd = {mag: rate * N_norm for mag, rate in rate_mfd.items()}
 
     obs_mfd = get_obs_mfd(
         eq_gdf,
@@ -336,6 +369,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         # completeness_table=completeness_table,
         t_yrs=1.0,  # integrated over the investigation time, not annualized
         stop_date=stop_date,
+        annualize=False,
     )
     obs_L, likes = like_fn(
         rate_mfd,

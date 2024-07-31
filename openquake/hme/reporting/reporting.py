@@ -393,14 +393,14 @@ def render_mfd_eval(env: Environment, cfg: dict, results: dict):
     test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
     mfd_df = results["gem"]["model_mfd"]["val"]["test_data"]["mfd_df"]
 
-    t_yrs = test_config.get("investigation_time", 1.0)
-    if t_yrs is None:
-        t_yrs = 1.0
+    # t_yrs = test_config.get("investigation_time", 1.0)
+    # if t_yrs is None:
+    #    t_yrs = 1.0
 
     results["gem"]["model_mfd"]["val"]["mfd_plot"] = plot_mfd(
         model=mfd_df["mod_mfd_cum"].to_dict(),
         observed=mfd_df["obs_mfd_cum"].to_dict(),
-        t_yrs=t_yrs,
+        t_yrs=1.0,
         return_fig=False,
         return_string=True,
     )

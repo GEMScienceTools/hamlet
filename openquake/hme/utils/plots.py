@@ -49,10 +49,8 @@ def plot_N_test_results(
     return_fig: bool = False,
     return_string: bool = False,
     save_fig: Union[bool, str] = False,
-    **kwargs,
 ):
 
-    # breakpoint()
     if N_test_results["prob_model"] == "poisson":
         fig = plot_poisson_distribution(
             N_e=N_test_results["n_pred_earthquakes"],
