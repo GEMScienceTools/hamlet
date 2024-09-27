@@ -23,6 +23,7 @@ from ..utils import (
     _n_procs,
     flatten_list,
     get_nonparametric_rupture_occurrence_rate,
+    _get_class_name,
 )
 
 
@@ -334,7 +335,9 @@ def rupture_dict_from_logic_tree_dict(
 
     if parallel is True:
         rup_dict = {}
-        for i, (branch_name, source_list) in enumerate(logic_tree_dict.items()):
+        for i, (branch_name, source_list) in enumerate(
+            logic_tree_dict.items()
+        ):
             logging.info(
                 f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
             )
@@ -346,7 +349,9 @@ def rupture_dict_from_logic_tree_dict(
             )
     else:
         rup_dict = {}
-        for i, (branch_name, source_list) in enumerate(logic_tree_dict.items()):
+        for i, (branch_name, source_list) in enumerate(
+            logic_tree_dict.items()
+        ):
             logging.info(
                 f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
             )

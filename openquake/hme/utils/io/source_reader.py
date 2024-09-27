@@ -10,6 +10,8 @@ from openquake.calculators.base import run_calc
 from openquake.commonlib import datastore
 from openquake.engine.engine import create_jobs, run_jobs
 
+from openquake.hme.utils.utils import _get_class_name
+
 
 def csm_from_job_ini(job_ini):
     rups = []
@@ -91,6 +93,18 @@ def get_dstore_rlzs(dstore, csm):
         return csm_rlz_groups
 
 
+def filter_sources_by_type(sources, source_types):
+    if source_types is None:
+        return sources
+
+    filtered_sources = []
+    for src in sources:
+        if _get_class_name(src) in source_types:
+            filtered_sources.append(src)
+
+    return filtered_sources
+
+
 def process_source_logic_tree_oq(
     job_ini_file,
     base_dir: str,
@@ -110,15 +124,19 @@ def process_source_logic_tree_oq(
         logging.warning("making job ini")
         job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
 
-    # csm, _sources, _source_info = csm_from_job_ini(job_ini)
     csm, _sources, dstore = csm_from_job_ini(job_ini)
 
     logging.info("Realizations:")
     logging.info(dstore["full_lt"].sm_rlzs)
 
-    # rlzs = get_csm_rlzs(csm)
     rlzs = get_dstore_rlzs(dstore, csm)
     branch_sources = {k: v["sources"] for k, v in rlzs.items()}
+    if source_types is not None:
+        logging.info("Filtering sources by type")
+        branch_sources = {
+            k: filter_sources_by_type(v, source_types)
+            for k, v in branch_sources.items()
+        }
     branch_weights = {k: v["weight"] for k, v in rlzs.items()}
 
     if (branch is not None) and (branch != "iterate"):

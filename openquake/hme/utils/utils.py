@@ -72,6 +72,10 @@ logger.addHandler(logging.NullHandler())
 logger.addHandler(TqdmLoggingHandler())
 
 
+def _get_class_name(obj):
+    return obj.__class__.__name__
+
+
 def parallelize(
     data,
     func,

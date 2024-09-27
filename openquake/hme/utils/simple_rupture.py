@@ -12,21 +12,21 @@ def add_slots(cls):
     #  after a class has been created.
 
     # Make sure __slots__ isn't already set.
-    if '__slots__' in cls.__dict__:
-        raise TypeError(f'{cls.__name__} already specifies __slots__')
+    if "__slots__" in cls.__dict__:
+        raise TypeError(f"{cls.__name__} already specifies __slots__")
 
     # Create a new dict for our new class.
     cls_dict = dict(cls.__dict__)
     field_names = tuple(f.name for f in fields(cls))
-    cls_dict['__slots__'] = field_names
+    cls_dict["__slots__"] = field_names
     for field_name in field_names:
         # Remove our attributes, if present. They'll still be
         #  available in _MARKER.
         cls_dict.pop(field_name, None)
     # Remove __dict__ itself.  NOTE: changed by RHS
-    #cls_dict.pop('__dict__', None)
+    # cls_dict.pop('__dict__', None)
     # And finally create the class.
-    qualname = getattr(cls, '__qualname__', None)
+    qualname = getattr(cls, "__qualname__", None)
     cls = type(cls)(cls.__name__, cls.__bases__, cls_dict)
     if qualname is not None:
         cls.__qualname__ = qualname
@@ -53,7 +53,7 @@ class SimpleRupture:
         Magnitude of rupture.
 
     :param hypocenter:
-        Hypocenter of rupture (should be an 
+        Hypocenter of rupture (should be an
         :class:`openquake.hazardlib.geo.point.Point`) object.
 
     :param occurrence_rate:
@@ -62,7 +62,11 @@ class SimpleRupture:
     :param source:
         Name of seismic source (string), optional.
 
+    :param source_type:
+        Type of seismic source (string), optional.
+
     """
+
     strike: Optional[float] = None
     dip: Optional[float] = None
     rake: Optional[float] = None
@@ -70,17 +74,21 @@ class SimpleRupture:
     hypocenter: Optional[Point] = None
     occurrence_rate: Optional[float] = None
     source: Optional[str] = None
+    # source_type: Optional[str] = None
 
     def __dict__(self):
         return {
-            'strike': self.strike,
-            'dip': self.dip,
-            'rake': self.rake,
-            'mag': self.mag,
-            'hypocenter':
-            [self.hypocenter.x, self.hypocenter.y, self.hypocenter.z],
-            'occurrence_rate': self.occurrence_rate,
-            'source': self.source
+            "strike": self.strike,
+            "dip": self.dip,
+            "rake": self.rake,
+            "mag": self.mag,
+            "hypocenter": [
+                self.hypocenter.x,
+                self.hypocenter.y,
+                self.hypocenter.z,
+            ],
+            "occurrence_rate": self.occurrence_rate,
+            "source": self.source,
         }
 
 
