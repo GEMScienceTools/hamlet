@@ -42,6 +42,7 @@ from openquake.hme.utils.utils import breakpoint
 from openquake.hme.utils.io.source_processing import (
     rupture_dict_from_logic_tree_dict,
     rupture_dict_to_gdf,
+    subset_source,
 )
 
 from openquake.hme.utils.io import (
@@ -86,7 +87,7 @@ cfg_defaults = {
             "read_rupture_file": False,
             "save_rupture_file": False,
         },
-        "subset": {"file": None, "buffer": 0.0},
+        "subset": {"file": None},
         "simple_ruptures": True,
         # "seis_catalog": {"completeness_table": None},
     },
@@ -330,7 +331,7 @@ def load_inputs(cfg: dict) -> dict:
 
     logging.info("grouping ruptures by cell")
     cell_groups = rupture_gdf.groupby("cell_id")
-
+    
     logger.info("rupture_gdf shape: {}".format(rupture_gdf.shape))
     logger.debug(
         "rupture_gdf memory: {} GB".format(
@@ -339,13 +340,15 @@ def load_inputs(cfg: dict) -> dict:
     )
 
     if cfg["input"]["subset"]["file"] is not None:
-        # logger.info("   Subsetting bin_gdf")
-        # bin_gdf = subset_source(
-        #    bin_gdf,
-        #    subset_file=cfg["input"]["subset"]["file"],
-        #    buffer=cfg["input"]["subset"]["buffer"],
-        # )
-        logger.warn("CANNOT SUBSET SOURCE YET!!!")
+        logger.info("   Finding ruptures in subset")
+        rupture_gdf = subset_source(rupture_gdf, cfg)
+    
+        logger.info("rupture_gdf shape: {}".format(rupture_gdf.shape))
+        logger.debug(
+            "rupture_gdf memory: {} GB".format(
+                sum(rupture_gdf.memory_usage(index=True, deep=True)) * 1e-9
+            )
+        )
 
     logging.info("trimming earthquake catalog")
     cells_in_model = rupture_gdf.cell_id.unique()

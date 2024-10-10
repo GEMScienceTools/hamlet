@@ -5,6 +5,7 @@ from typing import Union  # , Optional, Sequence
 # from h3 import h3
 import pandas as pd
 from tqdm import tqdm
+import geopandas as gpd
 from geopandas import GeoDataFrame
 from openquake.hazardlib.geo.point import Point
 

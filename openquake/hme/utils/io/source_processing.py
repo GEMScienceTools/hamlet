@@ -26,7 +26,6 @@ from ..utils import (
     _get_class_name,
 )
 
-
 def _put_sources_in_chunks(sources, source_counts, n_chunks, unweighted=None):
     source_chunks = [list() for i in range(n_chunks)]
     chunk_sums = np.zeros(n_chunks, dtype=int)
@@ -432,3 +431,57 @@ def make_cell_gdf_from_ruptures(rupture_gdf):
     )
 
     return cell_gdf
+
+
+def get_subset_poly_from_file(subset_file, idx=None, fid=None, fid_col="fid"):
+
+    if (idx is not None) and (fid is not None):
+        raise ValueError("Please specify only `idx` or only `fid`")
+
+    sub_gdf = gpd.read_file(subset_file)
+
+    if idx is None and fid is None:
+        subset_poly = sub_gdf.loc[0, 'geometry']
+    elif idx is not None:
+        subset_poly = sub_gdf.loc[idx, 'geometry']
+    elif fid is not None:
+        subset_poly = sub_gdf[sub_gdf[fid_col] == fid]['geometry']
+        if len(subset_poly) > 1:
+            subset_poly = subset_poly[0]
+
+    return subset_poly
+
+
+def subset_source(rupture_gdf, cfg):
+    subset_poly = get_subset_poly_from_file(
+        cfg['input']['subset']['file'],
+        cfg['input']['subset'].get('idx'),
+        cfg['input']['subset'].get('fid'),
+        cfg['input']['subset'].get('fid_col'),
+    )
+    
+    cells_in_model = list(rupture_gdf.cell_id.unique())
+    cells_in_subset = _get_cells_intersecting_poly(subset_poly, cells_in_model)
+    rupture_gdf = rupture_gdf[rupture_gdf['cell_id'].isin(cells_in_subset)]
+    
+    return rupture_gdf
+
+
+def _get_cells_intersecting_poly(poly: Polygon, cell_ids:list[str])->list[str]:
+    # will almost certainly break on international date line
+    cell_polies = [_h3_to_poly(cell_id) for cell_id in cell_ids]
+
+    idxs_inside = []
+    for i, cp in enumerate(cell_polies):
+        if poly.intersects(cp):
+            idxs_inside.append(cell_ids[i])
+
+    return idxs_inside
+
+def _h3_to_poly(h3_idx: str)->Polygon:
+    # helper function until 
+    poly_pts = h3.h3_to_geo_boundary(h3_idx)
+    poly_coords = [(pp[1],pp[0]) for pp in poly_pts] # h3 is lat, long
+    poly_coords.append([poly_pts[0][1], poly_pts[0][0]])
+    poly = Polygon(poly_coords)
+    return poly
