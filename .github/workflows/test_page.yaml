@@ -31,8 +31,10 @@ jobs:
         pip install h3
         pip install -r requirements.txt
         pip install -e .
+        deactivate
     - name: Run test with pytest
       run: |
+        source $HOME/openquake/bin/activate
         pytest openquake tests -W ignore::UserWarning
 
   pages:
