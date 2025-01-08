@@ -38,7 +38,7 @@ def main(arg=None):
     logfile = check_for_log(cfg)
     if logfile:
         add_logfile(logfile, root_logger)
-        logger.info("added logfile")
+        logger.info(f"logging to {logfile}")
 
     # now for real
     cfg = read_yaml_config(yaml_file, validate=True)
