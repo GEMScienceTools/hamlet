@@ -8,12 +8,9 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 from openquake.hme.__version__ import __version__
 
 from openquake.hme.core.core import run_tests, read_yaml_config
+from openquake.hme.utils.log import init_logging, check_for_log, add_logfile
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)-8s %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+root_logger = init_logging()
 
 
 def main(arg=None):
@@ -34,7 +31,17 @@ def main(arg=None):
 
     if arg is None:
         yaml_file = args.yaml_file
-    cfg = read_yaml_config(yaml_file)
+
+    # first without validation for logging
+    cfg = read_yaml_config(yaml_file, validate=False)
+
+    logfile = check_for_log(cfg)
+    if logfile:
+        add_logfile(logfile, root_logger)
+        logger.info("added logfile")
+
+    # now for real
+    cfg = read_yaml_config(yaml_file, validate=True)
     run_tests(cfg)
 
 

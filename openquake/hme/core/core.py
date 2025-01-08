@@ -67,7 +67,7 @@ test_dict = {
 }
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+# logger.addHandler(logging.NullHandler())
 
 cfg_defaults = {
     "input": {
