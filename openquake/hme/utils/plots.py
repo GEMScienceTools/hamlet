@@ -1,3 +1,4 @@
+import os
 from typing import Union, Optional, Tuple, Sequence
 
 import h3
@@ -13,6 +14,13 @@ from matplotlib.colors import Normalize
 
 import io
 from .stats import sample_event_times_in_interval
+
+natural_earth_countries_file = os.path.join(
+        *os.path.split(__file__)[::-1], 
+       "..", 
+       "datasets", 
+       "ne_50m_admin_0_countries.geojson",
+       )
 
 
 def _sample_n_events(rate):
@@ -280,7 +288,7 @@ def plot_likelihood_map(
     x_lims = ax.get_xlim()
     y_lims = ax.get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
@@ -342,18 +350,20 @@ def plot_S_test_map(
 
     else:
         cell_gdf.to_crs(epsg=map_epsg).plot(
-            column="S_bin_pct",
+            column=f"{model_test_framework}_S_test_frac",
             ax=ax,
             vmin=0.0,
             vmax=1.0,
             cmap="OrRd_r",
             legend=True,
         )
+        if len(bad_bins) > 0:
+            bad_bin_gdf.plot(ax=ax, color="blue")
 
     x_lims = ax.get_xlim()
     y_lims = ax.get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
@@ -404,7 +414,7 @@ def plot_over_under_map(
     x_lims = axs[0].get_xlim()
     y_lims = axs[0].get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=axs[0], color="none", edgecolor="black")
     else:
@@ -436,7 +446,7 @@ def plot_over_under_map(
             legend=True,
         )
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=axs[1], color="none", edgecolor="black")
     else:
@@ -512,7 +522,7 @@ def plot_rup_match_map(
     x_lims = ax.get_xlim()
     y_lims = ax.get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
@@ -573,7 +583,6 @@ def plot_rup_match_mag_dist(
         s=s,
     )
 
-    # lines = [[(df1.iloc[i]['mag1'], df1.iloc[i]['distance']), (df2.iloc[i]['mag2'], df1.iloc[i]['distance'])] for i in range(len(df1))]
     line_col = LineCollection(lines, colors=colors, linewidths=0.3)
     ax.add_collection(line_col)
 
