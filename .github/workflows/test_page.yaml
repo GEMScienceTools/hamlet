@@ -33,10 +33,11 @@ jobs:
         pip install -e .
     - name: Run test with pytest
       run: |
-        py.test openquake tests -W ignore::UserWarning
+        pytest openquake tests -W ignore::UserWarning
 
   pages:
     name: pages
+    needs: test
     runs-on: ubuntu-latest
     env:
       MPLBACKEND: 'Agg'
