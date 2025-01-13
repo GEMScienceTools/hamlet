@@ -50,7 +50,6 @@ def l_test_function(
     stop_date: Optional[datetime] = None,
     critical_pct: float = 0.25,
     not_modeled_likelihood: float = 0.0,
-    append_results: bool = False,
 ):
     cell_like_cfg = {
         "investigation_time": t_yrs,
@@ -96,6 +95,8 @@ def l_test_function(
         "test_data": {
             "obs_loglike": obs_likes,
             "stoch_loglike": stoch_likes,
+            "obs_loglike_total": obs_like_total,
+            "stoch_loglike_totals": stoch_like_totals,
         },
     }
 

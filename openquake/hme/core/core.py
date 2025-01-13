@@ -468,17 +468,98 @@ output processing
 """
 
 
+def format_output_for_json(out_results):
+    def find_dataframe(d, path=None):
+        if path is None:
+            path = []
+
+        for k, v in d.items():
+            current_path = path + [k]
+            if isinstance(v, pd.DataFrame):
+                return v, current_path
+            elif isinstance(v, dict):
+                result = find_dataframe(v, current_path)
+                if result is not None:
+                    return result
+        return None
+
+    def delete_key_substring(d, target_str, verbose=True):
+        """Recursively deletes keys containing target_str from nested dict."""
+        keys_to_delete = []
+
+        for k, v in d.items():
+            if isinstance(k, str) and target_str in k:
+                keys_to_delete.append(k)
+            elif isinstance(v, dict):
+                delete_key_substring(v, target_str)
+
+        for k in keys_to_delete:
+            if verbose:
+                logging.warning(f"deleting {k}")
+            del d[k]
+
+        return d
+
+    def convert_arrays_to_lists(d):
+        for k, v in d.items():
+            if isinstance(v, np.ndarray):
+                d[k] = v.tolist()
+            elif isinstance(v, dict):
+                convert_arrays_to_lists(v)
+        return d
+
+    out_results = delete_key_substring(out_results, "plot")
+    out_results["gem"]["model_mfd"]["test_data"]["mfd_df"] = eval(
+        out_results["gem"]["model_mfd"]["test_data"]["mfd_df"].to_json()
+    )
+    out_results["gem"]["rupture_matching_eval"]["matched_rups"] = out_results[
+        "gem"
+    ]["rupture_matching_eval"]["matched_rups"].to_dict()
+    del out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"]
+
+    out_results = convert_arrays_to_lists(out_results)
+
+    return out_results
+
+
 def write_json(cfg: dict, results: dict):
+    logger.info("Writing results to JSON")
     out_results = {}
+    import ipdb
 
     for test_framework, test_results in results.items():
-        if test_framework not in out_results.keys():
+        if test_framework in ["gem", "relm"]:
             out_results[test_framework] = {}
-        for test, res in test_results.items():
-            if test != "model_mfd":
+            for test, res in test_results.items():
+                if test == "geometry":
+                    continue
+
                 out_results[test_framework][test] = res["val"]
 
+        elif test_framework == "cell_gdf":
+            out_results[test_framework] = eval(test_results.to_json())  # :(
+    # process outputs here for now
+    out_results = format_output_for_json(out_results)
+
     with open(cfg["json"]["outfile"], "w") as f:
+
+        # def find_dataframe(d, path=None):
+        #    import pandas as pd
+
+        #    if path is None:
+        #        path = []
+
+        #    for k, v in d.items():
+        #        current_path = path + [k]
+        #        if isinstance(v, pd.DataFrame):
+        #            return v, current_path
+        #        elif isinstance(v, dict):
+        #            result = find_dataframe(v, current_path)
+        #            if result is not None:
+        #                return result
+        #    return None
+
+        # ipdb.set_trace()
         json.dump(out_results, f)
 
 
@@ -556,7 +637,7 @@ def write_reports(cfg: dict, results: dict, input_data: dict) -> None:
     :param eq_gdf:
         :class:`GeoDataFrame` with the observed earthquake catalog.
     """
-    logger.info("writing reports")
+    logger.info("Writing reports")
 
     if "basic" in cfg["report"].keys():
         generate_basic_report(cfg, results, input_data)

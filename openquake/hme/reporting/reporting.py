@@ -22,6 +22,7 @@ from openquake.hme.utils.plots import (
     plot_rup_match_mag_dist,
     plot_rup_match_map,
     plot_N_test_results,
+    plot_L_test_results,
 )
 
 BASE_DATA_PATH = os.path.dirname(__file__)
@@ -132,7 +133,9 @@ def render_result_text(
             )
 
         if "L_test" in results["gem"].keys():
-            logging.warn("GEM L test reporting not implemented.")
+            render_L_test(
+                env=env, cfg=cfg, results=results, model_test_framework="gem"
+            )
 
         if "rupture_matching_eval" in results["gem"].keys():
             render_rupture_matching_eval(
@@ -159,9 +162,6 @@ def render_result_text(
                 model_test_framework="relm",
             )
 
-    if "L_test" in results["gem"].keys():
-        logging.warn("RELM L test reporting not implemented.")
-
     if "sanity" in results.keys():
         raise NotImplementedError("Reporting for sanity not implemented.")
 
@@ -184,6 +184,23 @@ def render_N_test(
         res=results[model_test_framework]["N_test"]["val"],
         mtf=model_test_framework,
         n_test_plot_str=n_test_plot_str,
+    )
+
+
+def render_L_test(
+    env: Environment, cfg: dict, results: dict, model_test_framework="gem"
+):
+
+    l_test_plot_str = plot_L_test_results(
+        results[model_test_framework]["L_test"]["val"],
+        return_string=True,
+    )
+
+    l_test = env.get_template("l_test.html")
+    results[model_test_framework]["L_test"]["rendered_text"] = l_test.render(
+        res=results[model_test_framework]["L_test"]["val"],
+        mtf=model_test_framework,
+        l_test_plot_str=l_test_plot_str,
     )
 
 

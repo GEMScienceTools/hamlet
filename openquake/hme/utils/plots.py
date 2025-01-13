@@ -1,5 +1,5 @@
 import os
-from typing import Union, Optional, Tuple, Sequence
+from typing import Union, Optional, Tuple, Sequence, Any
 
 import h3
 import numpy as np
@@ -16,11 +16,11 @@ import io
 from .stats import sample_event_times_in_interval
 
 natural_earth_countries_file = os.path.join(
-        *os.path.split(__file__)[::-1], 
-       "..", 
-       "datasets", 
-       "ne_50m_admin_0_countries.geojson",
-       )
+    *os.path.split(__file__)[::-1],
+    "..",
+    "datasets",
+    "ne_50m_admin_0_countries.geojson",
+)
 
 
 def _sample_n_events(rate):
@@ -117,6 +117,58 @@ def plot_N_test_empirical(
     plt.legend(loc="best")
 
     return fig
+
+
+def plot_L_test_results(
+    results: dict[str, Any],
+    return_fig: bool = False,
+    return_string: bool = False,
+    save_fig: Union[bool, str] = False,
+):
+
+    stoch_loglikes = results["test_data"]["stoch_loglike_totals"]
+    obs_loglike = results["test_data"]["obs_loglike_total"]
+    critical_pct = results["critical_pct"]
+
+    fig, ax = plt.subplots()
+    plt.hist(
+        stoch_loglikes,
+        bins=20,
+        histtype="stepfilled",
+        label="Modeled log-likelihoods",
+        color="C0",
+        alpha=0.5,
+    )
+
+    plt.axvline(
+        obs_loglike, color="C1", linestyle="-", label="Observed log-likelihood"
+    )
+
+    plt.axvline(
+        np.quantile(stoch_loglikes, critical_pct),
+        color="C2",
+        linestyle="-",
+        label="Critical Fractile",
+    )
+
+    plt.xlabel("Log-Likelihood")
+    plt.ylabel("Count")
+
+    plt.legend(loc="best")
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
 
 
 def plot_poisson_distribution(N_e, N_o, conf_interval=None, plot_cdf=False):
