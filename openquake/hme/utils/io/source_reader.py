@@ -193,7 +193,7 @@ def make_job_ini(
     description: Optional[str] = None,
 ):
     ssm_lt_path = os.path.join(base_dir, lt_file)
-    gmm_lt_path = os.path.join(base_dir, gmm_lt_file)
+    #gmm_lt_path = os.path.join(base_dir, gmm_lt_file)
     job_ini_params = {
         "general": {
             "calculation_mode": "preclassical",
@@ -206,7 +206,8 @@ def make_job_ini(
             "maximum_distance": 200,
             "investigation_time": 1.0,
             "source_model_logic_tree": ssm_lt_path,
-            "gsim_logic_tree": gmm_lt_path,
+           # "gsim_logic_tree": gmm_lt_path,
+            "ground_motion_fields": False,
             "truncation_level": 3.0,
             "intensity_measure_types_and_levels": {"PGA": [0.5]},
         },
