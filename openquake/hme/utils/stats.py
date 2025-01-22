@@ -134,7 +134,7 @@ def poisson_likelihood(
         return poisson_likelihood_zero_rate(num_events, not_modeled_val)
     else:
         rt = rate * time_interval
-        return np.exp(-rt) * rt**num_events / np.math.factorial(num_events)
+        return np.exp(-rt) * rt**num_events / math.factorial(num_events)
 
 
 def poisson_likelihood_zero_rate(
@@ -163,7 +163,7 @@ def poisson_log_likelihood(
         return (
             -1 * rt
             + num_events * math.log(rt)
-            - math.log(np.math.factorial(num_events))
+            - math.log(math.factorial(num_events))
         )
 
 
@@ -176,7 +176,7 @@ def negative_binomial_distribution(
     """
 
     term_1 = (gamma(num_events + r_dispersion)) / (
-        gamma(r_dispersion) * np.math.factorial(num_events)
+        gamma(r_dispersion) * math.factorial(num_events)
     )
 
     term_2 = (1 - prob_success) ** r_dispersion

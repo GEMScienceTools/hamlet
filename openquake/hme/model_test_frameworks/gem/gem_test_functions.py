@@ -129,9 +129,38 @@ def moment_over_under_eval_fn(
     return results
 
 
-def model_mfd_eval_fn(rup_gdf, eq_gdf, mag_bins, t_yrs):
-    mod_mfd = get_model_mfd(rup_gdf, mag_bins, cumulative=False)
-    obs_mfd = get_obs_mfd(eq_gdf, mag_bins, t_yrs=t_yrs, cumulative=False)
+def model_mfd_eval_fn(
+    rup_gdf,
+    eq_gdf,
+    mag_bins,
+    t_yrs=None,
+    completeness_table=None,
+    annualize=False,
+):
+
+    if annualize:
+        t_yrs_model = 1.0
+        completeness_table_model = None
+
+    else:
+        completeness_table_model = completeness_table
+        t_yrs_model = t_yrs
+
+    mod_mfd = get_model_mfd(
+        rup_gdf,
+        mag_bins,
+        cumulative=False,
+        t_yrs=t_yrs_model,
+        completeness_table=completeness_table_model,
+    )
+    obs_mfd = get_obs_mfd(
+        eq_gdf,
+        mag_bins,
+        t_yrs=t_yrs,
+        cumulative=False,
+        completeness_table=completeness_table,
+        annualize=annualize,
+    )
 
     mfd_df = pd.DataFrame.from_dict(
         mod_mfd, orient="index", columns=["mod_mfd"]
@@ -143,6 +172,9 @@ def model_mfd_eval_fn(rup_gdf, eq_gdf, mag_bins, t_yrs):
     mfd_df["obs_mfd_cum"] = np.cumsum(mfd_df["obs_mfd"].values[::-1])[::-1]
 
     mfd_df.index.name = "bin"
+
+    # print(mfd_df["obs_mfd_cum"])
+    # print(mfd_df["mod_mfd_cum"])
 
     return {"test_data": {"mfd_df": mfd_df}}
 

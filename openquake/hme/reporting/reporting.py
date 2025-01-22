@@ -21,6 +21,8 @@ from openquake.hme.utils.plots import (
     plot_mfd,
     plot_rup_match_mag_dist,
     plot_rup_match_map,
+    plot_N_test_results,
+    plot_L_test_results,
 )
 
 BASE_DATA_PATH = os.path.dirname(__file__)
@@ -131,7 +133,9 @@ def render_result_text(
             )
 
         if "L_test" in results["gem"].keys():
-            logging.warn("GEM L test reporting not implemented.")
+            render_L_test(
+                env=env, cfg=cfg, results=results, model_test_framework="gem"
+            )
 
         if "rupture_matching_eval" in results["gem"].keys():
             render_rupture_matching_eval(
@@ -158,9 +162,6 @@ def render_result_text(
                 model_test_framework="relm",
             )
 
-    if "L_test" in results["gem"].keys():
-        logging.warn("RELM L test reporting not implemented.")
-
     if "sanity" in results.keys():
         raise NotImplementedError("Reporting for sanity not implemented.")
 
@@ -172,9 +173,34 @@ def render_result_text(
 def render_N_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ):
+
+    n_test_plot_str = plot_N_test_results(
+        results[model_test_framework]["N_test"]["val"],
+        return_string=True,
+    )
+
     n_test = env.get_template("n_test.html")
     results[model_test_framework]["N_test"]["rendered_text"] = n_test.render(
-        res=results[model_test_framework]["N_test"]["val"]
+        res=results[model_test_framework]["N_test"]["val"],
+        mtf=model_test_framework,
+        n_test_plot_str=n_test_plot_str,
+    )
+
+
+def render_L_test(
+    env: Environment, cfg: dict, results: dict, model_test_framework="gem"
+):
+
+    l_test_plot_str = plot_L_test_results(
+        results[model_test_framework]["L_test"]["val"],
+        return_string=True,
+    )
+
+    l_test = env.get_template("l_test.html")
+    results[model_test_framework]["L_test"]["rendered_text"] = l_test.render(
+        res=results[model_test_framework]["L_test"]["val"],
+        mtf=model_test_framework,
+        l_test_plot_str=l_test_plot_str,
     )
 
 
@@ -367,7 +393,10 @@ def render_rupture_matching_eval(
         return_str=True,
     )
 
-    unmatched_eq_table_str = rup_match_results["unmatched_eqs"].to_html()
+    if len(rup_match_results["unmatched_eqs"]) > 0:
+        unmatched_eq_table_str = rup_match_results["unmatched_eqs"].to_html()
+    else:
+        unmatched_eq_table_str = "None"
 
     results["gem"]["rupture_matching_eval"]["rendered_text"] = (
         rup_match_env.render(
@@ -384,10 +413,14 @@ def render_mfd_eval(env: Environment, cfg: dict, results: dict):
     test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
     mfd_df = results["gem"]["model_mfd"]["val"]["test_data"]["mfd_df"]
 
+    # t_yrs = test_config.get("investigation_time", 1.0)
+    # if t_yrs is None:
+    #    t_yrs = 1.0
+
     results["gem"]["model_mfd"]["val"]["mfd_plot"] = plot_mfd(
         model=mfd_df["mod_mfd_cum"].to_dict(),
         observed=mfd_df["obs_mfd_cum"].to_dict(),
-        t_yrs=test_config["investigation_time"],
+        t_yrs=1.0,
         return_fig=False,
         return_string=True,
     )

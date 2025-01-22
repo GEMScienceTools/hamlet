@@ -1,4 +1,5 @@
-from typing import Union, Optional, Tuple
+import os
+from typing import Union, Optional, Tuple, Sequence, Any
 
 import h3
 import numpy as np
@@ -13,6 +14,13 @@ from matplotlib.colors import Normalize
 
 import io
 from .stats import sample_event_times_in_interval
+
+natural_earth_countries_file = os.path.join(
+    *os.path.split(__file__)[::-1],
+    "..",
+    "datasets",
+    "ne_50m_admin_0_countries.geojson",
+)
 
 
 def _sample_n_events(rate):
@@ -44,7 +52,126 @@ def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
     return stoch_mfd_vals
 
 
-def plot_poisson_distribution(N_e, N_o):
+def plot_N_test_results(
+    N_test_results: dict,
+    return_fig: bool = False,
+    return_string: bool = False,
+    save_fig: Union[bool, str] = False,
+):
+
+    if N_test_results["prob_model"] == "poisson":
+        fig = plot_poisson_distribution(
+            N_e=N_test_results["n_pred_earthquakes"],
+            N_o=N_test_results["n_obs_earthquakes"],
+            conf_interval=N_test_results["conf_interval"],
+        )
+    elif N_test_results.get("pred_samples"):
+        fig = plot_N_test_empirical(
+            N_test_results["pred_samples"],
+            N_test_results["n_obs_earthquakes"],
+            conf_interval=N_test_results["conf_interval"],
+        )
+    else:
+        return None
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+
+def plot_N_test_empirical(
+    n_expected: Sequence[int],
+    n_obs: int,
+    conf_interval: Optional[Tuple[int, int]] = None,
+):
+    fig, ax = plt.subplots()
+    plt.hist(
+        n_expected,
+        bins=20,
+        histtype="stepfilled",
+        label="Expected number of earthquakes",
+        color="C0",
+        alpha=0.5,
+    )
+
+    plt.axvline(n_obs, color="C1", linestyle="-", label="Observed earthquakes")
+
+    if conf_interval is not None:
+        plt.axvspan(
+            *conf_interval, color="gray", alpha=0.5, label="Test Pass Interval"
+        )
+
+    plt.xlabel("Number of Earthquakes")
+    plt.ylabel("Frequency")
+
+    plt.legend(loc="best")
+
+    return fig
+
+
+def plot_L_test_results(
+    results: dict[str, Any],
+    return_fig: bool = False,
+    return_string: bool = False,
+    save_fig: Union[bool, str] = False,
+):
+
+    stoch_loglikes = results["test_data"]["stoch_loglike_totals"]
+    obs_loglike = results["test_data"]["obs_loglike_total"]
+    critical_pct = results["critical_pct"]
+
+    fig, ax = plt.subplots()
+    plt.hist(
+        stoch_loglikes,
+        bins=20,
+        histtype="stepfilled",
+        label="Modeled log-likelihoods",
+        color="C0",
+        alpha=0.5,
+    )
+
+    plt.axvline(
+        obs_loglike, color="C1", linestyle="-", label="Observed log-likelihood"
+    )
+
+    plt.axvline(
+        np.quantile(stoch_loglikes, critical_pct),
+        color="C2",
+        linestyle="-",
+        label="Critical Fractile",
+    )
+
+    plt.xlabel("Log-Likelihood")
+    plt.ylabel("Count")
+
+    plt.legend(loc="best")
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+
+def plot_poisson_distribution(N_e, N_o, conf_interval=None, plot_cdf=False):
     """
     Plots the PDF and CDF of a Poisson distribution with mean N_e
     and draws a vertical line at N_o.
@@ -63,37 +190,56 @@ def plot_poisson_distribution(N_e, N_o):
     fig, ax1 = plt.subplots()
 
     # Plot PDF
-    color = "tab:blue"
+    color = "C0"
     ax1.set_xlabel("n (Number of Events)")
     ax1.set_ylabel("p(N) (PDF)", color=color)
     ax1.plot(x, pdf, color=color, label="PDF")
     ax1.tick_params(axis="y", labelcolor=color)
 
-    # Create a twin Axes object to plot the CDF
-    ax2 = ax1.twinx()
-    color = "tab:red"
-    ax2.set_ylabel(
-        "CDF", color=color
-    )  # we already handled the x-label with ax1
-    ax2.plot(x, cdf, color=color, linestyle="--", label="CDF")
-    ax2.tick_params(axis="y", labelcolor=color)
+    if plot_cdf:
+        # Create a twin Axes object to plot the CDF
+        ax2 = ax1.twinx()
+        color = "tab:red"
+        ax2.set_ylabel(
+            "CDF", color=color
+        )  # we already handled the x-label with ax1
+        ax2.plot(x, cdf, color=color, linestyle="--", label="CDF")
+        ax2.tick_params(axis="y", labelcolor=color)
 
     # Draw a vertical line at N_o
-    plt.axvline(
-        N_o, color="green", linestyle="-", label="N_o (Observed Events)"
-    )
+    plt.axvline(N_o, color="C1", linestyle="-", label="Observed earthquakes)")
+
+    if conf_interval is not None:
+        plt.axvspan(
+            *conf_interval, color="gray", alpha=0.5, label="Test Pass Interval"
+        )
 
     # Add a legend
     lines, labels = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax2.legend(lines + lines2, labels + labels2, loc="upper left")
+    if plot_cdf:
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax2.legend(lines + lines2, labels + labels2, loc="best")
+    else:
+        ax1.legend(lines, labels, loc="best")
 
     plt.title(
-        "Poisson Distribution (PDF and CDF) with N_e = {} and N_o = {}".format(
-            N_e, N_o
-        )
+        # "Poisson Distribution (PDF and CDF) with N_e = {} and N_o = {}".format(
+        #     N_e, N_o
+        # )
+        "Total number of earthquakes"
     )
-    plt.show()
+
+    return fig
+    # if return_fig is True:
+    #    return fig
+
+    # elif return_string is True:
+    #    plt.switch_backend("svg")
+    #    fig_str = io.StringIO()
+    #    fig.savefig(fig_str, format="svg")
+    #    plt.close(fig)
+    #    fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+    #    return fig_svg
 
 
 def plot_mfd(
@@ -194,7 +340,7 @@ def plot_likelihood_map(
     x_lims = ax.get_xlim()
     y_lims = ax.get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
@@ -256,18 +402,20 @@ def plot_S_test_map(
 
     else:
         cell_gdf.to_crs(epsg=map_epsg).plot(
-            column="S_bin_pct",
+            column=f"{model_test_framework}_S_test_frac",
             ax=ax,
             vmin=0.0,
             vmax=1.0,
             cmap="OrRd_r",
             legend=True,
         )
+        if len(bad_bins) > 0:
+            bad_bin_gdf.plot(ax=ax, color="blue")
 
     x_lims = ax.get_xlim()
     y_lims = ax.get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
@@ -318,7 +466,7 @@ def plot_over_under_map(
     x_lims = axs[0].get_xlim()
     y_lims = axs[0].get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=axs[0], color="none", edgecolor="black")
     else:
@@ -350,7 +498,7 @@ def plot_over_under_map(
             legend=True,
         )
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=axs[1], color="none", edgecolor="black")
     else:
@@ -396,12 +544,13 @@ def plot_rup_match_map(
         )
 
         if unmatched_eqs is not None:
-            unmatched_eqs.plot(
-                ax=ax,
-                color="red",
-                edgecolor="black",
-                markersize=unmatched_eqs.magnitude**3 * 0.1,
-            )
+            if len(unmatched_eqs) > 0:
+                unmatched_eqs.plot(
+                    ax=ax,
+                    color="red",
+                    edgecolor="black",
+                    markersize=unmatched_eqs.magnitude**3 * 0.1,
+                )
 
     else:
         # When specifying a CRS, plotting still happens in a similar way
@@ -415,18 +564,19 @@ def plot_rup_match_map(
         )
 
         if unmatched_eqs is not None:
-            unmatched_eqs.to_crs(epsg=map_epsg).plot(
-                ax=ax,
-                color="red",
-                edgecolor="black",
-                markersize=unmatched_eqs.magnitude**3 * 0.1,
-            )
+            if len(unmatched_eqs) > 0:
+                unmatched_eqs.to_crs(epsg=map_epsg).plot(
+                    ax=ax,
+                    color="red",
+                    edgecolor="black",
+                    markersize=unmatched_eqs.magnitude**3 * 0.1,
+                )
 
     # Adjusting the limits might be necessary after plotting the world map
     x_lims = ax.get_xlim()
     y_lims = ax.get_ylim()
 
-    world = gpd.read_file(gpd.datasets.get_path("naturalearth_lowres"))
+    world = gpd.read_file(natural_earth_countries_file)
     if map_epsg is None:
         world.plot(ax=ax, color="none", edgecolor="black")
     else:
@@ -487,7 +637,6 @@ def plot_rup_match_mag_dist(
         s=s,
     )
 
-    # lines = [[(df1.iloc[i]['mag1'], df1.iloc[i]['distance']), (df2.iloc[i]['mag2'], df1.iloc[i]['distance'])] for i in range(len(df1))]
     line_col = LineCollection(lines, colors=colors, linewidths=0.3)
     ax.add_collection(line_col)
 

@@ -30,6 +30,12 @@ from openquake.hazardlib.source.rupture import (
 
 from openquake.hme.utils.validate_inputs import check_fix_date, DAYS_PER_YEAR
 
+try:
+    import ipdb
+
+    breakpoint = ipdb.set_trace
+except:
+    breakpoint = breakpoint
 
 try:
     from .numba_stat_funcs import poisson_sample_vec
@@ -64,6 +70,10 @@ class TqdmLoggingHandler(logging.Handler):
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.addHandler(TqdmLoggingHandler())
+
+
+def _get_class_name(obj):
+    return obj.__class__.__name__
 
 
 def parallelize(
@@ -503,10 +513,32 @@ def get_mag_bins_from_cfg(cfg):
     )
 
 
-def get_model_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
-    return get_rup_df_mfd(
+def get_model_mfd(
+    rdf: pd.DataFrame,
+    mag_bins,
+    cumulative: bool = False,
+    delete_col: bool = True,
+    t_yrs: Optional[float] = None,
+    completeness_table=None,  # Optional[List[List[float, float]]] = None,
+) -> Dict[float, float]:
+
+    annual_mfd = get_rup_df_mfd(
         rdf, mag_bins, cumulative=cumulative, delete_col=delete_col
     )
+
+    if completeness_table is not None:
+        model_mfd = {}
+        for mag, rate in annual_mfd.items():
+            duration = get_mag_duration_from_comp_table(
+                completeness_table, mag
+            )
+            model_mfd[mag] = rate * duration
+    elif t_yrs is not None:
+        model_mfd = {mag: rate * t_yrs for mag, rate in annual_mfd.items()}
+    else:
+        model_mfd = annual_mfd
+
+    return model_mfd
 
 
 def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
@@ -592,7 +624,11 @@ def get_obs_mfd(
     cumulative=False,
     delete_col=False,
     completeness_table=None,
+    annualize=False,
 ):
+    """
+    if t_yrs is None or 1.0, then the MFD will be over the entire catalog.
+    """
     bin_centers = np.array(sorted(mag_bins.keys()))
     bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
@@ -610,19 +646,18 @@ def get_obs_mfd(
     mfd = {}
 
     for bc in bin_centers:
-        mfd[bc] = 0.0
+        mfd[bc] = 0
         if bc in mag_bin_groups.groups.keys():
-            if completeness_table is None:
-                duration = t_yrs
-            else:
-                duration = get_mag_duration_from_comp_table(
-                    completeness_table, bc, stop_date
-                )
+            mfd[bc] += eq_df.loc[mag_bin_groups.groups[bc]].magnitude.count()
+            if annualize:
+                if completeness_table is None:
+                    duration = t_yrs
+                else:
+                    duration = get_mag_duration_from_comp_table(
+                        completeness_table, bc, stop_date
+                    )
 
-            mfd[bc] += (
-                eq_df.loc[mag_bin_groups.groups[bc]].magnitude.count()
-                / duration
-            )
+                mfd[bc] /= duration
 
     if cumulative is True:
         cum_mfd = {}
@@ -641,7 +676,9 @@ def get_obs_mfd(
     return mfd
 
 
-def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
+def sample_rups(
+    rup_df, t_yrs, min_mag=1.0, max_mag=10.0, start_date=None, stop_date=None
+):
     mag_idx = (rup_df["magnitude"] >= min_mag) & (
         rup_df["magnitude"] <= max_mag
     )
@@ -663,7 +700,25 @@ def sample_rups(rup_df, t_yrs, min_mag=1.0, max_mag=10.0):
 
     sampled_rups = rup_df.loc[pd.Index(sampled_rups_idx)]
 
+    if not (start_date is None and stop_date is None):
+        if start_date is None:
+            start_date = stop_date - pd.Timedelta(days=365.25 * t_yrs)
+
+        if stop_date is None:
+            stop_date = start_date + pd.Timedelta(days=365.25 * t_yrs)
+
+        timestamps = random_dates(start_date, stop_date, len(sampled_rups))
+        sampled_rups["time"] = timestamps.values
+
+    sampled_rups.reset_index(drop=True, inplace=True)
+    sampled_rups.index.name = "event_id"
+
     return sampled_rups
+
+
+def random_dates(start, end, n, rand_seed=1, replace=False):
+    dates = pd.date_range(start, end).to_series()
+    return dates.sample(n, replace=replace, random_state=rand_seed)
 
 
 def trim_inputs(input_data, cfg):

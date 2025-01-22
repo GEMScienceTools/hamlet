@@ -27,7 +27,9 @@ def process_results(cfg, input_data, results):
     if "relm" in test_cfg["model_framework"]:
         if "S_test" in test_cfg["model_framework"]["relm"]:
             add_s_test_fracs_to_cell_gdf(
-                results["relm"]["S_test"], cell_gdf, model_test_framework="relm"
+                results["relm"]["S_test"],
+                cell_gdf,
+                model_test_framework="relm",
             )
 
     results["cell_gdf"] = cell_gdf
@@ -66,6 +68,12 @@ def add_s_test_fracs_to_cell_gdf(
     cell_gdf[f"{model_test_framework}_S_test_log_like"] = likes
 
     return
+
+
+def add_l_test_fracs_to_cell_gdf(
+    l_test_results, cell_gdf, model_test_framework="gem"
+):
+    raise NotImplementedError
 
 
 def add_moment_over_under_results_to_cell_gdf(mo_ov_un_results, cell_gdf):

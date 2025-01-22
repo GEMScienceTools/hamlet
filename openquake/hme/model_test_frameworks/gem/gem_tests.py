@@ -76,7 +76,7 @@ def M_test(
         t_yrs = test_config["investigation_time"]
     else:
         eq_gdf = input_data["eq_gdf"]
-        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        t_yrs = cfg["input"]["seis_catalog"].get("duration", 1.0)
         stop_date = cfg["input"]["seis_catalog"].get("stop_date")
         completeness_table = cfg["input"]["seis_catalog"].get(
             "completeness_table"
@@ -122,7 +122,7 @@ def S_test(
     else:
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
-        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        t_yrs = cfg["input"]["seis_catalog"].get("duration")
         stop_date = cfg["input"]["seis_catalog"].get("stop_date")
         completeness_table = cfg["input"]["seis_catalog"].get(
             "completeness_table"
@@ -199,13 +199,29 @@ def N_test(cfg: dict, input_data: dict) -> dict:
     logging.info("Running N-Test")
 
     test_config = cfg["config"]["model_framework"]["gem"]["N_test"]
+    completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
+    test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
 
     prospective = test_config.get("prospective", False)
 
-    if (test_config["prob_model"] == "poisson") and not prospective:
-        test_config["investigation_time"] = cfg["input"]["seis_catalog"][
-            "duration"
-        ]
+    if (
+        test_config["prob_model"] in ["poisson", "poisson_cum"]
+    ) and not prospective:
+        if completeness_table is not None:
+            test_config["completeness_table"] = completeness_table
+            test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
+        else:
+            inv_time = test_config.get("investigation_time")
+            seis_duration = cfg["input"]["seis_catalog"]["duration"]
+            if inv_time is not None and inv_time != seis_duration:
+                logging.warning(
+                    "N-Test: Investigation time does not match seis catalog "
+                    "duration. Using seis catalog duration."
+                )
+
+            test_config["investigation_time"] = cfg["input"]["seis_catalog"][
+                "duration"
+            ]
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -220,7 +236,7 @@ def N_test(cfg: dict, input_data: dict) -> dict:
         "N-Test number obs eqs: {}".format(test_results["n_obs_earthquakes"])
     )
     logging.info(
-        "N-Test number pred eqs: {}".format(test_results["inv_time_rate"])
+        "N-Test number pred eqs: {}".format(test_results["n_pred_earthquakes"])
     )
     logging.info("N-Test {}".format(test_results["test_pass"]))
     return test_results
@@ -252,9 +268,18 @@ def max_mag_check(cfg: dict, input_data: dict):
 
 
 def model_mfd_eval(cfg, input_data):
+    logging.info("Running GEM Model MFD Eval")
     mag_bins = get_mag_bins_from_cfg(cfg)
+    completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
     test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
+
+    if test_config is None:
+        test_config = {}
+
     prospective = test_config.get("prospective", False)
+    test_config["investigation_time"] = test_config.get(
+        "investigation_time", cfg["input"]["seis_catalog"].get("duration")
+    )
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -265,7 +290,8 @@ def model_mfd_eval(cfg, input_data):
         input_data["rupture_gdf"],
         eq_gdf,
         mag_bins,
-        test_config["investigation_time"],
+        t_yrs=test_config["investigation_time"],
+        completeness_table=completeness_table,
     )
 
     return results

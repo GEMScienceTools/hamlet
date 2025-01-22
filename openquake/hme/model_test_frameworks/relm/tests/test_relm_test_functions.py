@@ -57,7 +57,7 @@ class test_relm_test_functions(unittest.TestCase):
         cell_like = s_test_cell(cell_rups, cell_eqs, self.s_test_cfg)
 
         cell_like_ans = {
-            "obs_loglike": -3.811753523263211,
+            "obs_loglike": -3.685551083653415,
             "stoch_loglikes": np.array(
                 [
                     -3.68555108,
@@ -90,9 +90,11 @@ class test_relm_test_functions(unittest.TestCase):
             parallel=False,
         )
 
+        # stochastic likelhoods differ from parallel results
+        # probably because of differences in how seeding works
         cell_likes_ans = {
             "836860fffffffff": {
-                "obs_loglike": -3.811753523263211,
+                "obs_loglike": -3.685551083653415,
                 "stoch_loglikes": np.array(
                     [
                         -3.68555108,
@@ -105,7 +107,7 @@ class test_relm_test_functions(unittest.TestCase):
                 "bad_bins": [],
             },
             "836864fffffffff": {
-                "obs_loglike": -8.634098751875834,
+                "obs_loglike": -11.370624943255638,
                 "stoch_loglikes": np.array(
                     [
                         -9.65914154,
@@ -118,7 +120,7 @@ class test_relm_test_functions(unittest.TestCase):
                 "bad_bins": [],
             },
             "83694afffffffff": {
-                "obs_loglike": -1.5541477248609592,
+                "obs_loglike": -1.5541477248609594,
                 "stoch_loglikes": np.array(
                     [
                         -1.55414772,
@@ -156,40 +158,40 @@ class test_relm_test_functions(unittest.TestCase):
 
         cell_likes_ans = {
             "836860fffffffff": {
-                "obs_loglike": -3.811753523263211,
+                "obs_loglike": -3.685551083653415,
                 "stoch_loglikes": np.array(
                     [
-                        -3.68555108,
+                        -4.70558591,
                         -3.75098033,
-                        -5.43856038,
-                        -4.35309631,
-                        -5.41653736,
+                        -7.12694086,
+                        -6.1241856,
+                        -3.46750796,
                     ]
                 ),
                 "bad_bins": [],
             },
             "836864fffffffff": {
-                "obs_loglike": -8.634098751875834,
+                "obs_loglike": -11.370624943255638,
                 "stoch_loglikes": np.array(
                     [
-                        -9.65914154,
-                        -8.2279889,
-                        -9.84912031,
-                        -7.09742084,
-                        -8.6941361,
+                        -12.04201815,
+                        -7.70414212,
+                        -7.83201669,
+                        -8.84892494,
+                        -6.40465394,
                     ]
                 ),
                 "bad_bins": [],
             },
             "83694afffffffff": {
-                "obs_loglike": -1.5541477248609592,
+                "obs_loglike": -1.5541477248609594,
                 "stoch_loglikes": np.array(
                     [
-                        -1.55414772,
+                        -1.93891854,
                         -2.45676151,
-                        -2.45676151,
+                        -1.93891854,
+                        -2.84153233,
                         -1.55414772,
-                        -6.57898585,
                     ]
                 ),
                 "bad_bins": [],
@@ -227,7 +229,7 @@ class test_relm_test_functions(unittest.TestCase):
 
         s_test_results_ans = {
             "critical_pct": 0.25,
-            "percentile": 0.8,
+            "percentile": 0.6,
             "test_pass": True,
             "test_res": "Pass",
             "bad_bins": [],
@@ -262,7 +264,7 @@ class test_relm_test_functions(unittest.TestCase):
                 ),
                 "cell_loglikes": {
                     "836860fffffffff": {
-                        "obs_loglike": -3.811753523263211,
+                        "obs_loglike": -3.685551083653414,
                         "stoch_loglikes": np.array(
                             [
                                 -4.00885074,
@@ -275,7 +277,7 @@ class test_relm_test_functions(unittest.TestCase):
                         "bad_bins": [],
                     },
                     "836864fffffffff": {
-                        "obs_loglike": -8.634098751875834,
+                        "obs_loglike": -11.370624943255637,
                         "stoch_loglikes": np.array(
                             [
                                 -7.01711583,
@@ -396,7 +398,7 @@ class test_relm_test_functions(unittest.TestCase):
 
         assert N_test_res["conf_interval_pct"] == 0.96
         assert N_test_res["conf_interval"] == (0.0, 3.0)
-        np.testing.assert_almost_equal(N_test_res["inv_time_rate"], rate)
+        np.testing.assert_almost_equal(N_test_res["n_pred_earthquakes"], rate)
         assert N_test_res["n_obs_earthquakes"] == 3
         assert N_test_res["test_pass"]
 

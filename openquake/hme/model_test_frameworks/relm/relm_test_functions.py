@@ -25,6 +25,7 @@ from openquake.hme.utils.utils import (
     get_poisson_counts_from_mfd_iter,
     _n_procs,
     get_cell_eqs,
+    breakpoint,
 )
 from openquake.hme.utils.stats import (
     negative_binomial_distribution,
@@ -49,7 +50,6 @@ def l_test_function(
     stop_date: Optional[datetime] = None,
     critical_pct: float = 0.25,
     not_modeled_likelihood: float = 0.0,
-    append_results: bool = False,
 ):
     cell_like_cfg = {
         "investigation_time": t_yrs,
@@ -95,6 +95,8 @@ def l_test_function(
         "test_data": {
             "obs_loglike": obs_likes,
             "stoch_loglike": stoch_likes,
+            "obs_loglike_total": obs_like_total,
+            "stoch_loglike_totals": stoch_like_totals,
         },
     }
 
@@ -111,21 +113,34 @@ def m_test_function(
     stop_date: Optional[datetime] = None,
     not_modeled_likelihood: float = 0.0,
     critical_pct: float = 0.25,
+    normalize_n_eqs: Optional[bool] = True,
 ):
-    mod_mfd = get_model_mfd(rup_gdf, mag_bins)
+    # normalized to duration !!
+
+    mod_mfd = get_model_mfd(
+        rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
+    )
     obs_mfd = get_obs_mfd(
         eq_gdf,
         mag_bins,
-        t_yrs=t_yrs,
-        completeness_table=completeness_table,
+        # t_yrs=t_yrs,
+        # completeness_table=completeness_table,
         stop_date=stop_date,
+        annualize=False,
     )
+
+    if normalize_n_eqs:
+        N_obs = sum(obs_mfd.values())
+        N_pred = sum(mod_mfd.values())
+        N_norm = N_obs / N_pred
+    else:
+        N_norm = 1.0
 
     # calculate log-likelihoods
     n_bins = len(mod_mfd.keys())
 
     stochastic_eq_counts = {
-        bc: np.random.poisson((rate * t_yrs), size=n_iters)
+        bc: np.random.poisson(rate, size=n_iters)
         for bc, rate in mod_mfd.items()
     }
 
@@ -133,7 +148,7 @@ def m_test_function(
         bc: [
             poisson_log_likelihood(
                 n_stoch,
-                (mod_mfd[bc] * t_yrs),
+                (mod_mfd[bc] * N_norm),
                 not_modeled_val=not_modeled_likelihood,
             )
             for n_stoch in eq_counts
@@ -156,10 +171,7 @@ def m_test_function(
     obs_geom_mean_like = np.exp(
         np.sum(
             [
-                poisson_log_likelihood(
-                    int(obs_mfd[bc] * t_yrs),
-                    rate * t_yrs,
-                )
+                poisson_log_likelihood(obs_mfd[bc], rate)
                 for bc, rate in mod_mfd.items()
             ]
         )
@@ -167,7 +179,7 @@ def m_test_function(
     )
 
     pctile = (
-        len(stoch_geom_mean_likes[stoch_geom_mean_likes >= obs_geom_mean_like])
+        len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
         / n_iters
     )
 
@@ -197,17 +209,37 @@ def s_test_function(
     n_iters: int,
     likelihood_fn: str,
     mag_bins,
+    normalize_n_eqs: Optional[bool] = True,
     completeness_table: Optional[Sequence[Sequence[float]]] = None,
     stop_date: Optional[datetime] = None,
     critical_pct: float = 0.25,
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
 ):
-    annual_rup_rate = rup_gdf.occurrence_rate.sum()
+    # annual_rup_rate = rup_gdf.occurrence_rate.sum()
+    if normalize_n_eqs:
+        obs_mfd = get_obs_mfd(
+            eq_gdf,
+            mag_bins,
+            t_yrs=t_yrs,
+            stop_date=stop_date,
+            completeness_table=completeness_table,
+            annualize=False,
+            cumulative=False,
+        )
+        N_obs = sum(obs_mfd.values())
 
-    N_obs = len(eq_gdf)
-    N_pred = annual_rup_rate * t_yrs
-    N_norm = N_obs / N_pred
+        model_mfd = get_model_mfd(
+            rup_gdf,
+            mag_bins,
+            t_yrs=t_yrs,
+            completeness_table=completeness_table,
+            cumulative=False,
+        )
+        N_pred = sum(model_mfd.values())
+        N_norm = N_obs / N_pred
+    else:
+        N_norm = 1.0
 
     cell_like_cfg = {
         "investigation_time": t_yrs,
@@ -305,8 +337,8 @@ def _s_test_cell_args(cell_args):
 
 
 def s_test_cell(rup_gdf, eq_gdf, test_cfg):
+    """"""
     cell_id = rup_gdf.cell_id.values[0]
-
     t_yrs = test_cfg["investigation_time"]
     completeness_table = test_cfg.get("completeness_table")
     mag_bins = test_cfg["mag_bins"]
@@ -320,17 +352,26 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         else np.log(not_modeled_likelihood)
     )
 
-    rate_mfd = get_model_mfd(rup_gdf, mag_bins)
-    rate_mfd = {mag: t_yrs * rate * N_norm for mag, rate in rate_mfd.items()}
+    rate_mfd = get_model_mfd(
+        rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
+    )
 
+    rate_mfd = {mag: rate * N_norm for mag, rate in rate_mfd.items()}
+
+    # eq catalog is already trimmed to investigation period
     obs_mfd = get_obs_mfd(
         eq_gdf,
         mag_bins,
-        t_yrs=t_yrs,
-        completeness_table=completeness_table,
+        t_yrs=1.0,  # integrated over the investigation time, not annualized
         stop_date=stop_date,
+        annualize=False,
     )
-    obs_L, likes = like_fn(rate_mfd, empirical_mfd=obs_mfd, return_likes=True)
+    obs_L, likes = like_fn(
+        rate_mfd,
+        empirical_mfd=obs_mfd,
+        return_likes=True,
+        not_modeled_likelihood=not_modeled_likelihood,
+    )
 
     # handle bins with eqs but no rups
     bad_bins = []
@@ -342,7 +383,9 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
             logging.warn(f"{cell_id} {bin_ctr} has zero likelihood")
             for mag, rate in rate_mfd.items():
                 if rate == 0.0 and obs_mfd[mag] > 0.0:
-                    logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
+                    logging.warning(
+                        f"mag bin {mag} has obs eqs but no ruptures"
+                    )
 
     stoch_rup_counts = get_poisson_counts_from_mfd_iter(
         rate_mfd, test_cfg["n_iters"]
@@ -375,13 +418,33 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
 
     conf_interval = test_config.get("conf_interval", 0.95)
 
-    annual_rup_rate = rup_gdf.occurrence_rate.sum()
-    n_obs = len(eq_gdf)
+    if test_config.get("completeness_table"):
+        model_mfd = get_model_mfd(
+            rup_gdf,
+            test_config["mag_bins"],
+            completeness_table=test_config["completeness_table"],
+        )
+        test_rup_rate = sum(model_mfd.values())
 
-    test_rup_rate = annual_rup_rate * test_config["investigation_time"]
+    else:
+        model_mfd = get_model_mfd(rup_gdf, test_config["mag_bins"], t_yrs=1.0)
+        annual_rup_rate = rup_gdf.occurrence_rate.sum()
+        test_rup_rate = annual_rup_rate * test_config["investigation_time"]
+
+    M_min = min(model_mfd.keys())
+
+    n_obs = len(eq_gdf)
 
     if test_config["prob_model"] == "poisson":
         test_result = N_test_poisson(n_obs, test_rup_rate, conf_interval)
+
+    elif test_config["prob_model"] == "poisson_cum":
+        n_iters = test_config.get("n_iters", 1000)  # will add to cfg
+        n_eq_samples = [
+            sum(get_poisson_counts_from_mfd(model_mfd).values())
+            for _ in range(n_iters)
+        ]
+        test_result = N_test_empirical(n_obs, n_eq_samples, conf_interval)
 
     elif test_config["prob_model"] == "neg_binom":
         raise NotImplementedError("can't subdivide earthquakes yet")
@@ -405,6 +468,10 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
             r_dispersion,
             test_config["conf_interval"],
         )
+
+    # for plotting
+    test_result["M_min"] = M_min
+    test_result["prob_model"] = test_config["prob_model"]
 
     return test_result
 
@@ -485,6 +552,31 @@ def total_event_likelihood(
     )
 
 
+def N_test_empirical(
+    num_obs_events: int, num_pred_events: Sequence[int], conf_interval: float
+) -> dict:
+    rupture_rate = np.mean(num_pred_events)
+    conf_half_interval = conf_interval / 2
+    conf_min = np.percentile(num_pred_events, 100 * (0.5 - conf_half_interval))
+    conf_max = np.percentile(num_pred_events, 100 * (0.5 + conf_half_interval))
+
+    test_pass = conf_min <= num_obs_events <= conf_max
+    test_res = "Pass" if test_pass else "Fail"
+    logging.info(f"N-Test: {test_res}")
+
+    test_result = {
+        "conf_interval_pct": conf_interval,
+        "conf_interval": (conf_min, conf_max),
+        "pred_samples": num_pred_events,
+        "n_pred_earthquakes": rupture_rate,
+        "n_obs_earthquakes": num_obs_events,
+        "test_res": test_res,
+        "test_pass": bool(test_pass),
+    }
+
+    return test_result
+
+
 def N_test_poisson(
     num_obs_events: int, rupture_rate: float, conf_interval: float
 ) -> dict:
@@ -498,7 +590,7 @@ def N_test_poisson(
     test_result = {
         "conf_interval_pct": conf_interval,
         "conf_interval": (conf_min, conf_max),
-        "inv_time_rate": rupture_rate,
+        "n_pred_earthquakes": rupture_rate,
         "n_obs_earthquakes": num_obs_events,
         "test_res": test_res,
         "test_pass": bool(test_pass),
