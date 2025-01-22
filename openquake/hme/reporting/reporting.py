@@ -393,7 +393,10 @@ def render_rupture_matching_eval(
         return_str=True,
     )
 
-    unmatched_eq_table_str = rup_match_results["unmatched_eqs"].to_html()
+    if len(rup_match_results["unmatched_eqs"]) > 0:
+        unmatched_eq_table_str = rup_match_results["unmatched_eqs"].to_html()
+    else:
+        unmatched_eq_table_str = "None"
 
     results["gem"]["rupture_matching_eval"]["rendered_text"] = (
         rup_match_env.render(

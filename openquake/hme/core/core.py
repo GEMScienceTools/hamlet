@@ -525,7 +525,6 @@ def format_output_for_json(out_results):
 def write_json(cfg: dict, results: dict):
     logger.info("Writing results to JSON")
     out_results = {}
-    import ipdb
 
     for test_framework, test_results in results.items():
         if test_framework in ["gem", "relm"]:
@@ -541,26 +540,22 @@ def write_json(cfg: dict, results: dict):
     # process outputs here for now
     out_results = format_output_for_json(out_results)
 
+
+    def nan2None(obj):
+        if isinstance(obj, dict):
+            return {k:nan2None(v) for k,v in obj.items()}
+        elif isinstance(obj, list):
+            return [nan2None(v) for v in obj]
+        elif isinstance(obj, float) and math.isnan(obj):
+            return None
+        return obj
+
+    class NanConverter(json.JSONEncoder):
+        def encode(self, obj, *args, **kwargs):
+            return super().encode(nan2None(obj), *args, **kwargs)
+
     with open(cfg["json"]["outfile"], "w") as f:
-
-        # def find_dataframe(d, path=None):
-        #    import pandas as pd
-
-        #    if path is None:
-        #        path = []
-
-        #    for k, v in d.items():
-        #        current_path = path + [k]
-        #        if isinstance(v, pd.DataFrame):
-        #            return v, current_path
-        #        elif isinstance(v, dict):
-        #            result = find_dataframe(v, current_path)
-        #            if result is not None:
-        #                return result
-        #    return None
-
-        # ipdb.set_trace()
-        json.dump(out_results, f)
+        json.dump(out_results, f,  cls=NanConverter)
 
 
 def write_outputs(

@@ -544,12 +544,13 @@ def plot_rup_match_map(
         )
 
         if unmatched_eqs is not None:
-            unmatched_eqs.plot(
-                ax=ax,
-                color="red",
-                edgecolor="black",
-                markersize=unmatched_eqs.magnitude**3 * 0.1,
-            )
+            if len(unmatched_eqs) > 0:
+                unmatched_eqs.plot(
+                    ax=ax,
+                    color="red",
+                    edgecolor="black",
+                    markersize=unmatched_eqs.magnitude**3 * 0.1,
+                )
 
     else:
         # When specifying a CRS, plotting still happens in a similar way
@@ -563,12 +564,13 @@ def plot_rup_match_map(
         )
 
         if unmatched_eqs is not None:
-            unmatched_eqs.to_crs(epsg=map_epsg).plot(
-                ax=ax,
-                color="red",
-                edgecolor="black",
-                markersize=unmatched_eqs.magnitude**3 * 0.1,
-            )
+            if len(unmatched_eqs) > 0:
+                unmatched_eqs.to_crs(epsg=map_epsg).plot(
+                    ax=ax,
+                    color="red",
+                    edgecolor="black",
+                    markersize=unmatched_eqs.magnitude**3 * 0.1,
+                )
 
     # Adjusting the limits might be necessary after plotting the world map
     x_lims = ax.get_xlim()
