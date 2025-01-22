@@ -396,7 +396,7 @@ class test_gem_test_functions(unittest.TestCase):
         )
 
         assert isinstance(matching_rup, pd.Series)
-        assert matching_rup.name == "4_22"
+        assert matching_rup.name == "88.12_22"
 
     def test_match_eqs_to_rups(self):
         match_results = match_eqs_to_rups(
