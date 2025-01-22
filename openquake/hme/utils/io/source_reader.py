@@ -8,50 +8,25 @@ from openquake.baselib.general import AccumDict
 from openquake.calculators.base import run_calc
 
 from openquake.commonlib import datastore
+from openquake.commonlib.readinput import get_params
 from openquake.engine.engine import create_jobs, run_jobs
 
 
 def csm_from_job_ini(job_ini):
-    rups = []
+    if not isinstance(job_ini, dict) and os.path.isfile(job_ini):
+        job_ini = get_params(job_ini)
+        if not job_ini["inputs"].get("site_model", None):
+            job_ini["ground_motion_fields"] = False
+            job_ini["inputs"]["job_ini"] = "<in-memory>"
+
     [job] = create_jobs([job_ini])
     job.params["calculation_mode"] = "preclassical"
     run_jobs([job])
     with job, datastore.read(job.calc_id) as dstore:
         csm = dstore["_csm"]
         sources = csm.get_sources()
-        # breakpoint()
-        # for src in sources:
-        #    logging.info("processing %s", src)
-        #    for rup in src.iter_ruptures():
-        #        rups.append(rup)
 
     return csm, sources, dstore
-
-
-def csm_from_job_ini_old(job_ini):
-    if isinstance(job_ini, dict):
-        calc = run_calc(
-            job_ini,
-            # calclation_mode="preclassical",
-            split_sources="true",
-            ground_motion_fields=False,
-        )
-
-    else:
-        calc = run_calc(
-            job_ini,
-            calculation_mode="preclassical",
-            split_sources="true",
-            ground_motion_fields=False,
-        )
-
-    sources = calc.csm.get_sources()
-    source_info = calc.datastore["source_info"][:]
-
-    for i, source in enumerate(sources):
-        source.source_id = i
-
-    return calc.csm, sources, source_info
 
 
 def get_rlz_source(rlz, csm):
@@ -63,22 +38,6 @@ def get_rlz_source(rlz, csm):
     except AttributeError:
         srcs.extend(csm.get_sources(rlz))
     return srcs
-
-
-def get_rlz_source_dstore(rlz, dstore):
-
-    srcs = []
-    srcs.extend()
-
-
-def get_csm_rlzs(csm):
-    csm_rlz_groups = {}
-    for i, rlz in enumerate(csm.sm_rlzs):
-        csm_rlz_groups[i] = {
-            "weight": rlz.weight,
-            "sources": get_rlz_source(i, csm),
-        }
-        return csm_rlz_groups
 
 
 def get_dstore_rlzs(dstore, csm):
@@ -101,22 +60,25 @@ def process_source_logic_tree_oq(
     source_types: Optional[Sequence] = None,
     tectonic_region_types: Optional[Sequence] = None,
     description: Optional[str] = None,
-    verbose: bool = False,
 ):
     if job_ini_file is not None:
         logging.info("Job ini found")
         job_ini = os.path.join(base_dir, job_ini_file)
     else:
         logging.warning("making job ini")
-        job_ini = make_job_ini(base_dir, lt_file, gmm_lt_file, description)
+        job_ini = make_job_ini(
+            base_dir,
+            lt_file=lt_file,
+            gmm_lt_file=gmm_lt_file,
+            description=description,
+            sites_file=sites_file,
+        )
 
-    # csm, _sources, _source_info = csm_from_job_ini(job_ini)
     csm, _sources, dstore = csm_from_job_ini(job_ini)
 
     logging.info("Realizations:")
     logging.info(dstore["full_lt"].sm_rlzs)
 
-    # rlzs = get_csm_rlzs(csm)
     rlzs = get_dstore_rlzs(dstore, csm)
     branch_sources = {k: v["sources"] for k, v in rlzs.items()}
     branch_weights = {k: v["weight"] for k, v in rlzs.items()}
@@ -173,6 +135,7 @@ def make_job_ini(
     lt_file: str = "ssmLT.xml",
     gmm_lt_file: str = "gmmLT.xml",
     description: Optional[str] = None,
+    sites_file: Optional[str] = None,
 ):
     ssm_lt_path = os.path.join(base_dir, lt_file)
     gmm_lt_path = os.path.join(base_dir, gmm_lt_file)
@@ -191,6 +154,7 @@ def make_job_ini(
             "gsim_logic_tree": gmm_lt_path,
             "truncation_level": 3.0,
             "intensity_measure_types_and_levels": {"PGA": [0.5]},
+            "ground_motion_fields": False,
         },
         "site_params": {
             "reference_vs30_type": "measured",
@@ -208,5 +172,8 @@ def make_job_ini(
         "job_ini": "<in-memory>",
         "source_model_logic_tree": str(ssm_lt_path),
     }
+
+    if sites_file:
+        job_ini_params_flat["inputs"] = ["sites_file"]
 
     return job_ini_params_flat
