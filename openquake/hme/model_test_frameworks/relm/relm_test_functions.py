@@ -352,22 +352,16 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         else np.log(not_modeled_likelihood)
     )
 
-    # rate_mfd_annual = get_model_mfd(rup_gdf, mag_bins)
-    # rate_mfd = {
-    #    mag: t_yrs * rate * N_norm for mag, rate in rate_mfd_annual.items()
-    # }
-
     rate_mfd = get_model_mfd(
         rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
     )
 
     rate_mfd = {mag: rate * N_norm for mag, rate in rate_mfd.items()}
 
+    # eq catalog is already trimmed to investigation period
     obs_mfd = get_obs_mfd(
         eq_gdf,
         mag_bins,
-        # t_yrs=t_yrs,
-        # completeness_table=completeness_table,
         t_yrs=1.0,  # integrated over the investigation time, not annualized
         stop_date=stop_date,
         annualize=False,
@@ -389,7 +383,9 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
             logging.warn(f"{cell_id} {bin_ctr} has zero likelihood")
             for mag, rate in rate_mfd.items():
                 if rate == 0.0 and obs_mfd[mag] > 0.0:
-                    logging.warn(f"mag bin {mag} has obs eqs but no ruptures")
+                    logging.warning(
+                        f"mag bin {mag} has obs eqs but no ruptures"
+                    )
 
     stoch_rup_counts = get_poisson_counts_from_mfd_iter(
         rate_mfd, test_cfg["n_iters"]

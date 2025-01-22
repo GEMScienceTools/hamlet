@@ -204,8 +204,6 @@ def N_test(cfg: dict, input_data: dict) -> dict:
 
     prospective = test_config.get("prospective", False)
 
-    # breakpoint()
-
     if (
         test_config["prob_model"] in ["poisson", "poisson_cum"]
     ) and not prospective:

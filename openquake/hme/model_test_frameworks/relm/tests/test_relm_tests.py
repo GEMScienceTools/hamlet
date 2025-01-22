@@ -26,13 +26,81 @@ class test_relm_tests(unittest.TestCase):
         S_test_res = S_test(self.cfg, self.input_data)
         s_test_res = {
             "critical_pct": 0.25,
-            "percentile": 0.8,
+            "percentile": 0.4,
             "test_pass": True,
             "test_res": "Pass",
+            "bad_bins": [],
             "test_data": {
                 "obs_loglike": np.array(
-                    [-3.81175352, -8.63409875, -1.55414772]
+                    [-3.68555108, -11.37062494, -1.55414772]
                 ),
+                "stoch_loglike": np.array(
+                    [
+                        [
+                            -3.68555108,
+                            -3.75098033,
+                            -5.43856038,
+                            -4.35309631,
+                            -5.41653736,
+                        ],
+                        [
+                            -9.65914154,
+                            -8.2279889,
+                            -9.84912031,
+                            -7.09742084,
+                            -8.6941361,
+                        ],
+                        [
+                            -1.55414772,
+                            -2.45676151,
+                            -2.45676151,
+                            -1.55414772,
+                            -6.57898585,
+                        ],
+                    ]
+                ),
+                "cell_loglikes": {
+                    "836860fffffffff": {
+                        "obs_loglike": -3.685551083653414,
+                        "stoch_loglikes": np.array(
+                            [
+                                -3.68555108,
+                                -3.75098033,
+                                -5.43856038,
+                                -4.35309631,
+                                -5.41653736,
+                            ]
+                        ),
+                        "bad_bins": [],
+                    },
+                    "836864fffffffff": {
+                        "obs_loglike": -11.370624943255637,
+                        "stoch_loglikes": np.array(
+                            [
+                                -9.65914154,
+                                -8.2279889,
+                                -9.84912031,
+                                -7.09742084,
+                                -8.6941361,
+                            ]
+                        ),
+                        "bad_bins": [],
+                    },
+                    "83694afffffffff": {
+                        "obs_loglike": -1.5541477248609592,
+                        "stoch_loglikes": np.array(
+                            [
+                                -1.55414772,
+                                -2.45676151,
+                                -2.45676151,
+                                -1.55414772,
+                                -6.57898585,
+                            ]
+                        ),
+                        "bad_bins": [],
+                    },
+                },
+                "cell_fracs": np.array([1.0, 0.0, 1.0]),
             },
         }
         assert S_test_res["critical_pct"] == s_test_res["critical_pct"]
@@ -51,7 +119,7 @@ class test_relm_tests(unittest.TestCase):
         rate = 15.581590799999995
         assert N_test_res["conf_interval_pct"] == 0.96
         assert N_test_res["conf_interval"] == (8.0, 24.0)
-        np.testing.assert_almost_equal(N_test_res["inv_time_rate"], rate)
+        np.testing.assert_almost_equal(N_test_res["n_pred_earthquakes"], rate)
         assert N_test_res["n_obs_earthquakes"] == 14
         assert N_test_res["test_pass"]
 
@@ -60,21 +128,21 @@ class test_relm_tests(unittest.TestCase):
         M_test_res = M_test(self.cfg, self.input_data)
         m_test_res = {
             "critical_pct": 0.25,
-            "percentile": 0.3,
+            "percentile": 0.7,
             "test_pass": True,
             "test_res": "Pass",
             "test_data": {
                 "stoch_geom_mean_likes": [
-                    0.40497733396760993,
-                    0.3655365204749642,
-                    0.5081278905683008,
-                    0.5406274396105439,
-                    0.30834651297558485,
-                    0.44723721336802896,
-                    0.3723810523509699,
-                    0.44394680900887606,
-                    0.43544222084572126,
-                    0.5299113170722966,
+                    0.3921102525278011,
+                    0.34589752053184747,
+                    0.5230132152251857,
+                    0.5480209694183371,
+                    0.30084083880346385,
+                    0.4603387794170368,
+                    0.3717458508138827,
+                    0.45001815079620067,
+                    0.4152096898871906,
+                    0.5496207142742168,
                 ],
                 "obs_geom_mean_like": 0.4775592008485948,
             },
@@ -100,13 +168,13 @@ class test_relm_tests(unittest.TestCase):
         L_test_res = L_test(self.cfg, self.input_data)
         l_test_res = {
             "critical_pct": 0.25,
-            "percentile": 0.6,
+            "percentile": 0.4,
             "test_pass": True,
             "test_res": "Pass",
             "bad_bins": [],
             "test_data": {
                 "obs_loglike": np.array(
-                    [-4.24237026, -9.60949955, -1.72972099]
+                    [-3.9021022, -11.06163201, -1.72972099]
                 ),
                 "stoch_loglike": np.array(
                     [
@@ -115,6 +183,16 @@ class test_relm_tests(unittest.TestCase):
                         [-5.54807868, -8.7763415, -5.26220963],
                         [-5.58968225, -9.9454311, -9.61742576],
                         [-5.31199004, -8.81926154, -1.72972099],
+                    ]
+                ),
+                "obs_loglike_total": -16.693455199476418,
+                "stoch_loglike_totals": np.array(
+                    [
+                        -14.69603894,
+                        -15.27304995,
+                        -19.58662981,
+                        -25.15253911,
+                        -15.86097257,
                     ]
                 ),
             },

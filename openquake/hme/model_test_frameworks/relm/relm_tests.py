@@ -162,7 +162,6 @@ def L_test(
         stop_date=stop_date,
         critical_pct=test_config["critical_pct"],
         not_modeled_likelihood=not_modeled_likelihood,
-        append_results=append_results,
     )
 
     logging.info("L-Test {}".format(test_results["test_res"]))
@@ -175,13 +174,29 @@ def N_test(cfg: dict, input_data: dict) -> dict:
     logging.info("Running N-Test")
 
     test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
+    completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
+    test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
 
     prospective = test_config.get("prospective", False)
 
-    if (test_config["prob_model"] == "poisson") and not prospective:
-        test_config["investigation_time"] = cfg["input"]["seis_catalog"][
-            "duration"
-        ]
+    if (
+        test_config["prob_model"] in ["poisson", "poisson_cum"]
+    ) and not prospective:
+        if completeness_table is not None:
+            test_config["completeness_table"] = completeness_table
+            test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
+        else:
+            inv_time = test_config.get("investigation_time")
+            seis_duration = cfg["input"]["seis_catalog"]["duration"]
+            if inv_time is not None and inv_time != seis_duration:
+                logging.warning(
+                    "N-Test: Investigation time does not match seis catalog "
+                    "duration. Using seis catalog duration."
+                )
+
+            test_config["investigation_time"] = cfg["input"]["seis_catalog"][
+                "duration"
+            ]
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -196,7 +211,7 @@ def N_test(cfg: dict, input_data: dict) -> dict:
         "N-Test number obs eqs: {}".format(test_results["n_obs_earthquakes"])
     )
     logging.info(
-        "N-Test number pred eqs: {}".format(test_results["inv_time_rate"])
+        "N-Test number pred eqs: {}".format(test_results["n_pred_earthquakes"])
     )
     logging.info("N-Test {}".format(test_results["test_pass"]))
     return test_results
