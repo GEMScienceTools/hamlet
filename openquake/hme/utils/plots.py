@@ -10,7 +10,7 @@ from geopandas import GeoDataFrame
 
 from matplotlib.collections import LineCollection
 from matplotlib.cm import ScalarMappable
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize, BoundaryNorm
 
 import io
 from .stats import sample_event_times_in_interval
@@ -117,6 +117,29 @@ def plot_N_test_empirical(
     plt.legend(loc="best")
 
     return fig
+
+
+def plot_M_test_results(
+    results: dict[str, Any],
+    return_fig: bool = False,
+    return_string: bool = False,
+    save_fig: Union[bool, str] = False,
+):
+
+    fig = plot_histogram_heatmap(results)
+    if save_fig is not False:
+        fig.savefig(save_fig)
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
 
 
 def plot_L_test_results(
@@ -659,3 +682,109 @@ def plot_rup_match_mag_dist(
 
     else:
         return fig
+
+
+def plot_histogram_heatmap(data):
+    # Extract data
+    stoch_counts = data["stochastic_eq_counts"]
+    model_mfd = data["model_mfd_norm"]
+    obs_mfd = data["obs_mfd"]
+    magnitudes = sorted(stoch_counts.keys())
+
+    # Create matrix for heatmap
+    heatmap_data = []
+    bin_edges_all = []
+    for mag in magnitudes:
+        # Get max value for bins
+        max_val = max(max(stoch_counts[mag]), model_mfd[mag], obs_mfd[mag])
+        # Create histogram bins
+        if max_val > 0:
+            bins = np.arange(-0.5, max(2, max_val) + 0.5)
+            hist_counts, bin_edges = np.histogram(stoch_counts[mag], bins=bins)
+        else:
+            hist_counts = np.array([len(stoch_counts[mag])])  # All zeros
+            bin_edges = np.array([-0.5, 0.5])
+        heatmap_data.append(hist_counts)
+        bin_edges_all.append(bin_edges)
+
+    # Pad arrays to make them equal length
+    max_bins = max(len(row) for row in heatmap_data)
+    heatmap_matrix = np.zeros((len(magnitudes), max_bins))
+    for i, row in enumerate(heatmap_data):
+        heatmap_matrix[i, : len(row)] = row
+
+    # Transpose the matrix for flipped axes
+    heatmap_matrix = heatmap_matrix.T
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Create masked array for zeros
+    masked_matrix = np.ma.masked_where(heatmap_matrix == 0, heatmap_matrix)
+
+    # Calculate extent for proper data coordinate mapping
+    y_min = -0.5
+    y_max = max_bins - 0.5
+    x_min = float(min(magnitudes)) - 0.1
+    x_max = float(max(magnitudes)) + 0.1
+
+    # Plot background for zeros
+    ax.imshow(
+        np.ones_like(heatmap_matrix),
+        aspect="auto",
+        cmap=plt.matplotlib.colors.ListedColormap(["lightgray"]),
+        interpolation="nearest",
+        origin="lower",
+        extent=[x_min, x_max, y_min, y_max],
+    )
+
+    # Create heatmap with proper extent
+    im = ax.imshow(
+        masked_matrix,
+        aspect="auto",
+        cmap=plt.cm.plasma_r,
+        interpolation="nearest",
+        origin="lower",
+        extent=[x_min, x_max, y_min, y_max],
+    )
+
+    # Plot observed and model MFD values
+    for mag in magnitudes:
+        mag_float = float(mag)
+        ax.plot(
+            mag_float,
+            obs_mfd[mag],
+            "k_",
+            markersize=20,
+            label="Observed" if mag == magnitudes[0] else "",
+        )
+        ax.plot(
+            mag_float,
+            model_mfd[mag],
+            "ro",
+            markersize=5,
+            label="Model" if mag == magnitudes[0] else "",
+        )
+
+    # Set x-axis limits and ticks
+    ax.set_xlim(x_min, x_max)
+    ax.set_xticks([float(mag) for mag in magnitudes])
+    ax.set_xticklabels([f"M{mag}" for mag in magnitudes])
+
+    # Set y-axis ticks
+    max_val = max(max(row) for row in bin_edges_all)
+    ax.set_yticks(range(int(max_val) + 1))
+
+    # Add colorbar
+    cbar = plt.colorbar(
+        im,
+        label="Count of Iterations",
+    )
+
+    # Labels and title
+    plt.ylabel("Number of Earthquakes")
+    plt.xlabel("Magnitude")
+    plt.title("Distribution of Earthquake Counts by Magnitude")
+    plt.legend()
+
+    return fig

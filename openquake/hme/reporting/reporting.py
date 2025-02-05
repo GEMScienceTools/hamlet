@@ -23,6 +23,7 @@ from openquake.hme.utils.plots import (
     plot_rup_match_map,
     plot_N_test_results,
     plot_L_test_results,
+    plot_M_test_results,
 )
 
 BASE_DATA_PATH = os.path.dirname(__file__)
@@ -267,10 +268,19 @@ def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
 def render_M_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ) -> None:
+
+    m_test_results_data = results[model_test_framework]["M_test"]["val"][
+        "test_data"
+    ]
+    M_test_plot_str = plot_M_test_results(
+        m_test_results_data, return_string=True
+    )
+
     m_test = env.get_template("m_test.html")
     results[model_test_framework]["M_test"]["rendered_text"] = m_test.render(
         mtf=model_test_framework,
         res=results[model_test_framework]["M_test"]["val"],
+        M_test_plot_str=M_test_plot_str,
     )
 
 

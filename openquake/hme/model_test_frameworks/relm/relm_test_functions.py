@@ -136,6 +136,8 @@ def m_test_function(
     else:
         N_norm = 1.0
 
+    mod_mfd_norm = {k: v * N_norm for k, v in mod_mfd.items()}
+
     # calculate log-likelihoods
     n_bins = len(mod_mfd.keys())
 
@@ -194,6 +196,12 @@ def m_test_function(
         "test_data": {
             "stoch_geom_mean_likes": stoch_geom_mean_likes.tolist(),
             "obs_geom_mean_like": obs_geom_mean_like,
+            "stochastic_eq_counts": {
+                k: v.tolist() for k, v in stochastic_eq_counts.items()
+            },
+            "model_mfd": mod_mfd,
+            "model_mfd_norm": mod_mfd_norm,
+            "obs_mfd": {k: float(v) for k, v in obs_mfd.items()},
         },
     }
 
