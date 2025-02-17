@@ -441,6 +441,7 @@ def run_tests(cfg: dict) -> None:
     )
 
     process_results(cfg, input_data, results)
+    write_outputs(cfg, results)
 
     if "report" in cfg.keys():
         write_reports(cfg, results=results, input_data=input_data)
@@ -466,6 +467,19 @@ def run_tests(cfg: dict) -> None:
 """
 output processing
 """
+
+
+def write_outputs(cfg, results):
+    """go through and write test-specific results, trash can function"""
+    if "gem" in results.keys():
+        gr = results["gem"]
+        gc = cfg["config"]["model_framework"]["gem"]
+        if "rupture_matching_eval" in gr.keys():
+            if len(gr["rupture_matching_eval"]["val"]["unmatched_eqs"]) > 0:
+                if "write_unmatched_eqs" in gc["rupture_matching_eval"]:
+                    gr["rupture_matching_eval"]["val"]["unmatched_eqs"].to_csv(
+                        gc["rupture_matching_eval"]["unmatched_eq_file"]
+                    )
 
 
 def format_output_for_json(out_results):
@@ -540,10 +554,9 @@ def write_json(cfg: dict, results: dict):
     # process outputs here for now
     out_results = format_output_for_json(out_results)
 
-
     def nan2None(obj):
         if isinstance(obj, dict):
-            return {k:nan2None(v) for k,v in obj.items()}
+            return {k: nan2None(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [nan2None(v) for v in obj]
         elif isinstance(obj, float) and math.isnan(obj):
@@ -555,10 +568,10 @@ def write_json(cfg: dict, results: dict):
             return super().encode(nan2None(obj), *args, **kwargs)
 
     with open(cfg["json"]["outfile"], "w") as f:
-        json.dump(out_results, f,  cls=NanConverter)
+        json.dump(out_results, f, cls=NanConverter)
 
 
-def write_outputs(
+def write_outputs_old(
     cfg: dict,
     bin_gdf: GeoDataFrame,
     eq_gdf: GeoDataFrame,
