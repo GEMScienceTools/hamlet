@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 import h3
 import numpy as np
+import pandas as pd
 from pandas import DataFrame
 from geopandas import GeoDataFrame
 from scipy.stats import poisson, nbinom
@@ -279,6 +280,24 @@ def s_test_function(
         unique(list(chain(*[cell_likes[cell]["bad_bins"] for cell in cells])))
     )
 
+    unmatched_eq_list = [
+        cell_likes[cell]["unmatched_eqs"]
+        for cell in cells
+        if len(cell_likes[cell]["unmatched_eqs"]) > 0
+    ]
+
+    if len(unmatched_eq_list) > 0:
+        unmatched_eqs = pd.concat(
+            unmatched_eq_list,
+            axis=0,
+        )
+
+        del unmatched_eqs["geometry"]
+        unmatched_eqs = pd.DataFrame(unmatched_eqs)
+
+    else:
+        unmatched_eqs = []
+
     cell_fracs = np.zeros(len(cells))
 
     for i, obs_like in enumerate(obs_likes):
@@ -299,6 +318,7 @@ def s_test_function(
         "test_pass": bool(test_pass),
         "test_res": test_res,
         "bad_bins": bad_bins,
+        "unmatched_eqs": unmatched_eqs,
         "test_data": {
             "obs_loglike": obs_likes,
             "stoch_loglike": stoch_likes,
@@ -383,24 +403,29 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
 
     # handle bins with eqs but no rups
     bad_bins = []
+    unmatched_eqs = []
     for like in likes:
         if like == not_modeled_log_like:
             bad_bins.append(cell_id)
             bin_ctr = h3.h3_to_geo(cell_id)
             bin_ctr = (round(bin_ctr[0], 3), round(bin_ctr[1], 3))
-            logging.warn(f"{cell_id} {bin_ctr} has zero likelihood")
+            logging.warning(f"{cell_id} {bin_ctr} has zero likelihood")
             for mag, rate in rate_mfd.items():
                 if rate == 0.0 and obs_mfd[mag] > 0.0:
                     logging.warning(
                         f"mag bin {mag} has obs eqs but no ruptures"
                     )
+                unmatched_eqs.append(eq_gdf[eq_gdf.mag_bin == mag])
+
+    if len(unmatched_eqs) > 0:
+        unmatched_eqs = pd.concat(unmatched_eqs, axis=0)
+
+    # if len(bad_bins) > 0:
+    #    breakpoint()
 
     stoch_rup_counts = get_poisson_counts_from_mfd_iter(
         rate_mfd, test_cfg["n_iters"]
     )
-
-    # should come up with vectorized likelihood functions (might work already)
-    # with proper setup
 
     # calculate L for iterated stochastic event sets
     stoch_Ls = np.array(
@@ -418,6 +443,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         "obs_loglike": obs_L,
         "stoch_loglikes": stoch_Ls,
         "bad_bins": bad_bins,
+        "unmatched_eqs": unmatched_eqs,
     }
 
 

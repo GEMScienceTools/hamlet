@@ -10,14 +10,19 @@ import os
 import time
 import logging
 from copy import deepcopy
+from datetime import datetime
 from typing import Union, Optional, Tuple
 import pdb
 
+import math
 import json
 import yaml
 import numpy as np
 import pandas as pd
+from shapely.geometry import Point
 from geopandas import GeoDataFrame
+
+from openquake.hazardlib.geo import Point as oqPoint
 
 from openquake.hme.utils.io import (
     process_source_logic_tree_oq,
@@ -447,8 +452,6 @@ def run_tests(cfg: dict) -> None:
         write_reports(cfg, results=results, input_data=input_data)
 
     if "json" in cfg.keys():
-        # raise NotImplementedError()
-        logging.warn("JSON output not implemented")
         write_json(cfg, results)
 
     t_out_done = time.time()
@@ -474,25 +477,36 @@ def write_outputs(cfg, results):
     if "gem" in results.keys():
         gr = results["gem"]
         gc = cfg["config"]["model_framework"]["gem"]
+
         if "rupture_matching_eval" in gr.keys():
             if len(gr["rupture_matching_eval"]["val"]["unmatched_eqs"]) > 0:
                 if "write_unmatched_eqs" in gc["rupture_matching_eval"]:
                     gr["rupture_matching_eval"]["val"]["unmatched_eqs"].to_csv(
-                        gc["rupture_matching_eval"]["unmatched_eq_file"]
+                        gc["rupture_matching_eval"]["unmatched_eq_file"],
+                        index=False,
                     )
+
+        if "S_test" in gr.keys():
+            if len(gr["S_test"]["val"]["unmatched_eqs"]) > 0:
+                if "write_unmatched_eqs" in gc["S_test"]:
+                    gr["S_test"]["val"]["unmatched_eqs"].to_csv(
+                        gc["S_test"]["unmatched_eq_file"],
+                        index=False,
+                    )
+            del gr["S_test"]["val"]["unmatched_eqs"]
 
 
 def format_output_for_json(out_results):
-    def find_dataframe(d, path=None):
+    def find_obj(d, obj_type, path=None):
         if path is None:
             path = []
 
         for k, v in d.items():
             current_path = path + [k]
-            if isinstance(v, pd.DataFrame):
+            if isinstance(v, obj_type):
                 return v, current_path
             elif isinstance(v, dict):
-                result = find_dataframe(v, current_path)
+                result = find_obj(v, obj_type, current_path)
                 if result is not None:
                     return result
         return None
@@ -529,9 +543,37 @@ def format_output_for_json(out_results):
     out_results["gem"]["rupture_matching_eval"]["matched_rups"] = out_results[
         "gem"
     ]["rupture_matching_eval"]["matched_rups"].to_dict()
-    del out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"]
+
+    if len(out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"]) > 0:
+        del out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"][
+            "geometry"
+        ]
+        out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"] = (
+            out_results["gem"]["rupture_matching_eval"][
+                "unmatched_eqs"
+            ].to_dict()
+        )
+
+    # try:
+    for cell in out_results["gem"]["S_test"]["test_data"][
+        "cell_loglikes"
+    ].values():
+        del cell["unmatched_eqs"]
+    # except KeyError:
+    #    pass
+    try:
+        for cell in out_results["relm"]["S_test"]["test_data"][
+            "cell_loglikes"
+        ].values():
+            del cell["unmatched_eqs"]
+    except KeyError:
+        pass
 
     out_results = convert_arrays_to_lists(out_results)
+
+    if find_obj(out_results, Point):
+        obj, path = find_obj(out_results, Point)
+        breakpoint()
 
     return out_results
 
@@ -554,21 +596,35 @@ def write_json(cfg: dict, results: dict):
     # process outputs here for now
     out_results = format_output_for_json(out_results)
 
-    def nan2None(obj):
-        if isinstance(obj, dict):
-            return {k: nan2None(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [nan2None(v) for v in obj]
-        elif isinstance(obj, float) and math.isnan(obj):
-            return None
-        return obj
+    class CustomJSONEncoder(json.JSONEncoder):
+        def default(self, obj):
+            # Handle special cases before falling back to default encoding
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, (datetime, pd.Timestamp)):
+                return obj.isoformat()
+            return super().default(obj)
 
-    class NanConverter(json.JSONEncoder):
-        def encode(self, obj, *args, **kwargs):
-            return super().encode(nan2None(obj), *args, **kwargs)
+        def encode(self, obj):
+            return super().encode(self.transform_object(obj))
+
+        def transform_object(self, obj):
+            if isinstance(obj, dict):
+                return {k: self.transform_object(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [self.transform_object(v) for v in obj]
+            elif isinstance(obj, float) and math.isnan(obj):
+                return None
+            elif isinstance(obj, np.float64) and np.isnan(obj):
+                return None
+            elif isinstance(obj, pd.Timestamp):
+                return obj.isoformat()
+            elif isinstance(obj, oqPoint):
+                breakpoint()
+            return obj
 
     with open(cfg["json"]["outfile"], "w") as f:
-        json.dump(out_results, f, cls=NanConverter)
+        json.dump(out_results, f, cls=CustomJSONEncoder)
 
 
 def write_outputs_old(
