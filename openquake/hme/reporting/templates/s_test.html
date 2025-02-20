@@ -1,16 +1,388 @@
+<!-- Template specific styling -->
+<style>
+    #map {
+        width: 100%;
+        height: 600px;
+        margin: 20px 0;
+    }
+
+    .polygon {
+        stroke: white;
+        stroke-width: 1px;
+        transition: opacity 0.2s;
+    }
+
+    .polygon:hover {
+        opacity: 0.8;
+        stroke: #666;
+        stroke-width: 2px;
+    }
+
+    .tooltip {
+        position: absolute;
+        padding: 15px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        pointer-events: none;
+        font-family: sans-serif;
+        font-size: 14px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+    }
+
+    .tooltip-metric {
+        margin: 5px 0;
+    }
+
+    .tooltip-plot {
+        margin-top: 15px;
+    }
+
+    .line {
+        fill: none;
+        stroke-width: 2;
+    }
+
+    .model-line {
+        stroke: #2196F3;
+    }
+
+    .observed-line {
+        stroke: #F44336;
+    }
+
+    .confidence-interval {
+        fill: #2196F3;
+        opacity: 0.2;
+    }
+</style>
+
+
 {% if mtf == "relm" %}
-<h3> CSEP-RELM S-Test</h3>
+<h3>CSEP-RELM S-Test</h3>
 {% elif mtf == "gem" %}
-<h3> GEM S-Test</h3>
+<h3>GEM S-Test</h3>
 {% endif %}
 
-Observed catalog percentile (compared to stochastic event sets):
-{{ res.percentile }} </br>
-Critical percentile: {{ res.critical_pct }} </br>
-Test pass: {{ res.test_res }} </br>
+<div class="test-results">
+
+    <p>Observed catalog percentile (compared to stochastic event sets): {{ res.percentile }}</p>
+    <p>Critical percentile: {{ res.critical_pct }}</p>
+    <p>Test pass: {{ res.test_res }}</p>
+</div>
+
+
+
 
 {{ S_test_map_str }}
 
 <p>Map of bins colored by log-likelihood percentile against stochastic events.
     Blue bins, if present, indicate zero likelihood (i.e., earthquakes without
-    corresponding model ruptures). </p>
+    corresponding model ruptures).</p>
+
+<div id="map"></div>
+
+<script>
+    const geojsonData = {{ geojsonData | tojson }};
+
+    // Function to calculate Poisson confidence intervals using mathjs statistics
+    function poissonCI(lambda, confidence = 0.95) {
+        if (lambda === 0) return [0, 0];
+
+        const alpha = 1 - confidence;
+
+        try {
+            // Try using mathjs statistics module
+            const lower = math.max(0, math.statistics.gamma.inv(alpha / 2, lambda) / 2);
+            const upper = math.statistics.gamma.inv(1 - alpha / 2, lambda + 2) / 2;
+            return [lower, upper];
+        } catch (e) {
+            // Fallback to simpler approximation if statistics module not available
+            const z = 1.96; // 95% confidence interval z-score
+            const lower = math.max(0, lambda - z * math.sqrt(lambda));
+            const upper = lambda + z * math.sqrt(lambda);
+            return [lower, upper];
+        }
+    }
+
+
+    // Function to create MFD plot
+    function createMFDPlot(container, data) {
+        const plotWidth = 350;
+        const plotHeight = 200;
+        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+        const width = plotWidth - margin.left - margin.right;
+        const height = plotHeight - margin.top - margin.bottom;
+
+        const plotSvg = container.append('svg')
+            .attr('width', plotWidth)
+            .attr('height', plotHeight);
+
+        const plotG = plotSvg.append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        // Convert MFD data to arrays and calculate CIs
+        const modelData = Object.entries(data.properties.gem_S_test_model_mfd)
+            .map(([key, value]) => {
+                const [lower, upper] = poissonCI(value);
+                return {
+                    magnitude: parseFloat(key),
+                    rate: value,
+                    ci_lower: lower,
+                    ci_upper: upper
+                };
+            });
+
+        const observedData = Object.entries(data.properties.gem_S_test_observed_mfd)
+            .map(([key, value]) => ({
+                magnitude: parseFloat(key),
+                rate: value
+            }));
+
+        // Create scales
+        const xScale = d3.scaleLinear()
+            .domain(d3.extent(modelData, d => d.magnitude))
+            .range([0, width]);
+
+        const yScale = d3.scaleLinear()
+            .domain([0, d3.max(modelData, d => d.ci_upper)])
+            .range([height, 0]);
+
+        // Create area generator for confidence intervals
+        const areaGenerator = d3.area()
+            .x(d => xScale(d.magnitude))
+            .y0(d => yScale(d.ci_lower))
+            .y1(d => yScale(d.ci_upper));
+
+        // Create line generators
+        const modelLine = d3.line()
+            .x(d => xScale(d.magnitude))
+            .y(d => yScale(d.rate));
+
+        const observedLine = d3.line()
+            .x(d => xScale(d.magnitude))
+            .y(d => yScale(d.rate));
+
+        // Add confidence interval area
+        plotG.append('path')
+            .datum(modelData)
+            .attr('class', 'confidence-interval')
+            .attr('d', areaGenerator);
+
+        // Add axes
+        plotG.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(xScale))
+            .append('text')
+            .attr('x', width / 2)
+            .attr('y', 35)
+            .attr('fill', 'black')
+            .text('Magnitude');
+
+        plotG.append('g')
+            .call(d3.axisLeft(yScale))
+            .append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', -40)
+            .attr('x', -height / 2)
+            .attr('fill', 'black')
+            .text('Rate');
+
+        // Add lines
+        plotG.append('path')
+            .datum(modelData)
+            .attr('class', 'line model-line')
+            .attr('d', modelLine);
+
+        plotG.append('path')
+            .datum(observedData)
+            .attr('class', 'line observed-line')
+            .attr('d', observedLine);
+
+        // Add observed points
+        plotG.selectAll('.observed-point')
+            .data(observedData.filter(d => d.rate > 0))
+            .enter()
+            .append('circle')
+            .attr('class', 'observed-point')
+            .attr('cx', d => xScale(d.magnitude))
+            .attr('cy', d => yScale(d.rate))
+            .attr('r', 4)
+            .attr('fill', '#F44336');
+
+        // Add legend
+        const legend = plotG.append('g')
+            .attr('font-size', 10)
+            .attr('transform', `translate(${width - 120},0)`);
+
+        legend.append('line')
+            .attr('class', 'model-line')
+            .attr('x1', 0)
+            .attr('y1', 0)
+            .attr('x2', 20)
+            .attr('y2', 0)
+            .attr('stroke-width', 2);
+
+        legend.append('text')
+            .attr('x', 25)
+            .attr('y', 4)
+            .text('Model');
+
+        legend.append('rect')
+            .attr('x', 0)
+            .attr('y', 8)
+            .attr('width', 20)
+            .attr('height', 10)
+            .attr('class', 'confidence-interval');
+
+        legend.append('text')
+            .attr('x', 25)
+            .attr('y', 18)
+            .text('95% CI');
+
+        legend.append('line')
+            .attr('class', 'observed-line')
+            .attr('x1', 0)
+            .attr('y1', 30)
+            .attr('x2', 20)
+            .attr('y2', 30)
+            .attr('stroke-width', 2);
+
+        legend.append('circle')
+            .attr('cx', 10)
+            .attr('cy', 30)
+            .attr('r', 4)
+            .attr('fill', '#F44336');
+
+        legend.append('text')
+            .attr('x', 25)
+            .attr('y', 34)
+            .text('Observed');
+    }
+
+    // Initialize map after ensuring geojsonData is available
+    function initializeMap() {
+        const width = document.getElementById('map').clientWidth;
+        const height = document.getElementById('map').clientHeight;
+
+        // Function to check polygon winding order
+        function calculateSignedArea(ring) {
+            let area = 0;
+            for (let i = 0; i < ring.length - 1; i++) {
+                area += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+            }
+            return area / 2;
+        }
+
+        function needsRewinding(coordinates) {
+            return calculateSignedArea(coordinates) > 0;
+        }
+
+        const svg = d3.select('#map')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height);
+
+        const g = svg.append('g');
+
+        // Fix polygon winding order
+        const fixedGeojson = {
+            type: "FeatureCollection",
+            bbox: geojsonData.bbox,
+            features: geojsonData.features.map(feature => {
+                const fixedFeature = { ...feature };
+                if (feature.geometry.type === "Polygon") {
+                    const coords = feature.geometry.coordinates[0];
+                    if (needsRewinding(coords)) {
+                        fixedFeature.geometry = {
+                            type: "Polygon",
+                            coordinates: [coords.slice().reverse()]
+                        };
+                    }
+                }
+                return fixedFeature;
+            })
+        };
+
+        // Create color scale based on log likelihood
+        const colorScale = d3.scaleSequential()
+            .domain(d3.extent(fixedGeojson.features, d => d.properties.gem_S_test_log_like))
+            .interpolator(d3.interpolateRdYlBu);
+
+        // Create projection with proper extent
+        const projection = d3.geoMercator()
+            .fitExtent([[40, 40], [width - 40, height - 40]], fixedGeojson);
+
+        const path = d3.geoPath().projection(projection);
+
+        // Create tooltip
+        const tooltip = d3.select('body')
+            .append('div')
+            .attr('class', 'tooltip')
+            .style('opacity', 0);
+
+        // Draw features
+        g.selectAll('path.feature')
+            .data(fixedGeojson.features)
+            .enter()
+            .append('path')
+            .attr('class', 'feature')
+            .attr('d', path)
+            .style('fill', d => colorScale(d.properties.gem_S_test_log_like))
+            .style('stroke', 'white')
+            .style('stroke-width', '1px')
+            .on('mouseover', function (event, d) {
+                d3.select(this)
+                    .style('opacity', 0.8)
+                    .style('stroke', '#666')
+                    .style('stroke-width', '2px');
+
+                tooltip.transition()
+                    .duration(200)
+                    .style('opacity', 0.9);
+
+                tooltip.html('')
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+
+                tooltip.append('div')
+                    .attr('class', 'tooltip-metric')
+                    .html(`
+                    <strong>Test Fraction:</strong> ${d.properties.gem_S_test_frac.toFixed(3)}<br>
+                    <strong>Log Likelihood:</strong> ${d.properties.gem_S_test_log_like.toFixed(3)}<br>
+                    <strong>Model Rate:</strong> ${d.properties.gem_S_test_model_rate.toFixed(3)}<br>
+                    <strong>Observed Earthquakes:</strong> ${d.properties.gem_S_test_observed_eqs}
+                `);
+
+                const plotContainer = tooltip.append('div')
+                    .attr('class', 'tooltip-plot');
+
+                createMFDPlot(plotContainer, d);
+            })
+            .on('mouseout', function () {
+                d3.select(this)
+                    .style('opacity', 1)
+                    .style('stroke', 'white')
+                    .style('stroke-width', '1px');
+
+                tooltip.transition()
+                    .duration(500)
+                    .style('opacity', 0);
+            });
+
+        // Add zoom with proper event handling
+        const zoom = d3.zoom()
+            .scaleExtent([1, 8])
+            .extent([[0, 0], [width, height]])
+            .on('zoom', (event) => {
+                g.attr('transform', event.transform);
+            });
+
+        svg.call(zoom);
+    }
+
+    initializeMap()
+</script>
+
+<p>Interactive map of cells colored by log-likelihood (not fractile score)</p>
