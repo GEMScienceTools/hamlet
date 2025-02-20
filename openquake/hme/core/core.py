@@ -36,13 +36,12 @@ from openquake.hme.utils import (
     trim_eq_catalog,
     trim_eq_catalog_with_completeness_table,
     trim_inputs,
+    breakpoint,
 )
 
 from openquake.hme.utils.results_processing import process_results
 
 from openquake.hme.reporting import generate_basic_report
-
-from openquake.hme.utils.utils import breakpoint
 
 from openquake.hme.utils.io.source_processing import (
     rupture_dict_from_logic_tree_dict,
@@ -295,6 +294,7 @@ def load_ruptures_from_ssm(cfg: dict):
         ssm_lt_sources,
         source_rup_counts=source_rup_counts,
         parallel=cfg["config"]["parallel"],
+        h3_res=cfg["input"]["bins"]["h3_res"],
     )
 
     del ssm_lt_sources
@@ -320,13 +320,17 @@ def load_inputs(cfg: dict) -> dict:
     """
 
     eq_gdf = load_obs_eq_catalog(cfg)
+    logger.info(f"{len(eq_gdf):_} earthquakes in catalog")
 
     if cfg["input"]["rupture_file"]["read_rupture_file"] is True:
         rupture_gdf = load_ruptures_from_file(cfg)
     else:
         rupture_gdf = load_ruptures_from_ssm(cfg)
 
-    if cfg["input"]["rupture_file"]["save_rupture_file"] is True:
+    if (
+        cfg["input"]["rupture_file"]["save_rupture_file"] is True
+        and cfg["input"]["rupture_file"]["read_rupture_file"] is False
+    ):
         logging.info("Writing ruptures to file")
         write_ruptures_to_file(
             rupture_gdf,
@@ -356,6 +360,7 @@ def load_inputs(cfg: dict) -> dict:
     cells_in_model = rupture_gdf.cell_id.unique()
     eq_in_model = (cell_id in cells_in_model for cell_id in eq_gdf.cell_id)
     eq_gdf = eq_gdf.loc[eq_in_model]
+    logger.info(f"{len(eq_gdf):_} earthquakes in trimmed catalog")
 
     logging.info("grouping earthquakes by cell")
     eq_groups = eq_gdf.groupby("cell_id")
@@ -537,30 +542,42 @@ def format_output_for_json(out_results):
         return d
 
     out_results = delete_key_substring(out_results, "plot")
-    out_results["gem"]["model_mfd"]["test_data"]["mfd_df"] = eval(
-        out_results["gem"]["model_mfd"]["test_data"]["mfd_df"].to_json()
-    )
-    out_results["gem"]["rupture_matching_eval"]["matched_rups"] = out_results[
-        "gem"
-    ]["rupture_matching_eval"]["matched_rups"].to_dict()
+    try:
+        out_results["gem"]["model_mfd"]["test_data"]["mfd_df"] = eval(
+            out_results["gem"]["model_mfd"]["test_data"]["mfd_df"].to_json()
+        )
+    except KeyError:
+        pass
 
-    if len(out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"]) > 0:
-        del out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"][
-            "geometry"
-        ]
+    try:
+        out_results["gem"]["rupture_matching_eval"]["matched_rups"] = (
+            out_results["gem"]["rupture_matching_eval"][
+                "matched_rups"
+            ].to_dict()
+        )
+
+        if (
+            len(out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"])
+            > 0
+        ):
+            del out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"][
+                "geometry"
+            ]
         out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"] = (
             out_results["gem"]["rupture_matching_eval"][
                 "unmatched_eqs"
             ].to_dict()
         )
+    except KeyError:
+        pass
 
-    # try:
-    for cell in out_results["gem"]["S_test"]["test_data"][
-        "cell_loglikes"
-    ].values():
-        del cell["unmatched_eqs"]
-    # except KeyError:
-    #    pass
+    try:
+        for cell in out_results["gem"]["S_test"]["test_data"][
+            "cell_loglikes"
+        ].values():
+            del cell["unmatched_eqs"]
+    except KeyError:
+        pass
     try:
         for cell in out_results["relm"]["S_test"]["test_data"][
             "cell_loglikes"
@@ -570,10 +587,6 @@ def format_output_for_json(out_results):
         pass
 
     out_results = convert_arrays_to_lists(out_results)
-
-    if find_obj(out_results, Point):
-        obj, path = find_obj(out_results, Point)
-        breakpoint()
 
     return out_results
 
@@ -592,7 +605,16 @@ def write_json(cfg: dict, results: dict):
                 out_results[test_framework][test] = res["val"]
 
         elif test_framework == "cell_gdf":
-            out_results[test_framework] = eval(test_results.to_json())  # :(
+            if "cell_gdf_file" in cfg["json"]:
+                # test_results.to_file(
+                #    cfg["json"]["cell_gdf_file"], driver="GeoJSON"
+                # )
+                with open(cfg["json"]["cell_gdf_file"], "w") as f:
+                    f.write(test_results.to_json())
+            else:
+                out_results[test_framework] = eval(
+                    test_results.to_json()
+                )  # :(
     # process outputs here for now
     out_results = format_output_for_json(out_results)
 
@@ -603,6 +625,8 @@ def write_json(cfg: dict, results: dict):
                 return obj.tolist()
             if isinstance(obj, (datetime, pd.Timestamp)):
                 return obj.isoformat()
+            if isinstance(obj, GeoDataFrame):  # can format later
+                return None
             return super().default(obj)
 
         def encode(self, obj):
@@ -619,8 +643,8 @@ def write_json(cfg: dict, results: dict):
                 return None
             elif isinstance(obj, pd.Timestamp):
                 return obj.isoformat()
-            elif isinstance(obj, oqPoint):
-                breakpoint()
+            elif isinstance(obj, GeoDataFrame):
+                return None
             return obj
 
     with open(cfg["json"]["outfile"], "w") as f:

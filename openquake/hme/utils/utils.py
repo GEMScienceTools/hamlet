@@ -258,7 +258,7 @@ def make_earthquake_gdf_from_csv(
     dip1: Optional[str] = None,
     rake1: Optional[str] = None,
     epsg: int = 4326,
-    select_nodal_planes=True,
+    select_nodal_planes=False,
     nodal_plane_algorithm="pick_andersonian_nodal_plane",
     h3_res: int = 3,
 ) -> gpd.GeoDataFrame:
@@ -434,6 +434,7 @@ def trim_eq_catalog_with_completeness_table(
 ):
     logging.info("Trimming EQ catalog to end date {}".format(stop_date))
     out_gdf = eq_gdf.loc[eq_gdf.time <= pd.to_datetime(stop_date)]
+    logging.debug(f"{len(out_gdf):_} earthquakes")
     logging.info("Trimming EQ catalog with completeness table")
     drop_idxs = []
     for i, eq in out_gdf.iterrows():
@@ -607,7 +608,7 @@ def get_mag_year_from_comp_table(comp_table, mag):
         next_smaller_mag_idx = np.where(mags <= mag)[0][-1]
         mag = mags[next_smaller_mag_idx]
         comp_year = yrs[next_smaller_mag_idx]
-        # print(mags[next_smaller_mag_idx], comp_year)
+        # logging.info(mags[next_smaller_mag_idx], comp_year)
 
     return mag, comp_year
 

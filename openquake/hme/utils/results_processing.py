@@ -16,7 +16,14 @@ def process_results(cfg, input_data, results):
     if "gem" in test_cfg["model_framework"]:
         if "S_test" in test_cfg["model_framework"]["gem"]:
             add_s_test_fracs_to_cell_gdf(
-                results["gem"]["S_test"], cell_gdf, model_test_framework="gem"
+                results["gem"]["S_test"],
+                cell_gdf,
+                model_test_framework="gem",
+            )
+            add_s_test_rates_to_cell_gdf(
+                results["gem"]["S_test"],
+                cell_gdf,
+                model_test_framework="gem",
             )
 
         if "moment_over_under" in test_cfg["model_framework"]["gem"]:
@@ -66,6 +73,58 @@ def add_s_test_fracs_to_cell_gdf(
 
     cell_gdf[f"{model_test_framework}_S_test_frac"] = fracs
     cell_gdf[f"{model_test_framework}_S_test_log_like"] = likes
+
+    return
+
+
+def add_s_test_rates_to_cell_gdf(
+    s_test_results, cell_gdf, model_test_framework="gem"
+):
+    cell_ids = sorted(
+        s_test_results["val"]["test_data"]["cell_loglikes"].keys()
+    )
+
+    mod_mfd = pd.Series(
+        {
+            c: s_test_results["val"]["test_data"]["cell_loglikes"][c][
+                "mod_mfd"
+            ]
+            for c in cell_ids
+        },
+        name=f"{model_test_framework}_S_test_model_rate",
+    )
+    obs_mfd = pd.Series(
+        {
+            c: s_test_results["val"]["test_data"]["cell_loglikes"][c][
+                "obs_mfd"
+            ]
+            for c in cell_ids
+        },
+        name=f"{model_test_framework}_S_test_observed_rate",
+    )
+
+    mod_rates = pd.Series(
+        {
+            c: s_test_results["val"]["test_data"]["cell_loglikes"][c][
+                "mod_rate"
+            ]
+            for c in cell_ids
+        },
+        name=f"{model_test_framework}_S_test_model_rate",
+    )
+    obs_rates = pd.Series(
+        {
+            c: s_test_results["val"]["test_data"]["cell_loglikes"][c][
+                "obs_rate"
+            ]
+            for c in cell_ids
+        },
+        name=f"{model_test_framework}_S_test_observed_rate",
+    )
+    cell_gdf[f"{model_test_framework}_S_test_model_mfd"] = mod_mfd
+    cell_gdf[f"{model_test_framework}_S_test_observed_mfd"] = obs_mfd
+    cell_gdf[f"{model_test_framework}_S_test_model_rate"] = mod_rates
+    cell_gdf[f"{model_test_framework}_S_test_observed_eqs"] = obs_rates
 
     return
 

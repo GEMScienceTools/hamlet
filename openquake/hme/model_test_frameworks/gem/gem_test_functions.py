@@ -242,7 +242,7 @@ def get_nearby_rups(eq, rup_df):
 def get_matching_rups(
     eq,
     rup_gdf,
-    distance_lambda=1.0,
+    distance_lambda=2.0,
     dist_by_mag=True,
     mag_window=1.0,
     group_return_threshold=0.9,
@@ -251,8 +251,8 @@ def get_matching_rups(
     no_rake_default_like=0.5,
     use_occurrence_rate=False,
     return_one=False,
-    attitude_rel_weight=0.01,
-    rake_rel_weight=0.01,
+    attitude_rel_weight=0.25,
+    rake_rel_weight=0.25,
     mag_rel_weight=1.0,
 ):
     # selection phase
@@ -280,6 +280,8 @@ def get_matching_rups(
     mag_likes = mag_diff_likelihood(
         eq.magnitude, rups.magnitude, mag_window=mag_window
     )
+    mag_likes[mag_likes < 1e-20] = 1e-20
+    rups["mag_likes"] = mag_likes
 
     if hasattr(eq, "strike") and not np.isnan(eq.strike):
         # plane attitude diffs
@@ -299,12 +301,80 @@ def get_matching_rups(
         rake_diffs = angles_between_rake_and_rakes(
             eq.rake, rups.rake, return_radians=True
         )
+        rake_diffs = pd.Series(rake_diffs, index=rups.index)
         # angles > pi/2 should all have zero likelihood
         # rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
         rake_likes = np.cos(rake_diffs)
-        rake_likes[rake_likes <= 0.0] = 1e-20
+        rake_likes[rake_likes < 1e-20] = 1e-20
         rups["rake_diff"] = rake_diffs
+
+    elif hasattr(eq, "strike1") and not np.isnan(eq.strike1):
+        # plane attitude diffs for first plane
+        attitude_diffs1 = angles_between_plane_and_planes(
+            eq.strike1,
+            eq.dip1,
+            rups.strike.values,
+            rups.dip.values,
+            return_radians=True,
+        )
+        attitude_diffs1 = pd.Series(attitude_diffs1, index=rups.index)
+        attitude_likes1 = np.cos(attitude_diffs1)
+        attitude_likes1[attitude_likes1 < 1e-20] = 1e-20
+
+        # rake diffs for first plane
+        rake_diffs1 = angles_between_rake_and_rakes(
+            eq.rake1, rups.rake, return_radians=True
+        )
+        rake_likes1 = np.cos(rake_diffs1)
+        rake_likes1[rake_likes1 < 1e-20] = 1e-20
+
+        # Total likelihood for first plane (multiply attitude and rake likelihoods)
+        total_likes1 = attitude_likes1 * rake_likes1
+
+        # plane attitude diffs for second plane
+        attitude_diffs2 = angles_between_plane_and_planes(
+            eq.strike2,
+            eq.dip2,
+            rups.strike.values,
+            rups.dip.values,
+            return_radians=True,
+        )
+        attitude_diffs2 = pd.Series(attitude_diffs2, index=rups.index)
+        attitude_likes2 = np.cos(attitude_diffs2)
+        attitude_likes2[attitude_likes2 < 1e-20] = 1e-20
+
+        # rake diffs for second plane
+        rake_diffs2 = angles_between_rake_and_rakes(
+            eq.rake2, rups.rake, return_radians=True
+        )
+        rake_likes2 = np.cos(rake_diffs2)
+        rake_likes2[rake_likes2 < 1e-20] = 1e-20
+
+        # Total likelihood for second plane
+        total_likes2 = attitude_likes2 * rake_likes2
+
+        # Create boolean mask for where plane 1 is more likely
+        plane1_more_likely = total_likes1 > total_likes2
+
+        # Use the mask to select the appropriate differences
+        attitude_diffs = np.where(
+            plane1_more_likely, attitude_diffs1, attitude_diffs2
+        )
+        rake_diffs = np.where(plane1_more_likely, rake_diffs1, rake_diffs2)
+
+        rups["attitude_diff"] = attitude_diffs
+        rups["rake_diff"] = rake_diffs
+        attitude_likes = np.cos(attitude_diffs)
+        attitude_likes[attitude_likes < no_attitude_default_like] = (
+            no_attitude_default_like
+        )
+        rake_likes = np.cos(rake_diffs)
+        rake_likes[rake_likes < no_attitude_default_like] = (
+            no_attitude_default_like
+        )
+
     else:
+        # breakpoint()
         attitude_likes = np.ones(len(rups)) * no_attitude_default_like
         rups["attitude_diff"] = np.empty(len(rups))
         rups["attitude_diff"].values[:] = np.nan
@@ -424,7 +494,7 @@ def match_eqs_to_rups(
         )
         for i, eq in eq_gdf.iterrows()
     )
-    if parallel is True:
+    if False is True:
         with Pool(_n_procs) as pool:
             match_results = list(
                 tqdm(

@@ -85,6 +85,7 @@ def S_test(
     test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
     prospective = test_config.get("prospective", False)
     likelihood_function = test_config.get("likelihood_function", "mfd")
+    normalize_n_eqs = test_config.get("normalize_n_eqs", False)
     not_modeled_likelihood = 0.0  # hardcoded for RELM
 
     parallel = cfg["config"]["parallel"]
@@ -110,9 +111,10 @@ def S_test(
         t_yrs,
         test_config["n_iters"],
         likelihood_function,
+        mag_bins=mag_bins,
+        normalize_n_eqs=normalize_n_eqs,
         completeness_table=completeness_table,
         stop_date=stop_date,
-        mag_bins=mag_bins,
         critical_pct=test_config["critical_pct"],
         not_modeled_likelihood=not_modeled_likelihood,
         parallel=parallel,
