@@ -1,0 +1,21 @@
+openquake.hme.model\_test\_frameworks.model\_description package
+================================================================
+
+Submodules
+----------
+
+openquake.hme.model\_test\_frameworks.model\_description.model\_description module
+----------------------------------------------------------------------------------
+
+.. automodule:: openquake.hme.model_test_frameworks.model_description.model_description
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: openquake.hme.model_test_frameworks.model_description
+   :members:
+   :show-inheritance:
+   :undoc-members:

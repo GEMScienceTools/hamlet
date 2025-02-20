@@ -1,0 +1,37 @@
+openquake.hme.utils.io package
+==============================
+
+Submodules
+----------
+
+openquake.hme.utils.io.io module
+--------------------------------
+
+.. automodule:: openquake.hme.utils.io.io
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+openquake.hme.utils.io.source\_processing module
+------------------------------------------------
+
+.. automodule:: openquake.hme.utils.io.source_processing
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+openquake.hme.utils.io.source\_reader module
+--------------------------------------------
+
+.. automodule:: openquake.hme.utils.io.source_reader
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Module contents
+---------------
+
+.. automodule:: openquake.hme.utils.io
+   :members:
+   :show-inheritance:
+   :undoc-members:

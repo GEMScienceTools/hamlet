@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>GEM Tests and Evaluations &#8212; Hamlet 0.5.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/bizstyle.css?v=5283bb3d" />
+    
+    <script src="../_static/documentation_options.js?v=8e576371"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">GEM Tests and Evaluations</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="gem-tests-and-evaluations">
+<span id="gem-tests-evaluations"></span><h1>GEM Tests and Evaluations<a class="headerlink" href="#gem-tests-and-evaluations" title="Link to this heading">¶</a></h1>
+<p>These are developed by GEM, sometimes based on the literature, or sometimes
+based on our own ideas and implementations. See for
+more information, or <code class="xref py py-mod docutils literal notranslate"><span class="pre">gem</span></code> for the
+function documentation. Sanity checks (as detailed below) are also available
+from the GEM testing framework, for convenience during the workflow.</p>
+<section id="magnitude-frequency-distribution-based-tests">
+<h2>Magnitude-Frequency Distribution based tests<a class="headerlink" href="#magnitude-frequency-distribution-based-tests" title="Link to this heading">¶</a></h2>
+<p>These tests evaluate a model based on the magnitude-frequency distribution (MFD)
+inside each grid cell, or in the model as a whole, (for the model component
+being tested).</p>
+<p id="gem-like-test"><em>Likelihood test</em></p>
+<p>Currently, there are two implementations of the MFD likelihood tests, one
+‘empirical’, based on Monte Carlo sampling of the source model in each bin, and
+one based on the frequencies in the MFD itself.</p>
+<p>In both of these tests, the likelihood of observing the seismicity in the
+catalog given the model MFD is calculated through the</p>
+<p>Parameters (all are optional, as default values are supplied):</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">likelihood_method</span></code></dt><dd><p>This is how the computations are performed.  <code class="docutils literal notranslate"><span class="pre">poisson</span></code> uses the Poisson
+likelihood, and <code class="docutils literal notranslate"><span class="pre">empirical</span></code> uses a Monte Carlo sampling of the MFD.  The
+default value is <code class="docutils literal notranslate"><span class="pre">poisson</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">investigation_time</span></code></dt><dd><p>This is how long the time period is for comparing the observed seismicity to
+the MFD. Unless you’re doing something very crafty, the value should be in
+years, and should be the length of the observed earthquake catalog.  In the
+future, a completeness table may be used instead of this parameter.  The
+default value is <code class="docutils literal notranslate"><span class="pre">1.</span></code></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">default_likelihood</span></code></dt><dd><p>This is the likelihood that results if no earthquake sources are present in
+the grid cell. If the cells are built using <cite>h3</cite> (the default option, if no
+GIS file for the test is supplied), this parameter will have no effect.  The
+default value is <code class="docutils literal notranslate"><span class="pre">1.</span></code></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">not_modeled_val</span></code></dt><dd><p>This is the likelihood that results if the rate of earthquake production in
+that magnitude bin is zero, but there are earthquakes within the magnitude
+bin. Standard (or naive) statistical theory suggests that this value should
+be zero, as it is in the RELM tests, but because this value is multiplied by
+all of the other magnitude bins inside each spatial bin/grid cell, a single
+zero value will make the whole model likelihood zero.  The default is
+<code class="docutils literal notranslate"><span class="pre">1e-5</span></code> which is a bit more pragmatic.</p>
+</dd>
+</dl>
+<p id="gem-model-mfd-test"><em>Model MFD Evaluation</em></p>
+<p>The Model MFD evaluation sums up the MFDs from each
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code> and makes an MFD for the whole
+model, which is then compared to the observed MFD from the earthquake catalog.
+This is to produce a figure and currently does not yield any quantitative values
+or evaluate the entire model goodness of fit.</p>
+<p>Parameters (all are optional):</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">investigation_time</span></code></dt><dd><p>This is the duration of the comparison between the observed seismicity to
+the MFD. See <a class="reference internal" href="model_test_frameworks.html#gem-like-test"><span class="std std-ref">likelihood</span></a> above for more information.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">out_csv</span></code></dt><dd><p>This parameter specifies a filename. If this is given, a CSV table of the
+observed and modeled MFDs will be written.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">out_plot</span></code></dt><dd><p>This parameter specifies a filename. If this is given, a plot of the
+observed and modeled MFDs will be written. The file suffix will determine
+the plot format.  Common formats include <code class="docutils literal notranslate"><span class="pre">png</span></code>, <code class="docutils literal notranslate"><span class="pre">svg</span></code> and <code class="docutils literal notranslate"><span class="pre">pdf</span></code>.  See
+the <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> docs for more info.</p>
+</dd>
+</dl>
+<p>.._max_mag_check:</p>
+<p><em>Ensures that the model can produce the maximum observed seismcity in each cell</em></p>
+<p>This test is borrowed from the Sanity checks. It simply checks to see whether
+the sources inside each cell are capable of producing earthquakes as large as
+the largest observed earthquakes. Note that there can be some issues with very
+large earthquakes (with ruptures larger than the cell size) as the hypocenter
+for an observed event may be in a different cell than the most compatible
+hypocenter from the sources.</p>
+<p id="gem-moment-over-under-eval"><em>Compares observed and stochastic moment release</em></p>
+<p>This evaluation generates many synthetic catalogs (stochastic event sets) and
+compares the total moment release in each cell for each of the catalogs to the
+observed moment release. This evalution helps highlight areas that are more or
+less seismically productive than the observations may support.</p>
+<p>Parameters:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">investigation_time</span></code>:  Duration of the catalog (and of the generated</dt><dd><p>stochastic event sets).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">n_iters</span></code>: Number of iterations (stochastic event sets) generated. Note that</dt><dd><p>generating these catalogs is fairly time-intensive in the current
+implementation. For large models, the number of iterations should be kept to
+under 50-100 until performance is improved.</p>
+</dd>
+</dl>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">GEM Tests and Evaluations</a><ul>
+<li><a class="reference internal" href="#magnitude-frequency-distribution-based-tests">Magnitude-Frequency Distribution based tests</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/model_test_frameworks/gem_tests.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">GEM Tests and Evaluations</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2021, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Getting started with Hamlet &#8212; Hamlet 0.5.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
+    
+    <script src="_static/documentation_options.js?v=8e576371"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Hamlet Architecture and Testing Workflow" href="architecture.html" />
+    <link rel="prev" title="Hamlet: Hazard Model Evaluation and Testing" href="index.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="architecture.html" title="Hamlet Architecture and Testing Workflow"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Hamlet: Hazard Model Evaluation and Testing"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Getting started with Hamlet</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="getting-started-with-hamlet">
+<h1>Getting started with Hamlet<a class="headerlink" href="#getting-started-with-hamlet" title="Link to this heading">¶</a></h1>
+<p>Hamlet is easy to use once the input data and configuration are prepared. The
+steps to do this are:</p>
+<section id="prepare-the-hazard-model">
+<h2>Prepare the hazard model<a class="headerlink" href="#prepare-the-hazard-model" title="Link to this heading">¶</a></h2>
+<p>The hazard model must be in the OpenQuake format. There must be a single XML
+file that describes the seismic source model logic tree, including the locations
+of the source XML files and other logic tree parameters.</p>
+<section id="decide-how-the-model-should-be-evaluated">
+<h3>Decide how the model should be evaluated<a class="headerlink" href="#decide-how-the-model-should-be-evaluated" title="Link to this heading">¶</a></h3>
+<p>Choose whether Hamlet should be run for the entire model as a whole, or for
+different components of the model (different logic tree branches, different
+seismic source types, etc.). This will control how the data preparation and
+testing are done.</p>
+</section>
+<section id="optional-organize-the-hazard-model-with-a-hamlet-directory">
+<h3>(Optional) Organize the hazard model with a <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> directory<a class="headerlink" href="#optional-organize-the-hazard-model-with-a-hamlet-directory" title="Link to this heading">¶</a></h3>
+<p>It is recommended to add a new <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> directory with <code class="docutils literal notranslate"><span class="pre">data</span></code> and <code class="docutils literal notranslate"><span class="pre">output</span></code>
+sub-directories.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">data</span></code> directory can hold the seismic catalogs and, if
+necessary, GIS files specifying the model domain and grid cells.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">output</span></code> directory will hold the HTML reports and any other outputs that are
+written during the testing procedure.</p>
+<p>The YAML configuration files can be placed in the main <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> directory:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">/</span>
+    <span class="ow">in</span><span class="o">/</span>
+        <span class="n">ssm</span><span class="o">/</span>
+        <span class="n">gmm</span><span class="o">/</span>
+    <span class="n">out</span><span class="o">/</span>
+    <span class="n">hamlet</span><span class="o">/</span>
+        <span class="n">data</span><span class="o">/</span>
+            <span class="n">crustal_catalog</span><span class="o">.</span><span class="n">csv</span>
+            <span class="n">slab_catalog</span><span class="o">.</span><span class="n">csv</span>
+            <span class="n">full_catalog</span><span class="o">.</span><span class="n">csv</span> <span class="p">(</span><span class="n">unused</span> <span class="ow">in</span> <span class="n">testing</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">/</span>
+        <span class="n">test_ssm_crustal</span><span class="o">.</span><span class="n">yml</span>
+        <span class="n">test_ssm_slab</span><span class="o">.</span><span class="n">yml</span>
+</pre></div>
+</div>
+<p>However, the user is free to organize the Hamlet files in any way; there is no
+requirement that the files are in the same directory as the source model, as
+long as the paths to the source model and earthquake catalogs are correct in the
+YAML configuration file.</p>
+</section>
+<section id="optional-make-a-new-git-branch-for-hamlet">
+<h3>(Optional) Make a new <code class="docutils literal notranslate"><span class="pre">git</span></code> branch for Hamlet<a class="headerlink" href="#optional-make-a-new-git-branch-for-hamlet" title="Link to this heading">¶</a></h3>
+<p>This may be a good way of organizing the results and running Hamlet in a
+continuous integration system.</p>
+<p>For example, a <code class="docutils literal notranslate"><span class="pre">git</span></code> branch called <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> can have a separate <code class="docutils literal notranslate"><span class="pre">hamlet</span></code>
+directory, as specified above.  This directory does not exist in the <code class="docutils literal notranslate"><span class="pre">master</span></code>
+branch or other branches, and when changes are made to those branches, they can
+be pulled into the <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> branch and be evaluated.</p>
+<p>This can be configured in a continuous integration environment such that
+Hamlet is run on the CI server when the <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> branch is committed, but not
+necessarily when commits to <code class="docutils literal notranslate"><span class="pre">master</span></code> or development branches are made.</p>
+</section>
+</section>
+<section id="prepare-the-earthquake-catalog-s">
+<h2>Prepare the earthquake catalog(s)<a class="headerlink" href="#prepare-the-earthquake-catalog-s" title="Link to this heading">¶</a></h2>
+<p>The earthquake catalog should be declustered and, ideally, classified according
+to the source types of the earthquakes (i.e., subduction thrust, in-slab,
+crustal, etc.). The catalog should also be truncated to some acceptable
+completeness date that corresponds to the <code class="docutils literal notranslate"><span class="pre">investigation_time</span></code> parameter used
+during the Hamlet evaluations (in the future, completeness tables may be able to
+be used instead of a single date, but this is not currently implemented).</p>
+<p>The catalog(s) must be CSV files, with columns describing the fields and one row
+for each earthquake.</p>
+<p>If you are interested in running Hamlet separately for different seismic source
+types, then make separate catalogs for the different earthquake categories,
+i.e. make CSV files with only crustal events, only subduction megathrust
+events, only slab events, etc.</p>
+<p>Alternately if the different branches in the model’s logic tree would for some
+reason correspond to different subsets of the earthquake catalog, the catalog
+should be split into separate files for each subset.</p>
+</section>
+<section id="make-the-yaml-configuration-file-s">
+<h2>Make the YAML configuration file(s)<a class="headerlink" href="#make-the-yaml-configuration-file-s" title="Link to this heading">¶</a></h2>
+<p>See <a class="reference external" href="./yaml_config_file.html">YAML configuration file</a> for more information.</p>
+</section>
+<section id="run-hamlet">
+<h2>Run Hamlet<a class="headerlink" href="#run-hamlet" title="Link to this heading">¶</a></h2>
+<p>Once the model, seismic catalog(s) and YAML configuration file(s) (and Hamlet
+has been installed), Hamlet can be run like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">hamlet</span> <span class="n">test_ssm_crustal</span><span class="o">.</span><span class="n">yml</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Getting started with Hamlet</a><ul>
+<li><a class="reference internal" href="#prepare-the-hazard-model">Prepare the hazard model</a><ul>
+<li><a class="reference internal" href="#decide-how-the-model-should-be-evaluated">Decide how the model should be evaluated</a></li>
+<li><a class="reference internal" href="#optional-organize-the-hazard-model-with-a-hamlet-directory">(Optional) Organize the hazard model with a <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> directory</a></li>
+<li><a class="reference internal" href="#optional-make-a-new-git-branch-for-hamlet">(Optional) Make a new <code class="docutils literal notranslate"><span class="pre">git</span></code> branch for Hamlet</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#prepare-the-earthquake-catalog-s">Prepare the earthquake catalog(s)</a></li>
+<li><a class="reference internal" href="#make-the-yaml-configuration-file-s">Make the YAML configuration file(s)</a></li>
+<li><a class="reference internal" href="#run-hamlet">Run Hamlet</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="index.html"
+                          title="previous chapter">Hamlet: Hazard Model Evaluation and Testing</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="architecture.html"
+                          title="next chapter">Hamlet Architecture and Testing Workflow</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/getting_started.md.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="architecture.html" title="Hamlet Architecture and Testing Workflow"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Hamlet: Hazard Model Evaluation and Testing"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Getting started with Hamlet</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2021, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+  </body>
+</html>

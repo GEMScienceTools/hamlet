@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Hamlet: Hazard Model Evaluation and Testing &#8212; Hamlet 0.5.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
+    
+    <script src="_static/documentation_options.js?v=8e576371"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting started with Hamlet" href="getting_started.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="getting_started.html" title="Getting started with Hamlet"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Hamlet: Hazard Model Evaluation and Testing</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="hamlet-hazard-model-evaluation-and-testing">
+<h1>Hamlet: Hazard Model Evaluation and Testing<a class="headerlink" href="#hamlet-hazard-model-evaluation-and-testing" title="Link to this heading">¶</a></h1>
+<p>Hamlet (<code class="docutils literal notranslate"><span class="pre">openquake.hme</span></code>) is a Python package developed (OK, in development)
+for qualitative and quantitative evaluation of Probabilistic Seismic Hazard
+Analysis (PSHA) models, with the intention of providing feedback to modelers
+during the model construction process, to aid model development. Hamlet is
+developed by the <a class="reference external" href="https://www.globalquakemodel.org">GEM Foundation</a>, and uses the <a class="reference external" href="https://github.com/GEM/oq-engine">OpenQuake</a> software
+extensively.</p>
+<p>Hamlet will incorporate several model test frameworks, including those
+developed by GEM and some of those developed outside of GEM such as the <a class="reference external" href="http://cseptesting.org/documents/relm.php">RELM</a>
+tests. Currently, and likely in the future, the model files will be required to
+be in the <a class="reference external" href="https://github.com/GEM/oq-engine">OpenQuake</a> format, regardless of the format of their original
+implementation.</p>
+<p>Most of the Hamlet evaluations are spatial in nature; the model domain is
+discretized into grid cells, and comparisons between observations and model
+predictions are performed in each grid cell, to highlight where in the domain
+the model matches the observations, and where it might need some refinement.</p>
+<p>Additionally, unlike some other hazard model testing frameworks, Hamlet is
+designed to operate on separate components of a hazard model, so that each
+component can be evaluated against its corresponding data. For example, each
+branch of a source model logic tree can be tested independently, and each type
+of source (e.g., subduction megathrust, crustal, in-slab) can be tested
+independently as well, in the spatial framework described above.</p>
+<section id="quickstart">
+<h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h2>
+<section id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>
+<p>Hamlet requires installation Python v.3.7+, the <a class="reference external" href="https://github.com/GEM/oq-engine">OpenQuake</a> engine, and some
+additional dependencies as well. These are specified in the <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>
+file.</p>
+<p>(<em>Note:</em> A few of the dependencies might be challenging to install.  These are
+<a class="reference external" href="https://toblerity.org/rtree/">Rtree</a> and <a class="reference external" href="https://github.com/uber/h3-py">h3-py</a>. You may have to install <code class="docutils literal notranslate"><span class="pre">libspatialindex</span></code> or
+<code class="docutils literal notranslate"><span class="pre">libspatialindex-dev</span></code> on Linux or MacOS first, depending on your system, for
+<code class="docutils literal notranslate"><span class="pre">Rtree</span></code>.  <code class="docutils literal notranslate"><span class="pre">h3-py</span></code> requires <code class="docutils literal notranslate"><span class="pre">cc</span></code> and <code class="docutils literal notranslate"><span class="pre">make</span></code>, but then on Linux/MacOS can
+be installed easily. Please see the documentation for each.)</p>
+<p>First, install the <a class="reference external" href="https://github.com/GEM/oq-engine">OpenQuake</a> engine, following directions on that website. You
+probably want to install it into a virtual environment, and you may even want to
+have a separate virtual environment for running Hamlet than the <a class="reference external" href="https://github.com/GEM/oq-engine">OpenQuake</a>
+virtual environment that you normally use (this is up to you).</p>
+<p>Then, clone the Hamlet repository, and from that directory, install the
+requirements:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>and then install Hamlet:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+</pre></div>
+</div>
+</section>
+<section id="running-hamlet">
+<h3>Running Hamlet<a class="headerlink" href="#running-hamlet" title="Link to this heading">¶</a></h3>
+<p>Hamlet only requires a seismic hazard model (implemented in <a class="reference external" href="https://github.com/GEM/oq-engine">OpenQuake</a>) and a
+processed seismic catalog (declustered, and ideally classified by source type)
+to run. Once installed, Hamlet can be run from the command line:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">hamlet</span> <span class="n">test_model</span><span class="o">.</span><span class="n">yml</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">test_model.yml</span></code> is a <a class="reference internal" href="yaml_config_file.html"><span class="doc">configuration file</span></a> in <a class="reference external" href="https://yaml.org">YAML</a>
+format that specifies the source model, seismic catalog, tests to be run, and
+other variables and parameters.</p>
+</section>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started with Hamlet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prepare-the-hazard-model">Prepare the hazard model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prepare-the-earthquake-catalog-s">Prepare the earthquake catalog(s)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#make-the-yaml-configuration-file-s">Make the YAML configuration file(s)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#run-hamlet">Run Hamlet</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Hamlet Architecture and Testing Workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_test_frameworks/model_test_frameworks.html">Model Testing Frameworks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#gem-tests-and-evaluations">GEM Tests and Evaluations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#sanity-checks">Sanity Checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#relm-tests">RELM Tests</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="#">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">Hamlet: Hazard Model Evaluation and Testing</a><ul>
+<li><a class="reference internal" href="#quickstart">Quickstart</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#running-hamlet">Running Hamlet</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="getting_started.html"
+                          title="next chapter">Getting started with Hamlet</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="getting_started.html" title="Getting started with Hamlet"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Hamlet: Hazard Model Evaluation and Testing</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2021, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+  </body>
+</html>

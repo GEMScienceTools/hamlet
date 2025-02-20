@@ -1,0 +1,428 @@
+
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>The YAML configuration file &#8212; Hamlet 0.5.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/bizstyle.css?v=5283bb3d" />
+    
+    <script src="_static/documentation_options.js?v=8e576371"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/bizstyle.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!--[if lt IE 9]>
+    <script src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">The YAML configuration file</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="the-yaml-configuration-file">
+<span id="yaml-config"></span><h1>The YAML configuration file<a class="headerlink" href="#the-yaml-configuration-file" title="Link to this heading">¶</a></h1>
+<p>A Hamlet evaluation is configured using a <a class="reference external" href="https://yaml.org">YAML</a>  file,
+which describes the tests that should be run and any required parameters, the
+location of the input files, and what outputs should be written.  The file is
+made into a dictionary that is used guide the Hamlet run. Therefore the order
+of items is not important.</p>
+<p>If different components of the model are to be evaluated (different logic tree
+branches, or different source model types, etc.) then a separate YAML file
+should be made for each logic tree branch and source model combination to be
+evaluated, as this will be done in separate Hamlet runs.</p>
+<p>A simple example of a yaml configuration file is given at the bottom of this
+page.</p>
+<p>Here are the components of the YAML config file:</p>
+<section id="metadata-meta">
+<span id="metadata"></span><h2>Metadata (<code class="docutils literal notranslate"><span class="pre">meta</span></code>)<a class="headerlink" href="#metadata-meta" title="Link to this heading">¶</a></h2>
+<p>This is a basic section that describes the model. The information is used when
+writing reports; otherwise it is not necessary.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">meta</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">model_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Model Name</span>
+<span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;words</span><span class="nv"> </span><span class="s">describing</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">model</span><span class="nv"> </span><span class="s">name&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="test-and-evaluation-configuration-config">
+<span id="eval-config"></span><h2>Test and Evaluation Configuration (<code class="docutils literal notranslate"><span class="pre">config</span></code>)<a class="headerlink" href="#test-and-evaluation-configuration-config" title="Link to this heading">¶</a></h2>
+<p>This section lists the different tests or evaluations to be run, and what the
+parameters for each will be.</p>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">model_framework</span></code></dt><dd><p>This specifies which framework to use (see
+<a class="reference internal" href="model_test_frameworks/model_test_frameworks.html"><span class="doc">Model Testing Frameworks</span></a> for more information on
+these). Currently, only the <code class="docutils literal notranslate"><span class="pre">gem</span></code> option is available, but <code class="docutils literal notranslate"><span class="pre">sanity</span></code> and
+<code class="docutils literal notranslate"><span class="pre">relm</span></code> are close to being usable. However the <code class="docutils literal notranslate"><span class="pre">sanity</span></code> checks are
+available through the <code class="docutils literal notranslate"><span class="pre">gem</span></code> framework as well.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">parallel</span></code></dt><dd><p>This is a Boolean (<code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>) flag that determines whether
+parallel algorithms are used for loading the seismic source model, and
+performing the more time-intensive tests (such as Monte Carlo based tests).
+The parallel algorithms produce equivalent results, using Python’s
+<a class="reference external" href="https://docs.python.org/3.7/library/multiprocessing.html">multiprocessing</a>
+facilities.</p>
+<p>This flag should be <code class="docutils literal notranslate"><span class="pre">True</span></code> for medium to large models, unless RAM is a
+major limitation. For small models, it may be faster to run on a single
+core, because the overhead in instantiating multiple processes, and
+processing the results, can be substantial.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">rand_seed</span></code></dt><dd><p>A <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html">random seed</a> to be used for reproducible Monte Carlo simulations and
+other functions using random sampling. The seed must follow Numpy’s rules;
+to keep it simple, just use an integer.  Optional.</p>
+</dd>
+</dl>
+<section id="tests">
+<h3>Tests<a class="headerlink" href="#tests" title="Link to this heading">¶</a></h3>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">tests</span></code></dt><dd><p>This specifies which tests or evaluations within the
+<code class="docutils literal notranslate"><span class="pre">model_test_framework</span></code> should be run. Multiple tests can be run; these
+should be nested below the <code class="docutils literal notranslate"><span class="pre">tests</span></code> item with their configuration variables
+given.</p>
+<p>For the <code class="docutils literal notranslate"><span class="pre">gem</span></code> framework, the available tests are
+<a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#gem-like-test"><span class="std std-ref">likelihood</span></a>,
+<a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#gem-model-mfd-test"><span class="std std-ref">model_mfd</span></a>, and
+<a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#max-mag-check"><span class="std std-ref">max_mag_check</span></a>.</p>
+</dd>
+</dl>
+<p>An example, illustrating the required nesting:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">config</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">model_framework</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gem</span>
+<span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">likelihood</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">likelihood_method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">poisson</span>
+<span class="w">            </span><span class="nt">investigation_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40.</span>
+<span class="w">        </span><span class="nt">model_mfd</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">investigation_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40.</span>
+<span class="w">        </span><span class="nt">max_mag_check</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">append_check</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">            </span><span class="nt">warn</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">    </span><span class="nt">parallel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">    </span><span class="nt">rand_seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">420</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="inputs-input">
+<span id="input"></span><h2>Inputs (<code class="docutils literal notranslate"><span class="pre">input</span></code>)<a class="headerlink" href="#inputs-input" title="Link to this heading">¶</a></h2>
+<p>This section describes the inputs into a Hamlet run: the seismic source model,
+the observed earthquake catalog that is used to evaluate the seismic source
+model, and the configuration of the spatial bins that will hold the SSM.</p>
+<section id="seismic-source-model-ssm">
+<h3>Seismic Source Model (<code class="docutils literal notranslate"><span class="pre">ssm</span></code>)<a class="headerlink" href="#seismic-source-model-ssm" title="Link to this heading">¶</a></h3>
+<p>This section describes the location of the Seismic Souce Model (SSM), and the
+components of the model that should be evaluated with Hamlet.</p>
+<p>The SSM must be in the modern OpenQuake format, and specified with a logic tree
+XML file.</p>
+<p>Sub-parameters:</p>
+<ul>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ssm_dir</span></code></dt><dd><p>This parameter describes the filepath (either absolute or relative) to the
+directory containing the seismic source model logic tree file.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ssm_lt_file</span></code></dt><dd><p>This is the name of the logic tree XML file for the SSM, i.e. <code class="docutils literal notranslate"><span class="pre">ssmLT.xml</span></code>
+for most GEM Hazard Mosaic model repositories.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">branch</span></code></dt><dd><p>This specifies what branch is to be evaluated. Because different branches
+are often mutually-exclusive, alternative descriptions of earthquake
+occurrence, evaluating multiple branches at once may greatly increase the
+forecasted occurrence rates of earthquakes, and result in highly innacurate
+evaluation of the model.</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">tectonic_region_types</span></code></dt><dd><p>This parameter is optional but specifies which Tectonic Region Type(s)
+should be evaluated. For example, one may want to evaluate different region
+types separately, to better understand how well the model predicts
+seismicity in active crust vs. stable regions.  The types must correspond to
+those in the SSM.</p>
+<p>This can be specified as a list, or by passing <code class="docutils literal notranslate"><span class="pre">null</span></code> to consider all
+tectonic region types.  For example:</p>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">tectonic_region_types</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Active Shallow Crust</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Stable Continental</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">source_types</span></code></dt><dd><p>This parameter is optional but specifies which source types are evaluated.
+Options include <code class="docutils literal notranslate"><span class="pre">simple_fault</span></code>, <code class="docutils literal notranslate"><span class="pre">complex_fault</span></code>, <code class="docutils literal notranslate"><span class="pre">area</span></code>, <code class="docutils literal notranslate"><span class="pre">point</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">multipoint</span></code>.  As with the <code class="docutils literal notranslate"><span class="pre">tectonic_region_types</span></code>, the values need
+to be passed as a YAML list, or the value of <code class="docutils literal notranslate"><span class="pre">null</span></code> should be given.
+A single value may be passed as</p>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">source_types</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">point</span>
+</pre></div>
+</div>
+</section>
+<section id="observed-earthquake-catalog-seis-catalog">
+<h3>Observed earthquake catalog (<code class="docutils literal notranslate"><span class="pre">seis_catalog</span></code>)<a class="headerlink" href="#observed-earthquake-catalog-seis-catalog" title="Link to this heading">¶</a></h3>
+<p>This set of parameters determines how the seismic catalog will be found and
+parsed so that it can be compared to the source model.</p>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">seis_catalog_file</span></code></dt><dd><p>This parameter gives the relative or absolute filepath and filename of the
+CSV file that is the earthquake catalog.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">columns</span></code></dt><dd><p>This parameter gives a list of the expected column names with the names of
+the columns in the CSV file. The first set of column names are optional,
+with very common defaults, and only need to be put into the YAML file
+if the names to do not correspond to the defaults.  If the earthquake
+catalog is made from the ISC-GEM or the GEM toolkits, these columns
+do not need to be given in the YAML file:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">x_col</span></code></dt><dd><p>This defaults to <code class="docutils literal notranslate"><span class="pre">longitude</span></code>.  If this column in the CSV is not
+called <code class="docutils literal notranslate"><span class="pre">longitude</span></code>, please pass the column name.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">y_col</span></code></dt><dd><p>This defaults to <code class="docutils literal notranslate"><span class="pre">latitude</span></code>.  If this is not the column name in the
+CSV file, please pass the column name.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">depth</span></code></dt><dd><p>This defaults to <code class="docutils literal notranslate"><span class="pre">depth</span></code>. If this is not the column name in the
+CSV file, please pass the column name.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">magnitude</span></code></dt><dd><p>This defaults to <code class="docutils literal notranslate"><span class="pre">magnitude</span></code>. If this is not the column name in the
+CSV file, please pass the column name.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The following columns have no defaults; if they are to be used, they should
+be set here:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">source</span></code></dt><dd><p>This column specifies the institutional source of the earthquake, not
+the geological source.  In the GEM catalogs, this is commonly
+<code class="docutils literal notranslate"><span class="pre">Agency</span></code>.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">event_id</span></code></dt><dd><p>This is the ID of the earthquake.  In the GEM catalogs, this is
+commonly <code class="docutils literal notranslate"><span class="pre">eventID</span></code>.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>And finally, a more complex column, which is actually a set of columns in
+many seismic catalogs:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">time</span></code></dt><dd><p>This sub-parameter is an ordered list of the columns specifying the time
+components that are used to make a single time for the earthquake (this
+is done by making a <code class="xref py py-class docutils literal notranslate"><span class="pre">datetime.datetime</span></code> time object; please see
+<a class="reference external" href="https://dateutil.readthedocs.io/en/stable/">dateutil</a> for more
+information). For the typical GEM catalog, the time sub-parameter will
+be specified like this:</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">time</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">year</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">month</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">day</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hour</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minute</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">second</span>
+</pre></div>
+</div>
+</section>
+<section id="bins-bins">
+<h3>Bins (<code class="docutils literal notranslate"><span class="pre">bins</span></code>)<a class="headerlink" href="#bins-bins" title="Link to this heading">¶</a></h3>
+<p>This section describes configuration for the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SpacemagBin</span></code> s that are used throughout Hamlet.</p>
+<p>All of the parameters are optional, and should only be listed in the YAML file
+if the defaults are not suitable.</p>
+<p>Sub-parameters:</p>
+<ul>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">bin_gis_file</span></code></dt><dd><p>Optional path to a GIS file with polygons that will become the bins. The GIS
+file will be read with <a class="reference external" href="geopandas.org">GeoPandas</a> and one can find
+information on the acceptable vector GIS filetypes at that link.</p>
+<p>It is not recommended to use this option. If it is not given, then polygons
+are created using Uber’s <a class="reference external" href="https://github.com/uber/h3-py">h3-py</a> library
+automatically (based on the spatial extent of the seismic source model),
+which results in much faster testing and is far less of a hassle than
+creating your own GIS file. However if the polygons should correspond to
+e.g. seismic source zones for some purpose, then this option could be used.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_max</span></code></dt><dd><p>Maximum size of the model MFD to be considered. Defaults to 9.0.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_min</span></code></dt><dd><p>Minimum size of the model MFD to be considered. Defaults to 6.0.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_width</span></code></dt><dd><p>Width of the bins for the MFD. Defaults to 0.2. Narrower bins may have
+issues with lower-resolution source models or seismic catalogs.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+</section>
+<section id="reporting">
+<span id="report"></span><h2>Reporting<a class="headerlink" href="#reporting" title="Link to this heading">¶</a></h2>
+<p>This optional section describes how reports (listing the results of the
+evaluations) will be written. Currently there is only one option, the <code class="docutils literal notranslate"><span class="pre">basic</span></code>
+HTML report. This report will aggregate all of the tests or evaluations
+performed and summarize them, either in a map, plot, or table.</p>
+<p>It is suggested to use this option instead of writing plots directly
+either through the <code class="docutils literal notranslate"><span class="pre">model_mfd</span></code> test configuration, or the <code class="docutils literal notranslate"><span class="pre">output</span></code>
+configuration below, as it is a nicer summary.  However if one has specific
+goals, then those other options may be used.</p>
+<p>To write the basic HTML report, put this section in the YAML:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">report</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">basic</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">outfile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/path/to/file.html</span>
+</pre></div>
+</div>
+<p>In the future, more types of reports may be generated, but this is sufficient
+for now.</p>
+</section>
+<section id="outputs">
+<span id="output"></span><h2>Outputs<a class="headerlink" href="#outputs" title="Link to this heading">¶</a></h2>
+<p>This optional section specifies writing other outputs than reports (plots or GIS
+files). This option can give more fine-grained control over the outputs than the
+<code class="docutils literal notranslate"><span class="pre">report</span></code> option, at this time. However the results are less convenient than
+writing a report.</p>
+<p>Parameters:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">bin_gdf</span></code></dt><dd><p>If this parameter is passed, a GeoJSON file will be written that contains
+much of the information in the Hamlet evaluation, including test results,
+for each spatial bin.  The filename to be used is given with a sub-parameter
+<code class="docutils literal notranslate"><span class="pre">file</span></code>:</p>
+</dd>
+</dl>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">bin_gdf</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/path/to/file.geojson</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">plots</span></code></dt><dd><p>This is a parameter (that may be soon deprecated) describing how an MFD plot
+should be written.  It can offer more control than the other options,
+but is not not thoroughly documented at this time.</p>
+</dd>
+</dl>
+</section>
+<section id="putting-it-all-together">
+<h2>Putting it all together<a class="headerlink" href="#putting-it-all-together" title="Link to this heading">¶</a></h2>
+<p>A simple example is taken from the test suite below:</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">The YAML configuration file</a><ul>
+<li><a class="reference internal" href="#metadata-meta">Metadata (<code class="docutils literal notranslate"><span class="pre">meta</span></code>)</a></li>
+<li><a class="reference internal" href="#test-and-evaluation-configuration-config">Test and Evaluation Configuration (<code class="docutils literal notranslate"><span class="pre">config</span></code>)</a><ul>
+<li><a class="reference internal" href="#tests">Tests</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#inputs-input">Inputs (<code class="docutils literal notranslate"><span class="pre">input</span></code>)</a><ul>
+<li><a class="reference internal" href="#seismic-source-model-ssm">Seismic Source Model (<code class="docutils literal notranslate"><span class="pre">ssm</span></code>)</a></li>
+<li><a class="reference internal" href="#observed-earthquake-catalog-seis-catalog">Observed earthquake catalog (<code class="docutils literal notranslate"><span class="pre">seis_catalog</span></code>)</a></li>
+<li><a class="reference internal" href="#bins-bins">Bins (<code class="docutils literal notranslate"><span class="pre">bins</span></code>)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reporting">Reporting</a></li>
+<li><a class="reference internal" href="#outputs">Outputs</a></li>
+<li><a class="reference internal" href="#putting-it-all-together">Putting it all together</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/yaml_config_file.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="index.html">Hamlet 0.5.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">The YAML configuration file</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2019-2021, Richard Styron (GEM Foundation).
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.0.
+    </div>
+  </body>
+</html>
