@@ -521,6 +521,7 @@ def get_model_mfd(
     delete_col: bool = True,
     t_yrs: Optional[float] = None,
     completeness_table=None,  # Optional[List[List[float, float]]] = None,
+    stop_date: Optional[datetime.date] = None,
 ) -> Dict[float, float]:
 
     annual_mfd = get_rup_df_mfd(
@@ -531,7 +532,9 @@ def get_model_mfd(
         model_mfd = {}
         for mag, rate in annual_mfd.items():
             duration = get_mag_duration_from_comp_table(
-                completeness_table, mag
+                completeness_table,
+                mag,
+                stop_date=stop_date,
             )
             model_mfd[mag] = rate * duration
     elif t_yrs is not None:

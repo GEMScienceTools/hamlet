@@ -119,7 +119,11 @@ def m_test_function(
     # normalized to duration !!
 
     mod_mfd = get_model_mfd(
-        rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
+        rup_gdf,
+        mag_bins,
+        t_yrs=t_yrs,
+        completeness_table=completeness_table,
+        stop_date=stop_date,
     )
     obs_mfd = get_obs_mfd(
         eq_gdf,

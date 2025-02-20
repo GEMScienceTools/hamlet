@@ -5,7 +5,13 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils import get_mag_bins_from_cfg, deep_update
+from openquake.hme.utils import (
+    get_mag_bins_from_cfg,
+    deep_update,
+    get_mag_year_from_comp_table,
+    get_model_mfd,
+)
+
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
     # get_stochastic_mfd,
@@ -171,7 +177,7 @@ def L_test(
     else:
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
-        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        t_yrs = cfg["input"]["seis_catalog"].get("duration")
         stop_date = cfg["input"]["seis_catalog"].get("stop_date")
         completeness_table = cfg["input"]["seis_catalog"].get(
             "completeness_table"
@@ -418,6 +424,50 @@ def mfd_likelihood_test(cfg, input_data):
     return
 
 
+def cumulative_occurrence_eval(cfg, input_data):
+
+    eqs = input_data["eq_gdf"]
+    rup_gdf = input_data["rup_gdf"]
+
+    start_date = cfg["input"]["seis_catalog"].get("start_date")
+    stop_date = cfg["input"]["seis_catalog"].get("stop_date")
+    comp_table = cfg["input"]["seis_catalog"].get("completeness_table")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+
+    if not comp_table:
+        start_dates = {k: start_date for k in mag_bins.keys()}
+        t_yrs = stop_date - start_date
+    else:
+        start_dates = {
+            k: get_mag_year_from_comp_table(comp_table, k)
+            for k in mag_bins.keys()
+        }
+        t_yrs = None
+
+    eqs_by_mag_time = {
+        k: {
+            "start_date": start_dates[k],
+            "stop_date": stop_date,
+            "eqs": eqs[eqs.mag_bin == k],
+        }
+        for k in mag_bins.keys()
+    }
+
+    model_mfd = get_model_mfd(
+        rup_gdf,
+        mag_bins,
+        t_yrs=t_yrs,
+        completeness_table=comp_table,
+        stop_date=stop_date,
+    )
+
+    return {
+        "eqs_by_mag_time": eqs_by_mag_time,
+        "model_mfd": model_mfd,
+    }
+
+
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
@@ -428,4 +478,5 @@ gem_test_dict = {
     "N_test": N_test,
     "L_test": L_test,
     "rupture_matching_eval": rupture_matching_eval,
+    "cumulative_occurrence_eval": cumulative_occurrence_eval,
 }

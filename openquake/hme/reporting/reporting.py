@@ -27,6 +27,8 @@ from openquake.hme.utils.plots import (
     plot_M_test_results,
 )
 
+from openquake.hme.utils.utils import breakpoint
+
 BASE_DATA_PATH = os.path.dirname(__file__)
 template_dir = os.path.join(BASE_DATA_PATH, "templates")
 
@@ -316,6 +318,7 @@ def render_S_test(
         res=results[model_test_framework]["S_test"]["val"],
         S_test_map_str=S_test_map_str,
         geojsonData=results["cell_gdf"].__geo_interface__,
+        countryJson=country_geojson,
     )
 
 

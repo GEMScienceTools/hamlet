@@ -85,6 +85,8 @@
 
 <script>
     const geojsonData = {{ geojsonData | tojson }};
+    const countryJson = {{ countryJson | tojson }};
+
 
     // Function to calculate Poisson confidence intervals using mathjs statistics
     function poissonCI(lambda, confidence = 0.95) {
@@ -286,7 +288,10 @@
 
         const g = svg.append('g');
 
-        // Fix polygon winding order
+        // Create a separate group for country boundaries
+        const countryGroup = g.append('g').attr('class', 'country-boundaries');
+
+        // Fix polygon winding order for main geojson data
         const fixedGeojson = {
             type: "FeatureCollection",
             bbox: geojsonData.bbox,
@@ -310,7 +315,6 @@
             .domain(d3.extent(fixedGeojson.features, d => d.properties.gem_S_test_log_like))
             .interpolator(d3.interpolateRdYlBu);
 
-        // Create projection with proper extent
         const projection = d3.geoMercator()
             .fitExtent([[40, 40], [width - 40, height - 40]], fixedGeojson);
 
@@ -322,7 +326,7 @@
             .attr('class', 'tooltip')
             .style('opacity', 0);
 
-        // Draw features
+        // Draw main features
         g.selectAll('path.feature')
             .data(fixedGeojson.features)
             .enter()
@@ -330,6 +334,7 @@
             .attr('class', 'feature')
             .attr('d', path)
             .style('fill', d => colorScale(d.properties.gem_S_test_log_like))
+            .style('fill-opacity', 1.0)
             .style('stroke', 'white')
             .style('stroke-width', '1px')
             .on('mouseover', function (event, d) {
@@ -349,11 +354,11 @@
                 tooltip.append('div')
                     .attr('class', 'tooltip-metric')
                     .html(`
-                    <strong>Test Fraction:</strong> ${d.properties.gem_S_test_frac.toFixed(3)}<br>
-                    <strong>Log Likelihood:</strong> ${d.properties.gem_S_test_log_like.toFixed(3)}<br>
-                    <strong>Model Rate:</strong> ${d.properties.gem_S_test_model_rate.toFixed(3)}<br>
-                    <strong>Observed Earthquakes:</strong> ${d.properties.gem_S_test_observed_eqs}
-                `);
+                <strong>Test Fraction:</strong> ${d.properties.gem_S_test_frac.toFixed(3)}<br>
+                <strong>Log Likelihood:</strong> ${d.properties.gem_S_test_log_like.toFixed(3)}<br>
+                <strong>Model Rate:</strong> ${d.properties.gem_S_test_model_rate.toFixed(3)}<br>
+                <strong>Observed Earthquakes:</strong> ${d.properties.gem_S_test_observed_eqs}
+            `);
 
                 const plotContainer = tooltip.append('div')
                     .attr('class', 'tooltip-plot');
@@ -370,6 +375,20 @@
                     .duration(500)
                     .style('opacity', 0);
             });
+
+
+        // Draw country boundaries
+        countryGroup.selectAll('path.country')
+            .data(countryJson.features)
+            .enter()
+            .append('path')
+            .attr('class', 'country')
+            .attr('d', path)
+            .style('fill', 'none')
+            .style('stroke', '#999')
+            .style('stroke-width', '0.5px')
+            .style('stroke-dasharray', '2,2')
+            .style('pointer-events', 'none'); // Make countries non-interactive
 
         // Add zoom with proper event handling
         const zoom = d3.zoom()
