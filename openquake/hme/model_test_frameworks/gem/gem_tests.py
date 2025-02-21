@@ -149,6 +149,7 @@ def S_test(
         stop_date=stop_date,
         critical_pct=test_config["critical_pct"],
         not_modeled_likelihood=not_modeled_likelihood,
+        parallel=test_config["parallel"],
     )
 
     logging.info("S-Test {}".format(test_results["test_res"]))
@@ -425,9 +426,10 @@ def mfd_likelihood_test(cfg, input_data):
 
 
 def cumulative_occurrence_eval(cfg, input_data):
+    logging.info("Running GEM Cumultive Earthquake Occurrence Eval")
 
     eqs = input_data["eq_gdf"]
-    rup_gdf = input_data["rup_gdf"]
+    rup_gdf = input_data["rupture_gdf"]
 
     start_date = cfg["input"]["seis_catalog"].get("start_date")
     stop_date = cfg["input"]["seis_catalog"].get("stop_date")
@@ -440,7 +442,7 @@ def cumulative_occurrence_eval(cfg, input_data):
         t_yrs = stop_date - start_date
     else:
         start_dates = {
-            k: get_mag_year_from_comp_table(comp_table, k)
+            k: f"{get_mag_year_from_comp_table(comp_table, k)[1]}-01-01"
             for k in mag_bins.keys()
         }
         t_yrs = None
@@ -449,7 +451,7 @@ def cumulative_occurrence_eval(cfg, input_data):
         k: {
             "start_date": start_dates[k],
             "stop_date": stop_date,
-            "eqs": eqs[eqs.mag_bin == k],
+            "eqs": eqs[eqs.mag_bin == k].sort_values("time"),
         }
         for k in mag_bins.keys()
     }

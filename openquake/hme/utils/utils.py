@@ -4,10 +4,12 @@ import json
 import logging
 import datetime
 from time import sleep
+from calendar import isleap
 from functools import partial
 from multiprocessing import Pool
 from collections.abc import Mapping
 from typing import Sequence, List, Optional, Union, Tuple, Dict
+
 
 import attr
 import dateutil
@@ -891,3 +893,63 @@ def pick_andersonian_nodal_plane(strike1, dip1, rake1, strike2, dip2, rake2):
         chosen_set = (strike1, dip1, rake1)
 
     return chosen_set
+
+
+def timestamp_to_decimal_year(timestamp):
+    """
+    Convert a pandas Timestamp to decimal year.
+
+    Args:
+        timestamp (pd.Timestamp): The pandas Timestamp to convert
+
+    Returns:
+        float: The decimal year representation (e.g., 2023.58 for a date in July 2023)
+    """
+    if not isinstance(timestamp, pd.Timestamp):
+        try:
+            timestamp = pd.Timestamp(timestamp)
+        except:
+            raise TypeError("Input must be convertible to pandas Timestamp")
+
+    # Get the year
+    year = timestamp.year
+
+    # Calculate the total number of days in the year (accounting for leap years)
+    days_in_year = 366 if isleap(year) else 365
+
+    # Calculate the day of the year (ordinal day, 1-366)
+    day_of_year = timestamp.dayofyear
+
+    # Calculate the fraction of the day
+    seconds_in_day = 24 * 60 * 60
+    fraction_of_day = (
+        timestamp.hour * 3600 + timestamp.minute * 60 + timestamp.second
+    ) / seconds_in_day
+
+    # The final decimal year
+    decimal_year = year + (day_of_year - 1 + fraction_of_day) / days_in_year
+
+    return decimal_year
+
+
+def datetime_to_decimal_year(dt):
+    """
+    Convert a Python datetime to decimal year.
+
+    Args:
+        dt (datetime.datetime): The datetime object to convert
+
+    Returns:
+        float: The decimal year representation
+    """
+    if not isinstance(dt, datetime.datetime):
+        try:
+            dt = datetime.datetime.fromisoformat(str(dt))
+        except:
+            raise TypeError(
+                "Input must be a datetime object or convertible to one"
+            )
+
+    # Convert to pandas Timestamp for consistent handling
+    timestamp = pd.Timestamp(dt)
+    return timestamp_to_decimal_year(timestamp)

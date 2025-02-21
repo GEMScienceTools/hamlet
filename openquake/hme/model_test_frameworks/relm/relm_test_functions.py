@@ -255,6 +255,8 @@ def s_test_function(
     else:
         N_norm = 1.0
 
+    logging.warning(f"S Test N_norm:  {N_norm}")
+
     cell_like_cfg = {
         "investigation_time": t_yrs,
         "likelihood_fn": likelihood_fn,
@@ -457,6 +459,143 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     }
 
 
+def mfd_log_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    N_norm: float = 1.0,
+    N_iters: int = 1000,
+    not_modeled_likelihood: float = 0.0,
+    return_likes: bool = False,
+    return_data: bool = False,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the whole MFD, which is the sum of the
+    log-likelihoods of each bin, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    likes = [
+        bin_observance_log_likelihood(
+            n_obs, rate_mfd[mag] * N_norm, not_modeled_likelihood
+        )
+        for mag, n_obs in num_obs_events.items()
+    ]
+
+    outputs = {"bin_obs_log_like": np.sum(likes)}
+
+    # still not sure if I'm normalizing correctly.
+    stoch_mfd_samples = {
+        mag_bin: np.random.poisson(rate, size=N_iters)
+        for mag_bin, rate in rate_mfd.items()
+    }
+
+    stoch_like_incremental = {
+        # mag_bin: np.array(
+        #    [
+        #        bin_observance_log_likelihood(
+        #            N_samp,
+        #            rate * N_norm,
+        #            not_modeled_val=not_modeled_likelihood,
+        #        )
+        #        for N_samp in stoch_mfd_samples[mag_bin]
+        #    ]
+        # )
+        mag_bin: bin_observance_log_likelihood(
+            stoch_mfd_samples[mag_bin],
+            rate * N_norm,
+            not_modeled_val=not_modeled_likelihood,
+        )
+        for mag_bin, rate in rate_mfd.items()
+    }
+
+    stoch_likes = np.zeros(N_iters)
+    for mag_bin_likes in stoch_like_incremental.values():
+        stoch_likes += mag_bin_likes
+
+    if return_likes:
+        outputs["stoch_likes"] = stoch_likes
+    if return_data:
+        outputs["obs_mfd"] = num_obs_events
+        outputs["mod_mfd"] = rate_mfd
+        outputs["mod_rate"] = total_model_rate
+        outputs["obs_rate"] = total_num_events
+
+    return outputs
+
+
+def total_event_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    N_norm: float = 1.0,
+    N_iters: int = 1000,
+    not_modeled_likelihood: float = 0.0,
+    return_likes: bool = False,
+    return_data: bool = False,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the total number of events compared to
+    the modeled number of events, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    bin_obs_log_like = bin_observance_log_likelihood(
+        total_num_events,
+        total_model_rate * N_norm,
+        not_modeled_val=not_modeled_likelihood,
+    )
+
+    # do I normalize total_model_rate here?
+    stoch_N_events = np.random.poisson(total_model_rate, size=N_iters)
+    stoch_likes = bin_observance_log_likelihood(
+        stoch_N_events,
+        total_model_rate * N_norm,
+        not_modeled_val=not_modeled_likelihood,
+    )
+
+    outputs = {"bin_obs_log_like": bin_obs_log_like}
+    if return_likes:
+        outputs["stoch_likes"] = stoch_likes
+    if return_data:
+        outputs["obs_mfd"] = num_obs_events
+        outputs["mod_mfd"] = rate_mfd
+        outputs["mod_rate"] = total_model_rate
+        outputs["obs_rate"] = total_num_events
+
+    return outputs
+
+
 def n_test_function(rup_gdf, eq_gdf, test_config: dict):
     prospective = test_config.get("prospective", False)
 
@@ -522,104 +661,6 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
 
 def get_poisson_counts_from_mfd(mfd: dict):
     return {mag: np.random.poisson(rate) for mag, rate in mfd.items()}
-
-
-def mfd_log_likelihood(
-    rate_mfd: dict,
-    binned_events: Optional[dict] = None,
-    empirical_mfd: Optional[dict] = None,
-    N_norm: float = 1.0,
-    not_modeled_likelihood: float = 0.0,
-    return_likes: bool = False,
-    return_data: bool = False,
-) -> float:
-    """
-    Calculates the log-likelihood of the observations (either `binned_events`
-    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
-    value is the log-likelihood of the whole MFD, which is the sum of the
-    log-likelihoods of each bin, calculated using Poisson statistics.
-    """
-    if binned_events is not None:
-        if empirical_mfd is None:
-            num_obs_events = {
-                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
-            }
-        else:
-            raise ValueError("Either use empirical_mfd or binned_events")
-    else:
-        num_obs_events = {
-            mag: int(rate) for mag, rate in empirical_mfd.items()
-        }
-
-    total_model_rate = sum(rate_mfd.values())
-    total_num_events = sum(num_obs_events.values())
-
-    likes = [
-        bin_observance_log_likelihood(
-            n_obs, rate_mfd[mag] * N_norm, not_modeled_likelihood
-        )
-        for mag, n_obs in num_obs_events.items()
-    ]
-
-    outputs = {"bin_obs_log_like": np.sum(likes)}
-
-    if return_likes:
-        outputs["stoch_likes"] = likes
-    if return_data:
-        outputs["obs_mfd"] = num_obs_events
-        outputs["mod_mfd"] = rate_mfd
-        outputs["mod_rate"] = total_model_rate
-        outputs["obs_rate"] = total_num_events
-
-    return outputs
-
-
-def total_event_likelihood(
-    rate_mfd: dict,
-    binned_events: Optional[dict] = None,
-    empirical_mfd: Optional[dict] = None,
-    N_norm: float = 1.0,
-    not_modeled_likelihood: float = 0.0,
-    return_likes: bool = False,
-    return_data: bool = False,
-) -> float:
-    """
-    Calculates the log-likelihood of the observations (either `binned_events`
-    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
-    value is the log-likelihood of the total number of events compared to
-    the modeled number of events, calculated using Poisson statistics.
-    """
-    if binned_events is not None:
-        if empirical_mfd is None:
-            num_obs_events = {
-                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
-            }
-        else:
-            raise ValueError("Either use empirical_mfd or binned_events")
-    else:
-        num_obs_events = {
-            mag: int(rate) for mag, rate in empirical_mfd.items()
-        }
-
-    total_model_rate = sum(rate_mfd.values())
-    total_num_events = sum(num_obs_events.values())
-
-    bin_obs_log_like = bin_observance_log_likelihood(
-        total_num_events,
-        total_model_rate * N_norm,
-        not_modeled_val=not_modeled_likelihood,
-    )
-
-    outputs = {"bin_obs_log_like": bin_obs_log_like}
-    if return_likes:
-        outputs["stoch_likes"] = [bin_obs_log_like]
-    if return_data:
-        outputs["obs_mfd"] = num_obs_events
-        outputs["mod_mfd"] = rate_mfd
-        outputs["mod_rate"] = total_model_rate
-        outputs["obs_rate"] = total_num_events
-
-    return outputs
 
 
 def N_test_empirical(

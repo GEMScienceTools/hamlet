@@ -109,6 +109,46 @@ def sample_event_times_in_interval_array(
     return event_times_list
 
 
+def poisson_likelihood_vect(
+    num_events, rate, time_interval=1.0, not_modeled_val: float = 0.0
+):
+    # exploiting the fact that there are very few unique values
+
+    likelihoods = np.empty(num_events.shape)
+
+    unique_num_events = np.unique(num_events)
+
+    for unv in unique_num_events:
+        likelihoods[num_events == unv] = poisson_likelihood(
+            unv,
+            rate,
+            time_interval=time_interval,
+            not_modeled_val=not_modeled_val,
+        )
+
+    return likelihoods
+
+
+def poisson_log_likelihood_vect(
+    num_events, rate, time_interval=1.0, not_modeled_val: float = 0.0
+):
+    # exploiting the fact that there are very few unique values
+
+    log_likelihoods = np.empty(num_events.shape)
+
+    unique_num_events = np.unique(num_events)
+
+    for unv in unique_num_events:
+        log_likelihoods[num_events == unv] = poisson_log_likelihood(
+            unv,
+            rate,
+            time_interval=time_interval,
+            not_modeled_val=not_modeled_val,
+        )
+
+    return log_likelihoods
+
+
 def poisson_likelihood(
     num_events: int,
     rate: float,
