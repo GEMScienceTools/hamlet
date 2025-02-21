@@ -1,8 +1,10 @@
 import os
+import datetime
 from typing import Union, Optional, Tuple, Sequence, Any
 
 import h3
 import numpy as np
+import pandas as pd
 import geopandas as gpd
 from scipy.stats import poisson
 import matplotlib.pyplot as plt
@@ -14,6 +16,11 @@ from matplotlib.colors import Normalize, BoundaryNorm
 
 import io
 from .stats import sample_event_times_in_interval
+
+from openquake.hme.utils.utils import (
+    timestamp_to_decimal_year,
+    datetime_to_decimal_year,
+)
 
 natural_earth_countries_file = os.path.join(
     *os.path.split(__file__)[::-1],
@@ -788,3 +795,97 @@ def plot_histogram_heatmap(data):
     plt.legend()
 
     return fig
+
+
+def plot_eqs_by_mag_time(
+    eqs_by_mag_time,
+    model_mfd=None,
+    plot_obs_trendlines: bool = True,
+    plot_model_trendlines: bool = True,
+    return_str: bool = False,
+):
+    """
+    Plot earthquakes occurrence over time for different magnitude bins.
+
+    Args:
+        eqs_by_mag_time: Dictionary of earthquake data by magnitude bin
+        model_mfd: Model magnitude frequency distribution
+        plot_obs_trendlines: Whether to plot observed trendlines
+        plot_model_trendlines: Whether to plot model trendlines
+        return_str: If True, returns SVG string; otherwise returns figure
+
+    Returns:
+        Figure or SVG string representation of plot
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import pandas as pd
+    import io
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Get a colormap with distinct colors
+    cmap = cm.get_cmap("tab10")
+
+    # Sort magnitude bins for consistent color assignment
+    sorted_mag_bins = sorted(eqs_by_mag_time.keys())
+
+    for i, mag_bin in enumerate(sorted_mag_bins):
+        # Get color from colormap based on index
+        color = cmap(
+            i % 10
+        )  # Cycle through 10 colors if more than 10 mag bins
+
+        mag_eq_data = eqs_by_mag_time[mag_bin]
+        eqs = mag_eq_data["eqs"]
+
+        # Create time series including start and end dates
+        times = [pd.to_datetime(mag_eq_data["start_date"])]
+        times.extend(pd.to_datetime(eqs["time"]).tolist())
+        times.append(pd.to_datetime(mag_eq_data["stop_date"]))
+
+        # Convert to decimal years
+        times = [timestamp_to_decimal_year(t) for t in times]
+
+        # Create cumulative counts
+        cumulative_counts = list(range(len(times) - 1))
+        cumulative_counts.append(max(cumulative_counts))
+
+        # Plot observed data with consistent color
+        ax.step(
+            times,
+            cumulative_counts,
+            where="post",
+            label=mag_bin,
+            color=color,
+        )
+
+        # Plot model trendline if requested, with same color but dashed line
+        if plot_model_trendlines and model_mfd is not None:
+            if mag_bin in model_mfd:
+                end_number = model_mfd[
+                    mag_bin
+                ]  # * duration already factored in
+                ax.plot(
+                    [times[0], times[-1]],
+                    [0.0, end_number],
+                    "--",  # Dashed line
+                    color=color,  # Same color as empirical data
+                    lw=0.5,
+                    # label=f"Model {mag_bin}",
+                )
+
+    plt.xlabel("Year")
+    plt.ylabel("Number of Earthquake Occurrences")
+    plt.legend(loc="upper left")
+    plt.grid(True, linestyle="--", alpha=0.7)
+    plt.title("Cumulative Earthquake Occurrences by Magnitude Bin")
+
+    if return_str:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+    else:
+        return fig

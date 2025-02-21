@@ -25,6 +25,7 @@ from openquake.hme.utils.plots import (
     plot_N_test_results,
     plot_L_test_results,
     plot_M_test_results,
+    plot_eqs_by_mag_time,
 )
 
 from openquake.hme.utils.utils import breakpoint
@@ -141,6 +142,11 @@ def render_result_text(
         if "rupture_matching_eval" in results["gem"].keys():
             render_rupture_matching_eval(
                 env=env, cfg=cfg, input_data=input_data, results=results
+            )
+
+        if "cumulative_occurrence_eval" in results["gem"].keys():
+            render_cumulative_occurrence_eval(
+                env=env, cfg=cfg, results=results
             )
 
     if "relm" in results.keys():
@@ -406,4 +412,21 @@ def render_mfd_eval(env: Environment, cfg: dict, results: dict):
     mfd_template = env.get_template("mfd.html")
     results["gem"]["model_mfd"]["rendered_text"] = mfd_template.render(
         cfg=cfg, results=results
+    )
+
+
+def render_cumulative_occurrence_eval(
+    env: Environment, cfg: dict, results: dict
+):
+    eval_results = results["gem"]["cumulative_occurrence_eval"]["val"]
+
+    fig_str = plot_eqs_by_mag_time(
+        eval_results["eqs_by_mag_time"],
+        model_mfd=eval_results["model_mfd"],
+        return_str=True,
+    )
+
+    cum_occ_template = env.get_template("cumulative_occurrence.html")
+    results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
+        cum_occ_template.render(cum_occ_str=fig_str)
     )
