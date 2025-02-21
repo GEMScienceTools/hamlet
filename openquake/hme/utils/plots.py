@@ -889,3 +889,123 @@ def plot_eqs_by_mag_time(
         return fig_svg
     else:
         return fig
+
+
+def prepare_eqs_by_mag_time_for_d3(eqs_by_mag_time, model_mfd=None):
+    """
+    Process earthquake data for D3.js visualization.
+
+    Args:
+        eqs_by_mag_time: Dictionary of earthquake data by magnitude bin
+        model_mfd: Model magnitude frequency distribution (optional)
+
+    Returns:
+        dict: JSON-serializable data for D3 visualization including:
+              - series: array of datasets (one per magnitude bin)
+              - modelLines: array of model trendlines if model_mfd is provided
+              - domainExtent: min/max values for x and y axes
+    """
+    d3_data = {
+        "series": [],
+        "modelLines": [],
+        "domainExtent": {
+            "x": [float("inf"), float("-inf")],  # [min, max]
+            "y": [0, 0],  # [min, max]
+        },
+    }
+
+    # Sort magnitude bins for consistent color assignment
+    sorted_mag_bins = sorted(eqs_by_mag_time.keys())
+
+    # get start dates
+    start_dates = []
+    stop_date = None
+    # Process each magnitude bin
+    for mag_bin in sorted_mag_bins:
+        mag_eq_data = eqs_by_mag_time[mag_bin]
+        eqs = mag_eq_data["eqs"]
+
+        # Create time series including start and end dates
+        times = [pd.to_datetime(mag_eq_data["start_date"])]
+        times.extend(pd.to_datetime(eqs["time"]).tolist())
+        times.append(pd.to_datetime(mag_eq_data["stop_date"]))
+
+        # Convert to decimal years
+        decimal_times = [timestamp_to_decimal_year(t) for t in times]
+        start_dates.append(decimal_times[0])
+        stop_date = decimal_times[-1]
+
+        # Create cumulative counts
+        cumulative_counts = list(range(len(times) - 1))
+        cumulative_counts.append(max(cumulative_counts))
+
+        # Track domain extent
+        d3_data["domainExtent"]["x"][0] = min(
+            d3_data["domainExtent"]["x"][0], decimal_times[0]
+        )
+        d3_data["domainExtent"]["x"][1] = max(
+            d3_data["domainExtent"]["x"][1], decimal_times[-1]
+        )
+        d3_data["domainExtent"]["y"][1] = max(
+            d3_data["domainExtent"]["y"][1], max(cumulative_counts)
+        )
+
+        # Create step data for D3 (creating pairs of points for step visualization)
+        points = []
+        for i in range(len(decimal_times)):
+            # Add current point
+            points.append({"x": decimal_times[i], "y": cumulative_counts[i]})
+
+            # If not the last point, add the horizontal step segment
+            if i < len(decimal_times) - 1:
+                points.append(
+                    {"x": decimal_times[i + 1], "y": cumulative_counts[i]}
+                )
+
+        # Store the series data
+        d3_data["series"].append(
+            {
+                "magBin": (
+                    float(mag_bin)
+                    if isinstance(mag_bin, (int, float))
+                    else mag_bin
+                ),
+                "label": f"Magnitude {mag_bin}",
+                "points": points,
+            }
+        )
+
+        # Add model trendline if available
+        if model_mfd is not None and mag_bin in model_mfd:
+            end_number = model_mfd[mag_bin]
+            d3_data["modelLines"].append(
+                {
+                    "magBin": (
+                        float(mag_bin)
+                        if isinstance(mag_bin, (int, float))
+                        else mag_bin
+                    ),
+                    "label": f"Model {mag_bin}",
+                    "start": {"x": decimal_times[0], "y": 0.0},
+                    "end": {"x": decimal_times[-1], "y": end_number},
+                }
+            )
+
+            # Update y-axis extent if needed
+            d3_data["domainExtent"]["y"][1] = max(
+                d3_data["domainExtent"]["y"][1], end_number
+            )
+
+    start_date = min(start_dates)
+
+    # Add some padding to the domain extents for better visualization
+    x_padding = (
+        d3_data["domainExtent"]["x"][1] - d3_data["domainExtent"]["x"][0]
+    ) * 0.05
+    y_padding = d3_data["domainExtent"]["y"][1] * 0.1
+
+    d3_data["domainExtent"]["x"][0] -= x_padding
+    d3_data["domainExtent"]["x"][1] += x_padding
+    d3_data["domainExtent"]["y"][1] += y_padding
+
+    return d3_data, start_date, stop_date

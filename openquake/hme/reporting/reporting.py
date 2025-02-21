@@ -26,6 +26,7 @@ from openquake.hme.utils.plots import (
     plot_L_test_results,
     plot_M_test_results,
     plot_eqs_by_mag_time,
+    prepare_eqs_by_mag_time_for_d3,
 )
 
 from openquake.hme.utils.utils import breakpoint
@@ -420,13 +421,24 @@ def render_cumulative_occurrence_eval(
 ):
     eval_results = results["gem"]["cumulative_occurrence_eval"]["val"]
 
-    fig_str = plot_eqs_by_mag_time(
-        eval_results["eqs_by_mag_time"],
-        model_mfd=eval_results["model_mfd"],
-        return_str=True,
+    prepped_data, start_date, stop_date = prepare_eqs_by_mag_time_for_d3(
+        eval_results["eqs_by_mag_time"], model_mfd=eval_results["model_mfd"]
     )
+
+    json_data = json.dumps(prepped_data).strip("'")
+
+    # fig_str = plot_eqs_by_mag_time(
+    #    eval_results["eqs_by_mag_time"],
+    #    model_mfd=eval_results["model_mfd"],
+    #    return_str=True,
+    # )
+
+    # cum_occ_template = env.get_template("cumulative_occurrence.html")
+    # results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
+    #    cum_occ_template.render(cum_occ_str=fig_str)
+    # )
 
     cum_occ_template = env.get_template("cumulative_occurrence.html")
     results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
-        cum_occ_template.render(cum_occ_str=fig_str)
+        cum_occ_template.render(earthquake_data=json_data)
     )
