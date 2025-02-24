@@ -266,6 +266,7 @@ def s_test_function(
         "mag_bins": mag_bins,
         "completeness_table": completeness_table,
         "stop_date": stop_date,
+        "critical_frac": critical_pct,
     }
 
     cell_likes = s_test_cells(
@@ -307,9 +308,19 @@ def s_test_function(
 
     cell_fracs = np.zeros(len(cells))
 
-    for i, obs_like in enumerate(obs_likes):
-        cell_stoch_likes = stoch_likes[i]
-        cell_fracs[i] = sum(cell_stoch_likes <= obs_like) / n_iters
+    breakpoint()
+
+    if likelihood_fn in ["conf_interval_poisson"]:
+        stoch_passes = np.vstack(
+            [cell_likes[cell]["stoch_passes"] for cell in cells]
+        )
+        for i, obs_like in enumerate(obs_likes):
+            cell_stoch_likes = stoch_passes[i]
+            cell_fracs[i] = sum(cell_stoch_likes) / n_iters
+    else:
+        for i, obs_like in enumerate(obs_likes):
+            cell_stoch_likes = stoch_likes[i]
+            cell_fracs[i] = sum(cell_stoch_likes <= obs_like) / n_iters
 
     obs_like_total = sum(obs_likes)
     stoch_like_totals = np.sum(stoch_likes, axis=0)
@@ -407,6 +418,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         return_likes=True,
         return_data=True,
         not_modeled_likelihood=not_modeled_likelihood,
+        conf_interval=1 - test_cfg["critical_frac"],
     )
 
     obs_L = likelihood_results["bin_obs_log_like"]
@@ -436,20 +448,20 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     )
 
     # calculate L for iterated stochastic event sets
-    stoch_Ls = np.array(
-        [
-            like_fn(
-                rate_mfd,
-                empirical_mfd=stoch_rup_counts[i],
-                not_modeled_likelihood=not_modeled_likelihood,
-            )["bin_obs_log_like"]
-            for i in range(test_cfg["n_iters"])
-        ]
-    )
+    # stoch_Ls = np.array(
+    #    [
+    #        like_fn(
+    #            rate_mfd,
+    #            empirical_mfd=stoch_rup_counts[i],
+    #            not_modeled_likelihood=not_modeled_likelihood,
+    #        )["bin_obs_log_like"]
+    #        for i in range(test_cfg["n_iters"])
+    #    ]
+    # )
 
-    return {
+    results = {
         "obs_loglike": obs_L,
-        "stoch_loglikes": stoch_Ls,
+        "stoch_loglikes": likes,
         "bad_bins": bad_bins,
         "unmatched_eqs": unmatched_eqs,
         "obs_rate": likelihood_results["obs_rate"],
@@ -457,6 +469,11 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         "obs_mfd": likelihood_results["obs_mfd"],
         "mod_mfd": likelihood_results["mod_mfd"],
     }
+
+    if "stoch_passes" in likelihood_results:
+        results["stoch_passes"] = likelihood_results["stoch_passes"]
+
+    return results
 
 
 def mfd_log_likelihood(
@@ -468,6 +485,7 @@ def mfd_log_likelihood(
     not_modeled_likelihood: float = 0.0,
     return_likes: bool = False,
     return_data: bool = False,
+    **kwargs,
 ) -> float:
     """
     Calculates the log-likelihood of the observations (either `binned_events`
@@ -548,6 +566,7 @@ def total_event_likelihood(
     not_modeled_likelihood: float = 0.0,
     return_likes: bool = False,
     return_data: bool = False,
+    **kwargs,
 ) -> float:
     """
     Calculates the log-likelihood of the observations (either `binned_events`
@@ -587,6 +606,59 @@ def total_event_likelihood(
     outputs = {"bin_obs_log_like": bin_obs_log_like}
     if return_likes:
         outputs["stoch_likes"] = stoch_likes
+    if return_data:
+        outputs["obs_mfd"] = num_obs_events
+        outputs["mod_mfd"] = rate_mfd
+        outputs["mod_rate"] = total_model_rate
+        outputs["obs_rate"] = total_num_events
+
+    return outputs
+
+
+def conf_interval_poisson(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    N_norm: float = 1.0,
+    N_iters: int = 1000,
+    conf_interval: float = 0.0,
+    return_likes: bool = False,
+    return_data: bool = False,
+    **kwargs,
+) -> float:
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    # normalizing here, again not sure what to do
+    cell_poisson_norm = poisson(total_model_rate * N_norm)
+
+    conf_min, conf_max = cell_poisson_norm.interval(conf_interval)
+
+    bin_obs_log_like = 1.0 * conf_min <= total_num_events <= conf_max
+    # perhaps calculate a z score
+
+    stoch_N_events = np.random.poisson(total_model_rate, size=N_iters)
+    stoch_likes = cell_poisson_norm.cdf(stoch_N_events)
+    stoch_passes = 1.0 * (
+        (conf_min <= stoch_N_events) & (stoch_N_events <= conf_max)
+    ).astype(int)
+
+    outputs = {"bin_obs_log_like": bin_obs_log_like}
+    if return_likes:
+        outputs["stoch_likes"] = stoch_likes
+        outputs["stoch_passes"] = stoch_passes
     if return_data:
         outputs["obs_mfd"] = num_obs_events
         outputs["mod_mfd"] = rate_mfd
@@ -744,7 +816,11 @@ def N_test_neg_binom(
     return test_result
 
 
-S_TEST_FN = {"n_eqs": total_event_likelihood, "mfd": mfd_log_likelihood}
+S_TEST_FN = {
+    "n_eqs": total_event_likelihood,
+    "mfd": mfd_log_likelihood,
+    "conf_interval_poisson": conf_interval_poisson,
+}
 
 """
 def subdivide_observed_eqs_old(bin_gdf: GeoDataFrame, subcat_n_years: int):
