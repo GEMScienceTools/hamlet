@@ -308,8 +308,6 @@ def s_test_function(
 
     cell_fracs = np.zeros(len(cells))
 
-    breakpoint()
-
     if likelihood_fn in ["conf_interval_poisson"]:
         stoch_passes = np.vstack(
             [cell_likes[cell]["stoch_passes"] for cell in cells]
@@ -443,22 +441,6 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     if len(unmatched_eqs) > 0:
         unmatched_eqs = pd.concat(unmatched_eqs, axis=0)
 
-    stoch_rup_counts = get_poisson_counts_from_mfd_iter(
-        rate_mfd, test_cfg["n_iters"]
-    )
-
-    # calculate L for iterated stochastic event sets
-    # stoch_Ls = np.array(
-    #    [
-    #        like_fn(
-    #            rate_mfd,
-    #            empirical_mfd=stoch_rup_counts[i],
-    #            not_modeled_likelihood=not_modeled_likelihood,
-    #        )["bin_obs_log_like"]
-    #        for i in range(test_cfg["n_iters"])
-    #    ]
-    # )
-
     results = {
         "obs_loglike": obs_L,
         "stoch_loglikes": likes,
@@ -524,16 +506,6 @@ def mfd_log_likelihood(
     }
 
     stoch_like_incremental = {
-        # mag_bin: np.array(
-        #    [
-        #        bin_observance_log_likelihood(
-        #            N_samp,
-        #            rate * N_norm,
-        #            not_modeled_val=not_modeled_likelihood,
-        #        )
-        #        for N_samp in stoch_mfd_samples[mag_bin]
-        #    ]
-        # )
         mag_bin: bin_observance_log_likelihood(
             stoch_mfd_samples[mag_bin],
             rate * N_norm,
