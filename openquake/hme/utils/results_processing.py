@@ -63,7 +63,19 @@ def add_s_test_fracs_to_cell_gdf(
         {
             c: np.mean(
                 s_test_results["val"]["test_data"]["cell_loglikes"][c][
-                    "stoch_loglikes"
+                    "obs_loglike"
+                ]
+            )
+            for c in cell_ids
+        },
+        name=f"{model_test_framework}_S_test_log_likelihood",
+    )
+
+    likes = pd.Series(
+        {
+            c: np.mean(
+                s_test_results["val"]["test_data"]["cell_loglikes"][c][
+                    "obs_loglike"
                 ]
             )
             for c in cell_ids
@@ -74,6 +86,16 @@ def add_s_test_fracs_to_cell_gdf(
     cell_gdf[f"{model_test_framework}_S_test_frac"] = fracs
     cell_gdf[f"{model_test_framework}_S_test_log_like"] = likes
 
+    if "cell_passes" in s_test_results["val"]["test_data"]:
+        passes = pd.Series(
+            {
+                c: s_test_results["val"]["test_data"]["cell_passes"][i]
+                for i, c in enumerate(cell_ids)
+            },
+            name=f"{model_test_framework}_S_test_pass",
+        )
+
+        cell_gdf[f"{model_test_framework}_S_test_pass"] = passes
     return
 
 

@@ -84,9 +84,9 @@
             .style('stroke', '#e0e0e0')
             .style('stroke-dasharray', '3,3');
 
-        // Add tooltip div that follows the mouse
-        const tooltip = d3.select("body").append("div")
-            .attr("class", "tooltip")
+        // Add tooltip div that follows the mouse - WITH UNIQUE CLASS NAME
+        const occurrenceTooltip = d3.select("body").append("div")
+            .attr("class", "occurrence-tooltip")
             .style("opacity", 0)
             .style("position", "absolute")
             .style("pointer-events", "none");
@@ -123,9 +123,9 @@
             // Store reference to the path
             seriesElements[magBin].observed = path;
 
-            // Add hover interactions
+            // Add hover interactions - UPDATED TO USE MODERN D3 EVENT HANDLING
             path
-                .on('mouseover', function () {
+                .on('mouseover', function(event) {
                     // Make other lines transparent
                     seriesGroup.selectAll('.line-series').style('opacity', 0.2);
                     modelGroup.selectAll('.model-line').style('opacity', 0.2);
@@ -137,26 +137,26 @@
                     }
 
                     // Show tooltip
-                    tooltip.transition()
+                    occurrenceTooltip.transition()
                         .duration(200)
                         .style("opacity", .9);
-                    tooltip.html(magBin)
-                        .style("left", (d3.event.pageX + 10) + "px")
-                        .style("top", (d3.event.pageY - 28) + "px");
+                    occurrenceTooltip.html(magBin)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
                 })
-                .on('mousemove', function () {
+                .on('mousemove', function(event) {
                     // Update tooltip position as mouse moves
-                    tooltip
-                        .style("left", (d3.event.pageX + 10) + "px")
-                        .style("top", (d3.event.pageY - 28) + "px");
+                    occurrenceTooltip
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
                 })
-                .on('mouseout', function () {
+                .on('mouseout', function() {
                     // Restore all lines
                     seriesGroup.selectAll('.line-series').style('opacity', 1);
                     modelGroup.selectAll('.model-line').style('opacity', 1);
 
                     // Hide tooltip
-                    tooltip.transition()
+                    occurrenceTooltip.transition()
                         .duration(500)
                         .style("opacity", 0);
                 });
@@ -212,8 +212,8 @@
                 .text(series.magBin)
                 .style('font-size', '12px');
 
-            // Add hover interaction to legend items
-            g.on('mouseover', function () {
+            // Add hover interaction to legend items - UPDATED TO USE MODERN D3 EVENT HANDLING
+            g.on('mouseover', function(event) {
                 const magBin = d3.select(this).attr('data-magbin');
 
                 // Make other lines transparent
@@ -227,26 +227,26 @@
                 }
 
                 // Show tooltip
-                tooltip.transition()
+                occurrenceTooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(magBin)
-                    .style("left", (d3.event.pageX + 10) + "px")
-                    .style("top", (d3.event.pageY - 28) + "px");
+                occurrenceTooltip.html(magBin)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
             })
-                .on('mousemove', function () {
+                .on('mousemove', function(event) {
                     // Update tooltip position as mouse moves
-                    tooltip
-                        .style("left", (d3.event.pageX + 10) + "px")
-                        .style("top", (d3.event.pageY - 28) + "px");
+                    occurrenceTooltip
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
                 })
-                .on('mouseout', function () {
+                .on('mouseout', function() {
                     // Restore all lines
                     seriesGroup.selectAll('.line-series').style('opacity', 1);
                     modelGroup.selectAll('.model-line').style('opacity', 1);
 
                     // Hide tooltip
-                    tooltip.transition()
+                    occurrenceTooltip.transition()
                         .duration(500)
                         .style("opacity", 0);
                 });
@@ -297,8 +297,8 @@
         stroke-linecap: round;
     }
 
-    /* Tooltip style */
-    .tooltip {
+    /* Tooltip style - UPDATED CLASS NAME */
+    .occurrence-tooltip {
         padding: 6px 10px;
         background: rgba(0, 0, 0, 0.7);
         color: white;

@@ -622,6 +622,23 @@ class MagTooSmallError(Exception):
     pass
 
 
+def get_eq_df_mag_bins(
+    eq_df,
+    mag_bins,
+) -> None:
+    bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
+
+    if "mag_bin" not in eq_df.columns:
+        eq_df["mag_bin"] = pd.cut(
+            eq_df.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
+
+
 def get_obs_mfd(
     eq_df,
     mag_bins,
@@ -953,3 +970,9 @@ def datetime_to_decimal_year(dt):
     # Convert to pandas Timestamp for consistent handling
     timestamp = pd.Timestamp(dt)
     return timestamp_to_decimal_year(timestamp)
+
+
+def datetime_to_string(dt):
+    # Convert to pandas Timestamp for consistent handling
+    timestamp = pd.Timestamp(dt)
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S")

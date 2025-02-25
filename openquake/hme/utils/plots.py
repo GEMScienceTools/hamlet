@@ -1,4 +1,5 @@
 import os
+import json
 import datetime
 from typing import Union, Optional, Tuple, Sequence, Any
 
@@ -19,7 +20,7 @@ from .stats import sample_event_times_in_interval
 
 from openquake.hme.utils.utils import (
     timestamp_to_decimal_year,
-    datetime_to_decimal_year,
+    datetime_to_string,
 )
 
 natural_earth_countries_file = os.path.join(
@@ -631,6 +632,47 @@ def plot_rup_match_map(
         return fig_svg
     else:
         return fig
+
+
+def prepare_rup_match_data_for_d3(
+    eqs, matched_rups, unmatched_eqs=None, map_epsg=None
+):
+    """
+    Prepares earthquake data for D3 visualization by converting to GeoJSON.
+    """
+    # Prepare matched earthquakes data
+    matched_eqs = eqs.loc[matched_rups.index].copy()
+    matched_eqs["likelihood"] = matched_rups["likelihood"]
+    matched_eqs["match_status"] = "matched"
+
+    # Prepare unmatched earthquakes data if available
+    if unmatched_eqs is not None and len(unmatched_eqs) > 0:
+        unmatched_eqs = unmatched_eqs.copy()
+        unmatched_eqs["likelihood"] = 0
+        unmatched_eqs["match_status"] = "unmatched"
+
+        # Combine matched and unmatched
+        all_eqs = pd.concat([matched_eqs, unmatched_eqs])
+    else:
+        all_eqs = matched_eqs
+
+    all_eqs["time"] = [datetime_to_string(ts) for ts in all_eqs["time"]]
+
+    # Convert to specified CRS if needed
+    if map_epsg is not None:
+        all_eqs = all_eqs.to_crs(epsg=map_epsg)
+
+    # Convert to GeoJSON
+    all_eqs_json = json.loads(all_eqs.to_json())
+
+    # Get world boundaries
+    world = gpd.read_file(natural_earth_countries_file)
+    if map_epsg is not None:
+        world = world.to_crs(epsg=map_epsg)
+
+    world_json = json.loads(world.to_json())
+
+    return {"earthquakes": all_eqs_json, "world": world_json}
 
 
 def plot_rup_match_mag_dist(

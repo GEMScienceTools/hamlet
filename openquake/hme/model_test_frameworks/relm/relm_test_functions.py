@@ -230,7 +230,6 @@ def s_test_function(
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
 ):
-    # annual_rup_rate = rup_gdf.occurrence_rate.sum()
     if normalize_n_eqs:
         obs_mfd = get_obs_mfd(
             eq_gdf,
@@ -255,7 +254,7 @@ def s_test_function(
     else:
         N_norm = 1.0
 
-    logging.warning(f"S Test N_norm:  {N_norm}")
+    logging.info(f"S Test N_norm:  {N_norm}")
 
     cell_like_cfg = {
         "investigation_time": t_yrs,
@@ -312,18 +311,26 @@ def s_test_function(
         stoch_passes = np.vstack(
             [cell_likes[cell]["stoch_passes"] for cell in cells]
         )
+        cell_passes = np.array(
+            [cell_likes[cell]["cell_pass"] for cell in cells]
+        )
         for i, obs_like in enumerate(obs_likes):
             cell_stoch_likes = stoch_passes[i]
             cell_fracs[i] = sum(cell_stoch_likes) / n_iters
+
+        # We want to see if enough cells are within the confidence interval
+        # Don't think the stochastic part matters...
+        pctile = sum(cell_passes) / len(cells)
+
     else:
         for i, obs_like in enumerate(obs_likes):
             cell_stoch_likes = stoch_likes[i]
             cell_fracs[i] = sum(cell_stoch_likes <= obs_like) / n_iters
 
-    obs_like_total = sum(obs_likes)
-    stoch_like_totals = np.sum(stoch_likes, axis=0)
+        obs_like_total = sum(obs_likes)
+        stoch_like_totals = np.sum(stoch_likes, axis=0)
 
-    pctile = sum(stoch_like_totals <= obs_like_total) / n_iters
+        pctile = sum(stoch_like_totals <= obs_like_total) / n_iters
 
     test_pass = True if pctile >= critical_pct else False
     test_res = "Pass" if test_pass else "Fail"
@@ -342,6 +349,10 @@ def s_test_function(
             "cell_fracs": cell_fracs,
         },
     }
+
+    if "cell_pass" in cell_likes[cells[0]]:
+        test_result["test_data"]["cell_passes"] = cell_passes
+
     return test_result
 
 
@@ -454,6 +465,9 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
 
     if "stoch_passes" in likelihood_results:
         results["stoch_passes"] = likelihood_results["stoch_passes"]
+
+    if "cell_pass" in likelihood_results:
+        results["cell_pass"] = likelihood_results["cell_pass"]
 
     return results
 
@@ -618,8 +632,11 @@ def conf_interval_poisson(
 
     conf_min, conf_max = cell_poisson_norm.interval(conf_interval)
 
-    bin_obs_log_like = 1.0 * conf_min <= total_num_events <= conf_max
+    cell_pass = conf_min <= total_num_events <= conf_max
+    bin_obs_log_like = cell_poisson_norm.cdf(total_num_events)
     # perhaps calculate a z score
+
+    # if rate is 0, then need to give 0.5 as likelihood
 
     stoch_N_events = np.random.poisson(total_model_rate, size=N_iters)
     stoch_likes = cell_poisson_norm.cdf(stoch_N_events)
@@ -627,10 +644,16 @@ def conf_interval_poisson(
         (conf_min <= stoch_N_events) & (stoch_N_events <= conf_max)
     ).astype(int)
 
+    if total_model_rate == 0.0:
+        if total_num_events == 0:
+            bin_obs_log_like = 0.5
+            stoch_likes[stoch_N_events == 0] = 0.5
+
     outputs = {"bin_obs_log_like": bin_obs_log_like}
     if return_likes:
         outputs["stoch_likes"] = stoch_likes
         outputs["stoch_passes"] = stoch_passes
+        outputs["cell_pass"] = cell_pass
     if return_data:
         outputs["obs_mfd"] = num_obs_events
         outputs["mod_mfd"] = rate_mfd

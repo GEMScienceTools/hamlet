@@ -119,7 +119,6 @@ def S_test(
     likelihood_function = test_config.get("likelihood_function", "mfd")
     normalize_n_eqs = test_config.get("normalize_n_eqs", False)
     not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
-
     test_config["parallel"] = cfg["config"]["parallel"]
 
     if prospective:

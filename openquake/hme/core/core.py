@@ -37,6 +37,8 @@ from openquake.hme.utils import (
     trim_eq_catalog_with_completeness_table,
     trim_inputs,
     breakpoint,
+    get_eq_df_mag_bins,
+    get_mag_bins_from_cfg,
 )
 
 from openquake.hme.utils.results_processing import process_results
@@ -195,6 +197,9 @@ def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
             stop_date=stop_date,
             duration=duration,
         )
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    get_eq_df_mag_bins(eq_gdf, mag_bins)
 
     return eq_gdf
 

@@ -27,6 +27,7 @@ from openquake.hme.utils.plots import (
     plot_M_test_results,
     plot_eqs_by_mag_time,
     prepare_eqs_by_mag_time_for_d3,
+    prepare_rup_match_data_for_d3,
 )
 
 from openquake.hme.utils.utils import breakpoint
@@ -378,6 +379,13 @@ def render_rupture_matching_eval(
         return_str=True,
     )
 
+    rup_match_json = prepare_rup_match_data_for_d3(
+        input_data["eq_gdf"],
+        rup_match_results["matched_rups"],
+        rup_match_results["unmatched_eqs"],
+        map_epsg=map_epsg,
+    )
+
     if len(rup_match_results["unmatched_eqs"]) > 0:
         unmatched_eq_table_str = rup_match_results["unmatched_eqs"].to_html()
     else:
@@ -388,7 +396,8 @@ def render_rupture_matching_eval(
             res=rup_match_results,
             mag_dist_plot_str=mag_dist_plot_str,
             unmatched_eq_table_str=unmatched_eq_table_str,
-            map_str=rup_match_map,
+            # map_str=rup_match_map,
+            earthquake_data=json.dumps(rup_match_json),
         )
     )
 
