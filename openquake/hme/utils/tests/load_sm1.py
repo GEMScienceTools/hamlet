@@ -30,19 +30,19 @@ test_cfg = {
                 "S_test": {
                     "investigation_time": 40.0,
                     "n_iters": 5,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": True,
                 },
                 "L_test": {
                     "investigation_time": 40.0,
                     "n_iters": 5,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": True,
                 },
                 "M_test": {
                     "investigation_time": 40.0,
                     "n_iters": 10,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": True,
                 },
             },
@@ -55,19 +55,19 @@ test_cfg = {
                 "S_test": {
                     "investigation_time": 40.0,
                     "n_iters": 5,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": True,
                 },
                 "L_test": {
                     "investigation_time": 40.0,
                     "n_iters": 5,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": True,
                 },
                 "M_test": {
                     "investigation_time": 40.0,
                     "n_iters": 10,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": True,
                 },
                 "rupture_matching_eval": {

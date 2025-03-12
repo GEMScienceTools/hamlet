@@ -159,7 +159,7 @@ def plot_L_test_results(
 
     stoch_loglikes = results["test_data"]["stoch_loglike_totals"]
     obs_loglike = results["test_data"]["obs_loglike_total"]
-    critical_pct = results["critical_pct"]
+    critical_frac = results["critical_frac"]
 
     fig, ax = plt.subplots()
     plt.hist(
@@ -176,7 +176,7 @@ def plot_L_test_results(
     )
 
     plt.axvline(
-        np.quantile(stoch_loglikes, critical_pct),
+        np.quantile(stoch_loglikes, critical_frac),
         color="C2",
         linestyle="-",
         label="Critical Fractile",

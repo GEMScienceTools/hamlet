@@ -45,7 +45,7 @@ def M_test(
     log-likelihood of a large number of stochastic catalogs generated from the
     same forecast. If the log-likelihood of the observed earthquake catalog is
     less than the majority of the log-likelihoods of stochastic catalogs
-    (specified by the `critical_pct` argument), then the test fails.
+    (specified by the `critical_frac` argument), then the test fails.
 
     The log-likelihoods are calculated first for each magnitude bin. The
     log-likelihood for each magnitude bin is the log-likelihood of the observed
@@ -74,7 +74,7 @@ def M_test(
     test_config = cfg["config"]["model_framework"]["gem"]["M_test"]
 
     prospective = test_config.get("prospective", False)
-    critical_pct = test_config.get("critical_pct", 0.25)
+    critical_frac = test_config.get("critical_frac", 0.25)
     not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
     normalize_n_eqs = test_config.get("normalize_n_eqs", True)
 
@@ -98,12 +98,12 @@ def M_test(
         completeness_table=completeness_table,
         stop_date=stop_date,
         not_modeled_likelihood=not_modeled_likelihood,
-        critical_pct=critical_pct,
+        critical_frac=critical_frac,
         normalize_n_eqs=normalize_n_eqs,
     )
 
-    logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))
-    logging.info("M-Test pct {}".format(test_result["percentile"]))
+    logging.info("M-Test crit frac {}".format(test_result["critical_frac"]))
+    logging.info("M-Test fractile {}".format(test_result["fractile"]))
     logging.info("M-Test {}".format(test_result["test_res"]))
     return test_result
 
@@ -148,14 +148,14 @@ def S_test(
         normalize_n_eqs=normalize_n_eqs,
         completeness_table=completeness_table,
         stop_date=stop_date,
-        critical_pct=test_config["critical_pct"],
+        critical_frac=test_config["critical_frac"],
         not_modeled_likelihood=not_modeled_likelihood,
         parallel=test_config["parallel"],
     )
 
     logging.info("S-Test {}".format(test_results["test_res"]))
-    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
-    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
+    logging.info("S-Test crit frac: {}".format(test_results["critical_frac"]))
+    logging.info("S-Test model fractile: {}".format(test_results["fractile"]))
     return test_results
 
 
@@ -195,13 +195,13 @@ def L_test(
         mag_bins,
         completeness_table=completeness_table,
         stop_date=stop_date,
-        critical_pct=test_config["critical_pct"],
+        critical_frac=test_config["critical_frac"],
         not_modeled_likelihood=not_modeled_likelihood,
     )
 
     logging.info("L-Test {}".format(test_results["test_res"]))
-    logging.info("L-Test crit pct: {}".format(test_results["critical_pct"]))
-    logging.info("L-Test model pct: {}".format(test_results["percentile"]))
+    logging.info("L-Test crit frac: {}".format(test_results["critical_frac"]))
+    logging.info("L-Test model fractile: {}".format(test_results["fractile"]))
     return test_results
 
 

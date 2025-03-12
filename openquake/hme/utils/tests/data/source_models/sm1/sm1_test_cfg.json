@@ -13,7 +13,7 @@
                 "S_test": {
                     "investigation_time": 40.0,
                     "n_iters": 5,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": true
                 }
             }

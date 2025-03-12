@@ -49,7 +49,7 @@ def l_test_function(
     mag_bins,
     completeness_table: Optional[Sequence[Sequence[float]]] = None,
     stop_date: Optional[datetime] = None,
-    critical_pct: float = 0.25,
+    critical_frac: float = 0.25,
     not_modeled_likelihood: float = 0.0,
 ):
     cell_like_cfg = {
@@ -61,6 +61,7 @@ def l_test_function(
         "n_iters": n_iters,
         "N_norm": 1.0,
         "mag_bins": mag_bins,
+        "critical_frac": critical_frac,
     }
 
     cell_likes = s_test_cells(
@@ -80,16 +81,16 @@ def l_test_function(
     obs_like_total = sum(obs_likes)
     stoch_like_totals = np.sum(stoch_likes, axis=1)
 
-    pctile = (
+    fractile = (
         len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
     )
 
-    test_pass = True if pctile >= critical_pct else False
+    test_pass = True if fractile >= critical_frac else False
     test_res = "Pass" if test_pass else "Fail"
 
     test_result = {
-        "critical_pct": critical_pct,
-        "percentile": pctile,
+        "critical_frac": critical_frac,
+        "fractile": fractile,
         "test_pass": bool(test_pass),
         "test_res": test_res,
         "bad_bins": bad_bins,
@@ -113,7 +114,7 @@ def m_test_function(
     completeness_table: Optional[Sequence[Sequence[float]]] = None,
     stop_date: Optional[datetime] = None,
     not_modeled_likelihood: float = 0.0,
-    critical_pct: float = 0.25,
+    critical_frac: float = 0.25,
     normalize_n_eqs: Optional[bool] = True,
 ):
     # normalized to duration !!
@@ -188,17 +189,17 @@ def m_test_function(
         / n_bins
     )
 
-    pctile = (
+    fractile = (
         len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
         / n_iters
     )
 
-    test_pass = True if pctile >= critical_pct else False
+    test_pass = True if fractile >= critical_frac else False
     test_res = "Pass" if test_pass else "Fail"
 
     test_result = {
-        "critical_pct": critical_pct,
-        "percentile": pctile,
+        "critical_frac": critical_frac,
+        "fractile": fractile,
         "test_pass": test_pass,
         "test_res": test_res,
         "test_data": {
@@ -228,7 +229,7 @@ def s_test_function(
     normalize_n_eqs: Optional[bool] = True,
     completeness_table: Optional[Sequence[Sequence[float]]] = None,
     stop_date: Optional[datetime] = None,
-    critical_pct: float = 0.25,
+    critical_frac: float = 0.25,
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
 ):
@@ -267,7 +268,7 @@ def s_test_function(
         "mag_bins": mag_bins,
         "completeness_table": completeness_table,
         "stop_date": stop_date,
-        "critical_frac": critical_pct,
+        "critical_frac": critical_frac,
     }
 
     cell_likes = s_test_cells(
@@ -322,7 +323,7 @@ def s_test_function(
 
         # We want to see if enough cells are within the confidence interval
         # Don't think the stochastic part matters...
-        pctile = sum(cell_passes) / len(cells)
+        fracile = sum(cell_passes) / len(cells)
 
     else:
         for i, obs_like in enumerate(obs_likes):
@@ -332,14 +333,14 @@ def s_test_function(
         obs_like_total = sum(obs_likes)
         stoch_like_totals = np.sum(stoch_likes, axis=0)
 
-        pctile = sum(stoch_like_totals <= obs_like_total) / n_iters
+        fractile = sum(stoch_like_totals <= obs_like_total) / n_iters
 
-    test_pass = True if pctile >= critical_pct else False
+    test_pass = True if fractile >= critical_frac else False
     test_res = "Pass" if test_pass else "Fail"
 
     test_result = {
-        "critical_pct": critical_pct,
-        "percentile": pctile,
+        "critical_frac": critical_frac,
+        "fractile": fractile,
         "test_pass": bool(test_pass),
         "test_res": test_res,
         "bad_bins": bad_bins,
@@ -402,6 +403,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]
     not_modeled_likelihood = test_cfg["not_modeled_likelihood"]
     N_norm = test_cfg["N_norm"]
+    N_iters = test_cfg.get("n_iters")
     not_modeled_log_like = (
         -np.inf
         if not_modeled_likelihood == 0.0
@@ -430,6 +432,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         return_data=True,
         not_modeled_likelihood=not_modeled_likelihood,
         conf_interval=1 - test_cfg["critical_frac"],
+        N_iters=N_iters,
     )
 
     obs_L = likelihood_results["bin_obs_log_like"]
@@ -535,6 +538,7 @@ def mfd_log_likelihood(
         stoch_likes += mag_bin_likes
 
     if return_likes:
+        outputs["likes"] = likes
         outputs["stoch_likes"] = stoch_likes
     if return_data:
         outputs["obs_mfd"] = num_obs_events
@@ -745,7 +749,7 @@ def N_test_empirical(
     logging.info(f"N-Test: {test_res}")
 
     test_result = {
-        "conf_interval_pct": conf_interval,
+        "conf_interval_frac": conf_interval,
         "conf_interval": (conf_min, conf_max),
         "pred_samples": num_pred_events,
         "n_pred_earthquakes": rupture_rate,
@@ -768,7 +772,7 @@ def N_test_poisson(
     logging.info(f"N-Test: {test_res}")
 
     test_result = {
-        "conf_interval_pct": conf_interval,
+        "conf_interval_frac": conf_interval,
         "conf_interval": (conf_min, conf_max),
         "n_pred_earthquakes": rupture_rate,
         "n_obs_earthquakes": num_obs_events,
@@ -802,7 +806,7 @@ def N_test_neg_binom(
     logging.info(f"N-Test: {test_res}")
 
     test_result = {
-        "conf_interval_pct": conf_interval,
+        "conf_interval_frac": conf_interval,
         "conf_interval": (conf_min, conf_max),
         "inv_time_rate": rupture_rate,
         "n_obs_earthquakes": num_obs_events,

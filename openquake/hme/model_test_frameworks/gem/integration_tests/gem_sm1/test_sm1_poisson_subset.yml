@@ -22,12 +22,12 @@ config:
         prob_model: poisson
       M_test:
         prospective: False
-        critical_pct: 0.25
+        critical_frac: 0.25
         investigation_time: 40.
         n_iters: 1000
       S_test:
         prospective: False
-        critical_pct: 0.25
+        critical_frac: 0.25
         investigation_time: 40.
         n_iters: 1000
         append: True
