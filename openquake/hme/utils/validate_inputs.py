@@ -14,28 +14,49 @@ def validate_cfg(cfg: dict) -> None:
 def check_fix_seis_catalog(seis_cat_cfg) -> None:
 
     if not seis_cat_cfg.get("completeness_table"):
+        get_date_parameters(seis_cat_cfg)
 
-        if "start_date" in seis_cat_cfg:
-            seis_cat_cfg["start_date"] = check_fix_date(
-                seis_cat_cfg["start_date"]
+
+def get_date_parameters(seis_cat_cfg) -> None:
+    """
+    Ensures that for any combination of start_date, stop_date and duration,
+    the missing parameter is added to the seis_cat_cfg.
+    
+    Parameters
+    ----------
+    seis_cat_cfg : dict
+        Configuration dictionary for seismic catalog
+    """
+    if "start_date" in seis_cat_cfg:
+        seis_cat_cfg["start_date"] = check_fix_date(
+            seis_cat_cfg["start_date"]
+        )
+
+    if "stop_date" in seis_cat_cfg:
+        seis_cat_cfg["stop_date"] = check_fix_date(
+            seis_cat_cfg["stop_date"]
+        )
+
+    if "duration" in seis_cat_cfg:
+        if "start_date" in seis_cat_cfg and "stop_date" in seis_cat_cfg:
+            check_duration(
+                seis_cat_cfg["start_date"],
+                seis_cat_cfg["stop_date"],
+                seis_cat_cfg["duration"],
             )
-
-        if "stop_date" in seis_cat_cfg:
-            seis_cat_cfg["stop_date"] = check_fix_date(
-                seis_cat_cfg["stop_date"]
-            )
-
-        if "duration" in seis_cat_cfg:
-            if "start_date" in seis_cat_cfg and "stop_date" in seis_cat_cfg:
-                check_duration(
-                    seis_cat_cfg["start_date"],
-                    seis_cat_cfg["stop_date"],
-                    seis_cat_cfg["duration"],
-                )
-        else:
+        elif "start_date" in seis_cat_cfg:
+            # Calculate stop_date from start_date and duration
+            delta_days = int(seis_cat_cfg["duration"] * DAYS_PER_YEAR)
+            seis_cat_cfg["stop_date"] = seis_cat_cfg["start_date"] + datetime.timedelta(days=delta_days)
+        elif "stop_date" in seis_cat_cfg:
+            # Calculate start_date from stop_date and duration
+            delta_days = int(seis_cat_cfg["duration"] * DAYS_PER_YEAR)
+            seis_cat_cfg["start_date"] = seis_cat_cfg["stop_date"] - datetime.timedelta(days=delta_days)
+    else:
+        if "start_date" in seis_cat_cfg and "stop_date" in seis_cat_cfg:
             seis_cat_cfg["duration"] = (
                 seis_cat_cfg["stop_date"] - seis_cat_cfg["start_date"]
-            )
+            ).days / DAYS_PER_YEAR
 
 
 def check_seis_catalog_path(seis_cat_cfg) -> None:

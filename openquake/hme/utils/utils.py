@@ -750,8 +750,21 @@ def trim_inputs(input_data, cfg):
     min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
     max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
 
+    min_depth = cfg["input"].get("min_depth", 0.0)
+    max_depth = cfg["input"].get("max_depth", np.inf)
+
     rup_gdf = input_data["rupture_gdf"]
     eq_gdf = input_data["eq_gdf"]
+
+    if min_depth > 0.0 or max_depth < np.inf:
+        logging.info(f"Trimming data to {min_depth} <= z <= {max_depth}")
+    rup_depth_range = (rup_gdf.depth >= min_depth) & (
+        rup_gdf.depth <= max_depth
+    )
+    eq_depth_range = (eq_gdf.depth >= min_depth) & (eq_gdf.depth <= max_depth)
+
+    rup_gdf = rup_gdf.loc[rup_depth_range]
+    eq_gdf = eq_gdf.loc[eq_depth_range]
 
     mag_range_idxs = (rup_gdf.magnitude >= min_bin_mag) & (
         rup_gdf.magnitude <= max_bin_mag

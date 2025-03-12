@@ -76,6 +76,7 @@ def M_test(
     prospective = test_config.get("prospective", False)
     critical_pct = test_config.get("critical_pct", 0.25)
     not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
+    normalize_n_eqs = test_config.get("normalize_n_eqs", True)
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -98,6 +99,7 @@ def M_test(
         stop_date=stop_date,
         not_modeled_likelihood=not_modeled_likelihood,
         critical_pct=critical_pct,
+        normalize_n_eqs=normalize_n_eqs,
     )
 
     logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))

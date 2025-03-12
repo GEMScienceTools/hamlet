@@ -1,5 +1,5 @@
 <h3>Cumulative Earthquake Occurrence Plot</h3>
-<div id="earthquake-plot-container" style="width: 100%; height: 700px;">
+<div id="earthquake-plot-container" style="width: 100%; height: 1200px;">
     <svg id="earthquake-plot" width="100%" height="100%"></svg>
 </div>
 
@@ -16,7 +16,22 @@
         const height = containerHeight - margin.top - margin.bottom;
 
         // Color scale - using D3's schemeCategory10
+        // Initialize once and reuse for both series and models
         const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Process all unique magBins up front to ensure consistent color assignment
+        const allMagBins = [];
+        earthquakeData.series.forEach(series => {
+            if (!allMagBins.includes(series.magBin)) {
+                allMagBins.push(series.magBin);
+            }
+        });
+
+        // Pre-assign colors to all magnitude bins
+        const colorMap = {};
+        allMagBins.forEach(magBin => {
+            colorMap[magBin] = color(magBin);
+        });
 
         // Create SVG and append a group for the plot content
         const svg = d3.select('#earthquake-plot');
@@ -100,8 +115,8 @@
 
         // Plot observed data for each magnitude bin
         earthquakeData.series.forEach((series, i) => {
-            const seriesColor = color(series.magBin);
             const magBin = series.magBin;
+            const seriesColor = colorMap[magBin];
 
             // Store the series references
             seriesElements[magBin] = {
@@ -125,7 +140,7 @@
 
             // Add hover interactions - UPDATED TO USE MODERN D3 EVENT HANDLING
             path
-                .on('mouseover', function(event) {
+                .on('mouseover', function (event) {
                     // Make other lines transparent
                     seriesGroup.selectAll('.line-series').style('opacity', 0.2);
                     modelGroup.selectAll('.model-line').style('opacity', 0.2);
@@ -144,13 +159,13 @@
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 28) + "px");
                 })
-                .on('mousemove', function(event) {
+                .on('mousemove', function (event) {
                     // Update tooltip position as mouse moves
                     occurrenceTooltip
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 28) + "px");
                 })
-                .on('mouseout', function() {
+                .on('mouseout', function () {
                     // Restore all lines
                     seriesGroup.selectAll('.line-series').style('opacity', 1);
                     modelGroup.selectAll('.model-line').style('opacity', 1);
@@ -164,8 +179,9 @@
 
         // Plot model trendlines if available
         earthquakeData.modelLines.forEach((model, i) => {
-            const modelColor = color(model.magBin);
             const magBin = model.magBin;
+            // Get the color from the colorMap to ensure consistency
+            const modelColor = colorMap[magBin];
 
             // Plot the trendline
             const modelLine = modelGroup.append('line')
@@ -203,7 +219,7 @@
                 .attr('y1', 8)
                 .attr('x2', 20)
                 .attr('y2', 8)
-                .attr('stroke', color(series.magBin))
+                .attr('stroke', colorMap[series.magBin])
                 .attr('stroke-width', 2);
 
             g.append('text')
@@ -213,7 +229,7 @@
                 .style('font-size', '12px');
 
             // Add hover interaction to legend items - UPDATED TO USE MODERN D3 EVENT HANDLING
-            g.on('mouseover', function(event) {
+            g.on('mouseover', function (event) {
                 const magBin = d3.select(this).attr('data-magbin');
 
                 // Make other lines transparent
@@ -234,13 +250,13 @@
                     .style("left", (event.pageX + 10) + "px")
                     .style("top", (event.pageY - 28) + "px");
             })
-                .on('mousemove', function(event) {
+                .on('mousemove', function (event) {
                     // Update tooltip position as mouse moves
                     occurrenceTooltip
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 28) + "px");
                 })
-                .on('mouseout', function() {
+                .on('mouseout', function () {
                     // Restore all lines
                     seriesGroup.selectAll('.line-series').style('opacity', 1);
                     modelGroup.selectAll('.model-line').style('opacity', 1);

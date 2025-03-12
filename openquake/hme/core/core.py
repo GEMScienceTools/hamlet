@@ -442,6 +442,10 @@ def run_tests(cfg: dict) -> None:
     logger.info("trimming rupture and earthquake data to test magnitude range")
     trim_inputs(input_data, cfg)
     logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
+    logger.info(
+        "Annual rupture rate over test magnitude range: "
+        + f"{input_data['rupture_gdf'].occurrence_rate.sum():0.2f}"
+    )
 
     for framework, tests in test_lists.items():
         results[framework] = {}

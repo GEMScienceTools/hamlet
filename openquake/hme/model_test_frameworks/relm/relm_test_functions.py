@@ -141,6 +141,8 @@ def m_test_function(
     else:
         N_norm = 1.0
 
+    logging.info(f"M-test N_norm: {N_norm}")
+
     mod_mfd_norm = {k: v * N_norm for k, v in mod_mfd.items()}
 
     # calculate log-likelihoods

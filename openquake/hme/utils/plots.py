@@ -822,7 +822,8 @@ def plot_histogram_heatmap(data):
 
     # Set y-axis ticks
     max_val = max(max(row) for row in bin_edges_all)
-    ax.set_yticks(range(int(max_val) + 1))
+    # ax.set_yticks(range(int(max_val) + 1))
+    ax.set_ylim(0, max_val + 1)
 
     # Add colorbar
     cbar = plt.colorbar(
