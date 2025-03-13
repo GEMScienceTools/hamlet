@@ -323,7 +323,7 @@ def s_test_function(
 
         # We want to see if enough cells are within the confidence interval
         # Don't think the stochastic part matters...
-        fracile = sum(cell_passes) / len(cells)
+        fractile = sum(cell_passes) / len(cells)
 
     else:
         for i, obs_like in enumerate(obs_likes):
