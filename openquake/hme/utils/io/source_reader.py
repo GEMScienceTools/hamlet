@@ -11,10 +11,12 @@ from openquake.commonlib import datastore
 from openquake.commonlib.readinput import get_params
 from openquake.engine.engine import create_jobs, run_jobs
 
+from openquake.hazardlib.gsim_lt import GsimLogicTree
+
 from openquake.hme.utils.utils import _get_class_name, breakpoint
 
 
-def csm_from_job_ini(job_ini):
+def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     if not isinstance(job_ini, dict) and os.path.isfile(job_ini):
         job_ini = get_params(job_ini)
         if not job_ini["inputs"].get("site_model", None):
@@ -38,7 +40,13 @@ def csm_from_job_ini(job_ini):
         csm = dstore["_csm"]
         sources = csm.get_sources()
         logging.debug("\tgot csm from dstore")
-    return csm, sources, dstore
+
+        if get_gsim_lt:
+            gmm_lt_filepath = job.params["inputs"]["gsim_logic_tree"]
+        else:
+            gmm_lt_filepath = None
+
+    return csm, sources, dstore, gmm_lt_filepath
 
 
 def get_rlz_source(rlz, csm):
@@ -84,6 +92,7 @@ def process_source_logic_tree_oq(
     source_types: Optional[Sequence] = None,
     tectonic_region_types: Optional[Sequence] = None,
     description: Optional[str] = None,
+    get_gsim_lt: bool = False,
 ):
     logging.debug("we are at the beginning of process_source_logic_tree_oq")
     if job_ini_file is not None:
@@ -99,7 +108,9 @@ def process_source_logic_tree_oq(
             sites_file=sites_file,
         )
 
-    csm, _sources, dstore = csm_from_job_ini(job_ini)
+    csm, _sources, dstore, gmm_lt_filepath = csm_from_job_ini(
+        job_ini, get_gsim_lt=get_gsim_lt
+    )
 
     logging.info("Realizations:")
     logging.info(dstore["full_lt"].sm_rlzs)
@@ -149,7 +160,12 @@ def process_source_logic_tree_oq(
             f"{len(ssm_lt_weights['composite']):_} rups in composite model"
         )
 
-    return ssm_lt_sources, ssm_lt_weights, ssm_lt_rup_counts
+    if get_gsim_lt:
+        gsim_lt = read_gsim_lt(gmm_lt_filepath)
+    else:
+        gsim_lt = None
+
+    return ssm_lt_sources, ssm_lt_weights, ssm_lt_rup_counts, gsim_lt
 
 
 def make_composite_source(branch_sources, branch_weights):
@@ -209,3 +225,15 @@ def make_job_ini(
         job_ini_params_flat["inputs"] = ["sites_file"]
 
     return job_ini_params_flat
+
+
+def read_gsim_lt(gsim_filepath, tectonic_region_types=["*"], ltnode=None):
+
+    logging.info("Reading gsim_lt")
+    gsim_lt = GsimLogicTree(
+        gsim_filepath,
+        tectonic_region_types=tectonic_region_types,
+        ltnode=ltnode,
+    )
+
+    return gsim_lt

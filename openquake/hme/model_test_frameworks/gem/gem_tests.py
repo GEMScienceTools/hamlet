@@ -471,6 +471,10 @@ def cumulative_occurrence_eval(cfg, input_data):
     }
 
 
+def catalog_ground_motion_eval(cfg, input_data):
+    pass
+
+
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
@@ -482,4 +486,5 @@ gem_test_dict = {
     "L_test": L_test,
     "rupture_matching_eval": rupture_matching_eval,
     "cumulative_occurrence_eval": cumulative_occurrence_eval,
+    "catalog_ground_motion_eval": catalog_ground_motion_eval,
 }

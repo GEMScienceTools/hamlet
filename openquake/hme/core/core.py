@@ -22,10 +22,9 @@ import pandas as pd
 from shapely.geometry import Point
 from geopandas import GeoDataFrame
 
-from openquake.hazardlib.geo import Point as oqPoint
-
 from openquake.hme.utils.io import (
     process_source_logic_tree_oq,
+    load_flatfile,
 )
 
 from openquake.hme.utils.validate_inputs import validate_cfg
@@ -265,6 +264,17 @@ def load_ruptures_from_file(cfg: dict):
     return rupture_gdf
 
 
+def needs_gsim_lt(cfg: dict):
+    gsim_test_list = ["catalog_ground_motion_eval"]
+
+    needs_gsim = False
+    if "gem" in cfg["config"]["model_framework"]:
+        for test in gsim_test_list:
+            if test in cfg["config"]["model_framework"]["gem"]:
+                needs_gsim = True
+    return needs_gsim
+
+
 def load_ruptures_from_ssm(cfg: dict):
     """
     Reads a seismic source model, processes it, and returns a GeoDataFrame with
@@ -276,22 +286,28 @@ def load_ruptures_from_ssm(cfg: dict):
         config file.
 
     :returns:
-        A GeoDataFrame of the ruptures.
+        A GeoDataFrame of the ruptures, and a possibly-null ground motion
+        logic tree.
     """
 
     logger.info("loading ruptures into geodataframe")
 
     source_cfg: dict = cfg["input"]["ssm"]
 
+    needs_gsim = needs_gsim_lt(cfg)
+
     logger.info("  processing logic tree")
-    ssm_lt_sources, weights, source_rup_counts = process_source_logic_tree_oq(
-        source_cfg["job_ini_file"],
-        source_cfg["ssm_dir"],
-        lt_file=source_cfg["ssm_lt_file"],
-        source_types=source_cfg["source_types"],
-        tectonic_region_types=source_cfg["tectonic_region_types"],
-        branch=source_cfg["branch"],
-        description=cfg["meta"]["description"],
+    ssm_lt_sources, weights, source_rup_counts, gsim_lt = (
+        process_source_logic_tree_oq(
+            source_cfg["job_ini_file"],
+            source_cfg["ssm_dir"],
+            lt_file=source_cfg["ssm_lt_file"],
+            source_types=source_cfg["source_types"],
+            tectonic_region_types=source_cfg["tectonic_region_types"],
+            branch=source_cfg["branch"],
+            description=cfg["meta"]["description"],
+            get_gsim_lt=needs_gsim,
+        )
     )
 
     logger.info("  making dictionary of ruptures")
@@ -311,7 +327,7 @@ def load_ruptures_from_ssm(cfg: dict):
     )
     logger.info("  done preparing rupture dataframe")
 
-    return rupture_gdf
+    return rupture_gdf, gsim_lt
 
 
 def load_inputs(cfg: dict) -> dict:
@@ -329,8 +345,9 @@ def load_inputs(cfg: dict) -> dict:
 
     if cfg["input"]["rupture_file"]["read_rupture_file"] is True:
         rupture_gdf = load_ruptures_from_file(cfg)
+        gsim_lt = None
     else:
-        rupture_gdf = load_ruptures_from_ssm(cfg)
+        rupture_gdf, gsim_lt = load_ruptures_from_ssm(cfg)
 
     if (
         cfg["input"]["rupture_file"]["save_rupture_file"] is True
@@ -375,6 +392,7 @@ def load_inputs(cfg: dict) -> dict:
         "cell_groups": cell_groups,
         "eq_gdf": eq_gdf,
         "eq_groups": eq_groups,
+        "gsim_lt": gsim_lt,
     }
 
     if "prospective_catalog" in cfg["input"].keys():
@@ -386,6 +404,30 @@ def load_inputs(cfg: dict) -> dict:
         pro_eq_gdf = pro_gdf.loc[pro_eq_in_model]
         input_data["pro_gdf"] = pro_eq_gdf
         input_data["pro_groups"] = pro_eq_gdf.groupby("cell_id")
+
+    if needs_gsim_lt(cfg):
+        mag_bins = get_mag_bins_from_cfg(cfg)
+
+        min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
+        max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
+        input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile(
+            cfg["input"]["flatfile"],
+            min_mag=min_bin_mag,
+            max_mag=max_bin_mag,
+            h3_res=cfg["input"]["bins"]["h3_res"],
+        )
+
+        gm_eq_in_model = (
+            cell_id in cells_in_model
+            for cell_id in input_data["eq_gm_df"].cell_id
+        )
+
+        input_data["eq_gm_df"] = input_data["eq_gm_df"].loc[gm_eq_in_model]
+        input_data["gm_df"] = input_data["gm_df"].loc[
+            input_data["gm_df"].event_id.isin(
+                input_data["eq_gm_df"].event_id.tolist()
+            )
+        ]
 
     return input_data
 
