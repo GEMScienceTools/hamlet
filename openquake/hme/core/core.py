@@ -294,7 +294,12 @@ def load_ruptures_from_ssm(cfg: dict):
 
     source_cfg: dict = cfg["input"]["ssm"]
 
+    return_trt = cfg["input"].get("return_trt", False)
+    simple_ruptures = cfg["input"]["simple_ruptures"]
     needs_gsim = needs_gsim_lt(cfg)
+    if needs_gsim:
+        return_trt = True
+        simple_ruptures = False
 
     logger.info("  processing logic tree")
     ssm_lt_sources, weights, source_rup_counts, gsim_lt = (
@@ -316,6 +321,8 @@ def load_ruptures_from_ssm(cfg: dict):
         source_rup_counts=source_rup_counts,
         parallel=cfg["config"]["parallel"],
         h3_res=cfg["input"]["bins"]["h3_res"],
+        simple_ruptures=simple_ruptures,
+        return_trt=return_trt,
     )
 
     del ssm_lt_sources
@@ -428,6 +435,12 @@ def load_inputs(cfg: dict) -> dict:
                 input_data["eq_gm_df"].event_id.tolist()
             )
         ]
+
+        logger.info(
+            f"{len(input_data['eq_gm_df']):_} earthquakes "
+            + f"and {len(input_data['gm_df']):_} shaking records in"
+            + " ground motion database"
+        )
 
     return input_data
 

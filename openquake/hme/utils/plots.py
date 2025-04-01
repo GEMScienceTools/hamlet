@@ -1052,3 +1052,134 @@ def prepare_eqs_by_mag_time_for_d3(eqs_by_mag_time, model_mfd=None):
     d3_data["domainExtent"]["y"][1] += y_padding
 
     return d3_data, start_date, stop_date
+
+
+def gmm_plots():
+    pass
+
+
+def plot_PGA_scatter(
+    gmm_results_trt,
+    trt="",
+    axes_type="loglog",
+    return_fig: bool = False,
+    return_string: bool = True,
+):
+    if len(gmm_results_trt.values()) == 0:
+        return
+
+    elif len(gmm_results_trt.values()) == 1:  # not sure if it works
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+    else:
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+
+    mod_cols = [
+        col
+        for col in res_df.columns
+        if (col[:4] == "PGA_") and (col != "PGA_obs")
+    ]
+
+    num_rows = len(mod_cols) // 2
+    if len(mod_cols) % 2 == 1:
+        num_rows += 1
+
+    fig, axs = plt.subplots(
+        nrows=num_rows, ncols=2, figsize=(12, 6 * num_rows)
+    )
+
+    axs = axs.ravel()
+
+    for i, col in enumerate(mod_cols):
+        if axes_type == "loglog":
+            axs[i].set_yscale("log")
+            axs[i].set_xscale("log")
+        axs[i].set_aspect("equal")
+        axs[i].scatter(res_df.PGA_obs, res_df[col], label=col[4:], s=2)
+        axs[i].plot(
+            [
+                min(res_df.PGA_obs.min(), res_df[col].min()) * 0.9,
+                max(res_df.PGA_obs.max(), res_df[col].max()) * 0.9,
+            ],
+            [
+                min(res_df.PGA_obs.min(), res_df[col].min()) * 0.9,
+                max(res_df.PGA_obs.max(), res_df[col].max()) * 0.9,
+            ],
+            "k--",
+            lw=0.5,
+        )
+        axs[i].legend(loc="best")
+        axs[i].set_xlabel("obs PGA (g)")
+        axs[i].set_ylabel("model PGA (g)")
+
+    fig.suptitle(f"PGA comparisons for available earthquakes,\n{trt}")
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+
+def plot_PGA_distance(
+    gmm_results_trt,
+    trt="",
+    dist="rup_dist_ff",
+    axes_type="loglog",
+    return_fig: bool = False,
+    return_string: bool = True,
+):
+    # don't yet have uncertainteis
+    fig, ax = plt.subplots(figsize=(12, 8), sharex=True, sharey=True)
+    if axes_type == "loglog":
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+    elif axes_type == "logy":
+        ax.set_yscale("log")
+    else:
+        raise NotImplementedError(f"wut is {axes_type}")
+
+    if len(gmm_results_trt.values()) == 0:
+        return
+
+    elif len(gmm_results_trt.values()) == 1:  # not sure if it works
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+    else:
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+
+    for col in res_df.columns:
+        if (col[:4] == "PGA_") and (col != "PGA_obs"):
+            ax.scatter(res_df[dist], res_df[col], label=col[4:], s=2)
+
+    ax.scatter(
+        res_df[dist],
+        res_df["PGA_obs"],
+        s=3,
+        color="black",
+        label="obs",
+    )
+
+    plt.legend(loc="best")
+
+    plt.xlabel("Distance (km)")
+    plt.ylabel("PGA (g)")
+
+    plt.title(f"PGA comparisons for available earthquakes,\n{trt}")
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+
+# should make maps for gmm--spider plot linked to iml-dist plot?
