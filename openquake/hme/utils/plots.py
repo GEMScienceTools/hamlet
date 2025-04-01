@@ -23,6 +23,8 @@ from openquake.hme.utils.utils import (
     datetime_to_string,
 )
 
+plt.rcParams["svg.fonttype"] = "none"
+
 natural_earth_countries_file = os.path.join(
     *os.path.split(__file__)[::-1],
     "..",
