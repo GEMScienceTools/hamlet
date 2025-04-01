@@ -1106,6 +1106,7 @@ def plot_PGA_scatter(
             ],
             "k--",
             lw=0.5,
+            label="1:1",
         )
         axs[i].legend(loc="best")
         axs[i].set_xlabel("obs PGA (g)")
@@ -1134,12 +1135,15 @@ def plot_PGA_distance(
     return_string: bool = True,
 ):
     # don't yet have uncertainteis
-    fig, ax = plt.subplots(figsize=(12, 8), sharex=True, sharey=True)
+    fig, ax = plt.subplots(nrows=2, figsize=(12, 16), sharex=True, sharey=True)
     if axes_type == "loglog":
-        ax.set_yscale("log")
-        ax.set_xscale("log")
+        ax[0].set_yscale("log")
+        ax[0].set_xscale("log")
+        ax[1].set_yscale("log")
+        ax[1].set_xscale("log")
     elif axes_type == "logy":
-        ax.set_yscale("log")
+        ax[0].set_yscale("log")
+        ax[1].set_yscale("log")
     else:
         raise NotImplementedError(f"wut is {axes_type}")
 
@@ -1153,9 +1157,15 @@ def plot_PGA_distance(
 
     for col in res_df.columns:
         if (col[:4] == "PGA_") and (col != "PGA_obs"):
-            ax.scatter(res_df[dist], res_df[col], label=col[4:], s=2)
+            ax[0].scatter(res_df[dist], res_df[col], label=col[4:], s=2)
+            ax[1].scatter(
+                res_df[dist],
+                res_df["PGA_obs"] / res_df[col],
+                label=col[4:],
+                s=2,
+            )
 
-    ax.scatter(
+    ax[0].scatter(
         res_df[dist],
         res_df["PGA_obs"],
         s=3,
@@ -1163,12 +1173,22 @@ def plot_PGA_distance(
         label="obs",
     )
 
-    plt.legend(loc="best")
+    ax[1].axhline(1.0, color="k", linestyle="--", lw=0.5, label="1:1")
 
-    plt.xlabel("Distance (km)")
-    plt.ylabel("PGA (g)")
+    ax[0].legend(loc="best")
 
-    plt.title(f"PGA comparisons for available earthquakes,\n{trt}")
+    ax[0].set_xlabel("Distance (km)")
+    ax[0].set_ylabel("PGA (g)")
+    ax[0].legend(loc="best")
+
+    ax[1].set_xlabel("Distance (km)")
+    ax[1].set_ylabel("obs / model PGA (g)")
+    ax[1].legend(loc="best")
+
+    ax[0].set_title(f"PGA, obs and model with distance\n{trt}")
+    ax[1].set_title(f"PGA, obs / model with distance\n{trt}")
+
+    fig.suptitle(f"PGA comparisons for available earthquakes,\n{trt}")
 
     if return_fig is True:
         return fig
