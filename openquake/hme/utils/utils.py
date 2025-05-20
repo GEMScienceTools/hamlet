@@ -739,10 +739,10 @@ def sample_rups(
     return sampled_rups
 
 
-def random_dates(start, end, n, rand_seed=1, replace=False):
-    dates = pd.date_range(start, end).to_series()
-    return dates.sample(n, replace=replace, random_state=rand_seed)
-
+def random_dates(start, end, n, rand_seed=1):
+    rng = np.random.default_rng(seed)
+    rand_ns = rng.integers(lo, hi + 1, size=n, dtype=np.int64)
+    return pd.to_datetime(rand_ns).round('S')
 
 def trim_inputs(input_data, cfg):
     mag_bins = get_mag_bins_from_cfg(cfg)
