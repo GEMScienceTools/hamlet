@@ -73,6 +73,11 @@ def _chunk_source_list(
     if source_counts_unweighted == []:
         logging.info("     no rup counts provided; counting...")
         source_counts_unweighted = [s.count_ruptures() for s in sources]
+    else:
+        if len(source_counts_unweighted) != len(sources):
+            logging.info("    source weights have wrong length, recalculating")
+            source_counts_unweighted = [s.count_ruptures() for s in sources]
+
     source_counts = [
         source_counts_unweighted[i] * source_weight(s)
         for i, s in enumerate(sources)
