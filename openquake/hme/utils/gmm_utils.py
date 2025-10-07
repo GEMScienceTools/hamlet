@@ -16,8 +16,6 @@ from openquake.hazardlib.source.rupture import (
 
 from openquake.hazardlib.geo.surface import PlanarSurface
 
-from openquake.smt.comparison.utils_gmpes import _get_z1, _get_z25
-
 from openquake.hme.utils.stats import geom_mean
 
 from openquake.hme.utils.utils import breakpoint
@@ -64,8 +62,8 @@ def make_sitecol(
             site_args["vs30measured"] = 1
         if get_param(vs30s_meas_type, i) == "inferred":
             site_args["vs30measured"] = 0
-        site_args["z1pt0"] = _get_z1(site_args["vs30"], "global")
-        # site_args["z2pt5s"] = get_param(z2pt5s, i)
+        site_args["z1pt0"] = -999
+        site_args["z2pt5s"] = -999
 
         sites.append(Site(**site_args))
 
