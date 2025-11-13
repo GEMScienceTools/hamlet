@@ -683,7 +683,7 @@ def plot_rup_match_mag_dist(
     eq_mags = eqs.loc[matched_rups.index, "magnitude"].values
     rup_mags = matched_rups.magnitude.values
     dists = matched_rups.eq_dist.values
-    likes = np.float_(matched_rups.likelihood.values)
+    likes = np.float64(matched_rups.likelihood.values)
     # norm_likes = (likes - likes.min()) / (likes.max() - likes.min())
     colors = plt.cm.viridis(likes)
 
