@@ -11,25 +11,18 @@ from datetime import datetime, timedelta
 import h3
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
 from geopandas import GeoDataFrame
 from scipy.stats import poisson, nbinom
-from numpy.lib.arraysetops import unique
+from numpy import unique
 
-# from openquake.hme.utils.bins import SpacemagBin
 from openquake.hme.utils.utils import (
     get_model_mfd,
     get_obs_mfd,
-    # get_model_annual_eq_rate,
-    # get_total_obs_eqs,
-    # get_n_eqs_from_mfd,
-    get_poisson_counts_from_mfd_iter,
     _n_procs,
     get_cell_eqs,
     breakpoint,
 )
 from openquake.hme.utils.stats import (
-    negative_binomial_distribution,
     estimate_negative_binom_parameters,
     poisson_log_likelihood,
 )
