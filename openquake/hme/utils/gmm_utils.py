@@ -63,7 +63,7 @@ def make_sitecol(
         if get_param(vs30s_meas_type, i) == "inferred":
             site_args["vs30measured"] = 0
         site_args["z1pt0"] = -999
-        site_args["z2pt5s"] = -999
+        site_args["z2pt5"] = -999
 
         sites.append(Site(**site_args))
 
