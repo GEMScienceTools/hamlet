@@ -1,35 +1,11 @@
 import logging
-from typing import Optional
-from webbrowser import get
 
-import numpy as np
-from numpy.lib.function_base import append
-import pandas as pd
-from geopandas import GeoDataFrame
-
-from openquake.hme.utils.stats import (
-    negative_binomial_distribution,
-    estimate_negative_binom_parameters,
-)
 from openquake.hme.utils import (
     get_mag_bins_from_cfg,
-    # get_source_bins,
-    # get_n_eqs_from_mfd,
 )
 
-# from openquake.hme.utils.plots import plot_mfd
-# from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
-    # N_test_poisson,
-    # N_test_neg_binom,
     s_test_function,
-    # subdivide_observed_eqs,
-    # get_model_annual_eq_rate,
-    # get_total_obs_eqs,
-    # get_model_mfd,
-    # get_obs_mfd,
-    # s_test_bin,
-    # s_test_gdf_series,
     m_test_function,
     s_test_function,
     n_test_function,

@@ -284,7 +284,7 @@ def get_matching_rups(
         eq.magnitude, rups.magnitude, mag_window=mag_window
     )
     mag_likes[mag_likes < 1e-20] = 1e-20
-    rups["mag_like"] = np.float_(mag_likes)
+    rups["mag_like"] = np.float64(mag_likes)
 
     if hasattr(eq, "strike") and not np.isnan(eq.strike):
         # plane attitude diffs
