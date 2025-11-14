@@ -372,7 +372,8 @@ def rupture_dict_to_gdf(
 
     for branch, branch_df in rupture_dict.items():
         branch_df["occurrence_rate"] *= weights[branch]
-        branch_df.index + f"_{branch}"
+        branch_df.index = branch_df.index.values + f"_{branch}"
+        branch_df["branch"] = branch
 
         dfs.append(branch_df)
 
@@ -397,6 +398,10 @@ def rupture_dict_to_gdf(
             return Point(row[x], row[y], row[z])
 
         df["geometry"] = df.apply(parse_geometry, axis=1)
+
+    logging.info(
+        f"Mean annual occurrence rate (pre-trim): {df.occurrence_rate.sum()}"
+    )
 
     return df
 

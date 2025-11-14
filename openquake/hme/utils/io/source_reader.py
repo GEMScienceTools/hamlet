@@ -144,8 +144,11 @@ def process_source_logic_tree_oq(
 
     csm, _sources, dstore = csm_from_job_ini(job_ini)
 
+
+    rlz_info = {r.ordinal: {'path': r.pid, 'weight': r.weight}
+                for r in dstore["full_lt"].sm_rlzs }
     logging.info("Realizations:")
-    logging.info(dstore["full_lt"].sm_rlzs)
+    logging.info(rlz_info)
 
     rlzs = get_dstore_rlzs(dstore, csm)
     branch_sources = {k: v["sources"] for k, v in rlzs.items()}
@@ -159,6 +162,9 @@ def process_source_logic_tree_oq(
 
     if (branch is not None) and (branch != "iterate"): # specific branch
         ssm_lt_sources = {branch: branch_sources[branch]}
+        logging.info(
+            f"working on branch {branch}, " + 
+             f"original weight {branch_weights[branch]}")
         ssm_lt_weights = {branch: 1.0}
         ssm_lt_rup_counts = {
             branch: [s.num_ruptures for s in branch_sources[branch]]

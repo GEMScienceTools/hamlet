@@ -345,7 +345,12 @@ def load_inputs(cfg: dict) -> dict:
         #    subset_file=cfg["input"]["subset"]["file"],
         #    buffer=cfg["input"]["subset"]["buffer"],
         # )
-        logger.warn("CANNOT SUBSET SOURCE YET!!!")
+        logger.warning("CANNOT SUBSET SOURCE YET!!!")
+
+    if len(rupture_gdf) != len(rupture_gdf.index.unique):
+        logging.warning(
+            "RUPTURE DF HAS DUPLICATED INDICES. SOME TESTS MIGHT FAIL!"
+        )
 
     logging.info("trimming earthquake catalog")
     cells_in_model = rupture_gdf.cell_id.unique()
@@ -427,6 +432,11 @@ def run_tests(cfg: dict) -> None:
     logger.info("trimming rupture and earthquake data to test magnitude range")
     trim_inputs(input_data, cfg)
     logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
+    
+    logging.info(
+        "Mean annual occurrence rate (post-trim): " +
+        f"{input_data['rupture_gdf'].occurrence_rate.sum()}"
+    )
 
     for framework, tests in test_lists.items():
         results[framework] = {}
