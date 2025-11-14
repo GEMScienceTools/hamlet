@@ -347,7 +347,7 @@ def load_inputs(cfg: dict) -> dict:
         # )
         logger.warning("CANNOT SUBSET SOURCE YET!!!")
 
-    if len(rupture_gdf) != len(rupture_gdf.index.unique):
+    if len(rupture_gdf) != len(rupture_gdf.index.unique()):
         logging.warning(
             "RUPTURE DF HAS DUPLICATED INDICES. SOME TESTS MIGHT FAIL!"
         )
