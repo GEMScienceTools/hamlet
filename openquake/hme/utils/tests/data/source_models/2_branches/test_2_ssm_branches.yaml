@@ -1,0 +1,51 @@
+meta: 
+  description: "test 2 ssm branches"
+config: 
+    model_framework: 
+        gem: 
+            N_test: 
+                prob_model: poisson
+                conf_interval: 0.96
+                investigation_time: 40.0
+            
+            #S_test: 
+            #    investigation_time: 40.0
+            #    n_iters: 5
+            #    critical_pct: 0.25
+            #    append: True
+            #
+            #L_test: 
+            #    investigation_time: 40.0
+            #    n_iters: 5
+            #    critical_pct: 0.25
+            #    append: True
+            #
+            #M_test: 
+            #    investigation_time: 40.0
+            #    n_iters: 10
+            #    critical_pct: 0.25
+            #    append: True
+    
+    parallel: False
+    rand_seed: 69
+
+input: 
+    bins: 
+        h3_res: 3
+        mfd_bin_min: 6.1
+        mfd_bin_max: 8.5
+        mfd_bin_width: 0.2
+    
+    ssm: 
+        ssm_dir: .
+        job_ini_file : job.ini
+        #branch: 0
+    
+    seis_catalog: 
+        seis_catalog_file: eqs.csv
+        stop_date: 2023-01-01
+        duration: 40.0
+        columns: 
+            time: [year, month, day, hour, minute, second]
+            # source: Agency
+            event_id: eventID

@@ -150,6 +150,12 @@ def L_test(
 
 def N_test(cfg: dict, input_data: dict) -> dict:
     logging.info("Running N-Test")
+    
+    logging.info(
+        "N_test: " +
+        "Mean annual occurrence rate (post-trim): " +
+        f"{input_data['rupture_gdf'].occurrence_rate.sum()}"
+    )
 
     test_config = cfg["config"]["model_framework"]["relm"]["N_test"]
     completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")

@@ -383,7 +383,12 @@ def load_inputs(cfg: dict) -> dict:
         #    subset_file=cfg["input"]["subset"]["file"],
         #    buffer=cfg["input"]["subset"]["buffer"],
         # )
-        logger.warn("CANNOT SUBSET SOURCE YET!!!")
+        logger.warning("CANNOT SUBSET SOURCE YET!!!")
+
+    if len(rupture_gdf) != len(rupture_gdf.index.unique()):
+        logging.warning(
+            "RUPTURE DF HAS DUPLICATED INDICES. SOME TESTS MIGHT FAIL!"
+        )
 
     logging.info("trimming earthquake catalog")
     cells_in_model = rupture_gdf.cell_id.unique()

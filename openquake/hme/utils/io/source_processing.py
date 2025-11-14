@@ -24,6 +24,7 @@ from ..utils import (
     flatten_list,
     get_nonparametric_rupture_occurrence_rate,
     _get_class_name,
+    breakpoint
 )
 
 
@@ -430,12 +431,15 @@ def rupture_dict_from_logic_tree_dict(
 def rupture_dict_to_gdf(
     rupture_dict: dict,
     weights: dict,
+    trim_zero_rate_rups: bool = True,
     return_gdf: bool = False,
 ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     dfs = []
 
     for branch, branch_df in rupture_dict.items():
         branch_df["occurrence_rate"] *= weights[branch]
+        branch_df.index = branch_df.index.values + f"_{branch}"
+        branch_df["branch"] = branch
 
         dfs.append(branch_df)
 
@@ -444,12 +448,26 @@ def rupture_dict_to_gdf(
     else:
         df = pd.concat(dfs, axis=0)
 
+    if trim_zero_rate_rups:
+        if df.occurrence_rate.min() <= 0.0:
+            logging.info("trimming zero-rate ruptures")
+            df_len = len(df)
+            df = df[df.occurrence_rate > 0.]
+            df_trim_len = len(df)
+            logging.info(
+                f"{df_trim_len} ruptures remaining, {df_len - df_trim_len} removed"
+            )
+
     if return_gdf:
 
         def parse_geometry(row, x="longitude", y="latitude", z="depth"):
             return Point(row[x], row[y], row[z])
 
         df["geometry"] = df.apply(parse_geometry, axis=1)
+
+    logging.info(
+        f"Mean annual occurrence rate (pre-trim): {df.occurrence_rate.sum()}"
+    )
 
     return df
 

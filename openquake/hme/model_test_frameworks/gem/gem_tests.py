@@ -208,7 +208,7 @@ def L_test(
 
 def N_test(cfg: dict, input_data: dict) -> dict:
     logging.info("Running N-Test")
-
+    
     test_config = cfg["config"]["model_framework"]["gem"]["N_test"]
     completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
     test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)

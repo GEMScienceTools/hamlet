@@ -34,9 +34,9 @@ def write_ruptures_to_file(
     if rup_file_type == "hdf5":
         ruptures_out.to_hdf(rupture_file_path, key="ruptures")
     elif rup_file_type == "feather":
-        ruptures_out.to_feather(rupture_file_path)
+        ruptures_out.reset_index().to_feather(rupture_file_path)
     elif rup_file_type == "csv":
-        ruptures_out.to_csv(rupture_file_path)
+        ruptures_out.to_csv(rupture_file_path, index=True)
     else:
         raise ValueError("Cannot write to {} filetype".format(rup_file_type))
 
@@ -52,7 +52,7 @@ def write_simple_ruptures_to_file(
     elif rup_file_type == "feather":
         ruptures_out.to_feather(rupture_file_path)
     elif rup_file_type == "csv":
-        ruptures_out.to_csv(rupture_file_path, index=False)
+        ruptures_out.to_csv(rupture_file_path, index=True)
     else:
         raise ValueError("Cannot write to {} filetype".format(rup_file_type))
 
