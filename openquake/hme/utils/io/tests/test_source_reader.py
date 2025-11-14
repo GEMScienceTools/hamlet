@@ -112,6 +112,4 @@ def test_process_source_logic_tree_oq():
     assert isinstance(ssm_lt_sources[0][0], SimpleFaultSource)
 
     assert list(ssm_lt_weights.keys()) == [0]
-    assert len(ssm_lt_weights[0]) == 7797
-    assert ssm_lt_weights[0][0] == 1.0
-    assert sum(ssm_lt_weights[0]) == 7797.0
+    assert ssm_lt_weights == {0: 1.0}

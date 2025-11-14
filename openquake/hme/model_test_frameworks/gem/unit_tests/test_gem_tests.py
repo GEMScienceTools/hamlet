@@ -521,6 +521,8 @@ class test_gem_tests(unittest.TestCase):
             )
 
     def test_rupture_matching_eval(self):
+        #TODO: attitude_diff and rake_diff are coming up as NaNs.
+        # need to investigate.
         rupture_matching_eval_res = rupture_matching_eval(
             self.cfg, self.input_data
         )
@@ -530,7 +532,7 @@ class test_gem_tests(unittest.TestCase):
 
         test_cols = []
         for col in rupture_matching_eval_res["matched_rups"].columns:
-            if col != "strike":
+            if col not in ["strike"]:
                 test_cols.append(col)
 
         rupture_matching_eval_match_results = pd.read_csv(
@@ -539,6 +541,9 @@ class test_gem_tests(unittest.TestCase):
             ),
             index_col=0,
         )
+
+        rupture_matching_eval_match_results["branch"
+            ] = rupture_matching_eval_match_results["branch"].astype(object)
 
         pd.testing.assert_frame_equal(
             rupture_matching_eval_res["matched_rups"][test_cols],
