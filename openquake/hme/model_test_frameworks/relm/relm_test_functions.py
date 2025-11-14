@@ -10,25 +10,19 @@ from datetime import datetime, timedelta
 
 import h3
 import numpy as np
-from pandas import DataFrame
+import pandas as pd
 from geopandas import GeoDataFrame
 from scipy.stats import poisson, nbinom
-from numpy.lib.arraysetops import unique
+from numpy import unique
 
-# from openquake.hme.utils.bins import SpacemagBin
 from openquake.hme.utils.utils import (
     get_model_mfd,
     get_obs_mfd,
-    # get_model_annual_eq_rate,
-    # get_total_obs_eqs,
-    # get_n_eqs_from_mfd,
-    get_poisson_counts_from_mfd_iter,
     _n_procs,
     get_cell_eqs,
     breakpoint,
 )
 from openquake.hme.utils.stats import (
-    negative_binomial_distribution,
     estimate_negative_binom_parameters,
     poisson_log_likelihood,
 )
@@ -48,7 +42,7 @@ def l_test_function(
     mag_bins,
     completeness_table: Optional[Sequence[Sequence[float]]] = None,
     stop_date: Optional[datetime] = None,
-    critical_pct: float = 0.25,
+    critical_frac: float = 0.25,
     not_modeled_likelihood: float = 0.0,
 ):
     cell_like_cfg = {
@@ -60,6 +54,7 @@ def l_test_function(
         "n_iters": n_iters,
         "N_norm": 1.0,
         "mag_bins": mag_bins,
+        "critical_frac": critical_frac,
     }
 
     cell_likes = s_test_cells(
@@ -79,16 +74,16 @@ def l_test_function(
     obs_like_total = sum(obs_likes)
     stoch_like_totals = np.sum(stoch_likes, axis=1)
 
-    pctile = (
+    fractile = (
         len(stoch_like_totals[stoch_like_totals <= obs_like_total]) / n_iters
     )
 
-    test_pass = True if pctile >= critical_pct else False
+    test_pass = True if fractile >= critical_frac else False
     test_res = "Pass" if test_pass else "Fail"
 
     test_result = {
-        "critical_pct": critical_pct,
-        "percentile": pctile,
+        "critical_frac": critical_frac,
+        "fractile": fractile,
         "test_pass": bool(test_pass),
         "test_res": test_res,
         "bad_bins": bad_bins,
@@ -112,13 +107,17 @@ def m_test_function(
     completeness_table: Optional[Sequence[Sequence[float]]] = None,
     stop_date: Optional[datetime] = None,
     not_modeled_likelihood: float = 0.0,
-    critical_pct: float = 0.25,
+    critical_frac: float = 0.25,
     normalize_n_eqs: Optional[bool] = True,
 ):
     # normalized to duration !!
 
     mod_mfd = get_model_mfd(
-        rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
+        rup_gdf,
+        mag_bins,
+        t_yrs=t_yrs,
+        completeness_table=completeness_table,
+        stop_date=stop_date,
     )
     obs_mfd = get_obs_mfd(
         eq_gdf,
@@ -136,21 +135,24 @@ def m_test_function(
     else:
         N_norm = 1.0
 
+    logging.info(f"M-test N_norm: {N_norm}")
+
     mod_mfd_norm = {k: v * N_norm for k, v in mod_mfd.items()}
 
     # calculate log-likelihoods
     n_bins = len(mod_mfd.keys())
 
+    # should this be from mod_mfd_norm??
     stochastic_eq_counts = {
         bc: np.random.poisson(rate, size=n_iters)
-        for bc, rate in mod_mfd.items()
+        for bc, rate in mod_mfd_norm.items()
     }
 
     bin_log_likelihoods = {
         bc: [
             poisson_log_likelihood(
                 n_stoch,
-                (mod_mfd[bc] * N_norm),
+                (mod_mfd_norm[bc]),
                 not_modeled_val=not_modeled_likelihood,
             )
             for n_stoch in eq_counts
@@ -180,17 +182,17 @@ def m_test_function(
         / n_bins
     )
 
-    pctile = (
+    fractile = (
         len(stoch_geom_mean_likes[stoch_geom_mean_likes <= obs_geom_mean_like])
         / n_iters
     )
 
-    test_pass = True if pctile >= critical_pct else False
+    test_pass = True if fractile >= critical_frac else False
     test_res = "Pass" if test_pass else "Fail"
 
     test_result = {
-        "critical_pct": critical_pct,
-        "percentile": pctile,
+        "critical_frac": critical_frac,
+        "fractile": fractile,
         "test_pass": test_pass,
         "test_res": test_res,
         "test_data": {
@@ -220,11 +222,10 @@ def s_test_function(
     normalize_n_eqs: Optional[bool] = True,
     completeness_table: Optional[Sequence[Sequence[float]]] = None,
     stop_date: Optional[datetime] = None,
-    critical_pct: float = 0.25,
+    critical_frac: float = 0.25,
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
 ):
-    # annual_rup_rate = rup_gdf.occurrence_rate.sum()
     if normalize_n_eqs:
         obs_mfd = get_obs_mfd(
             eq_gdf,
@@ -249,6 +250,8 @@ def s_test_function(
     else:
         N_norm = 1.0
 
+    logging.info(f"S Test N_norm:  {N_norm}")
+
     cell_like_cfg = {
         "investigation_time": t_yrs,
         "likelihood_fn": likelihood_fn,
@@ -258,6 +261,7 @@ def s_test_function(
         "mag_bins": mag_bins,
         "completeness_table": completeness_table,
         "stop_date": stop_date,
+        "critical_frac": critical_frac,
     }
 
     cell_likes = s_test_cells(
@@ -279,26 +283,61 @@ def s_test_function(
         unique(list(chain(*[cell_likes[cell]["bad_bins"] for cell in cells])))
     )
 
+    unmatched_eq_list = [
+        cell_likes[cell]["unmatched_eqs"]
+        for cell in cells
+        if len(cell_likes[cell]["unmatched_eqs"]) > 0
+    ]
+
+    if len(unmatched_eq_list) > 0:
+        unmatched_eqs = pd.concat(
+            unmatched_eq_list,
+            axis=0,
+        )
+
+        del unmatched_eqs["geometry"]
+        unmatched_eqs = pd.DataFrame(unmatched_eqs)
+
+    else:
+        unmatched_eqs = []
+
     cell_fracs = np.zeros(len(cells))
 
-    for i, obs_like in enumerate(obs_likes):
-        cell_stoch_likes = stoch_likes[i]
-        cell_fracs[i] = sum(cell_stoch_likes <= obs_like) / n_iters
+    if likelihood_fn in ["conf_interval_poisson"]:
+        stoch_passes = np.vstack(
+            [cell_likes[cell]["stoch_passes"] for cell in cells]
+        )
+        cell_passes = np.array(
+            [cell_likes[cell]["cell_pass"] for cell in cells]
+        )
+        for i, obs_like in enumerate(obs_likes):
+            cell_stoch_likes = stoch_passes[i]
+            cell_fracs[i] = sum(cell_stoch_likes) / n_iters
 
-    obs_like_total = sum(obs_likes)
-    stoch_like_totals = np.sum(stoch_likes, axis=0)
+        # We want to see if enough cells are within the confidence interval
+        # Don't think the stochastic part matters...
+        fractile = sum(cell_passes) / len(cells)
 
-    pctile = sum(stoch_like_totals <= obs_like_total) / n_iters
+    else:
+        for i, obs_like in enumerate(obs_likes):
+            cell_stoch_likes = stoch_likes[i]
+            cell_fracs[i] = sum(cell_stoch_likes <= obs_like) / n_iters
 
-    test_pass = True if pctile >= critical_pct else False
+        obs_like_total = sum(obs_likes)
+        stoch_like_totals = np.sum(stoch_likes, axis=0)
+
+        fractile = sum(stoch_like_totals <= obs_like_total) / n_iters
+
+    test_pass = True if fractile >= critical_frac else False
     test_res = "Pass" if test_pass else "Fail"
 
     test_result = {
-        "critical_pct": critical_pct,
-        "percentile": pctile,
+        "critical_frac": critical_frac,
+        "fractile": fractile,
         "test_pass": bool(test_pass),
         "test_res": test_res,
         "bad_bins": bad_bins,
+        "unmatched_eqs": unmatched_eqs,
         "test_data": {
             "obs_loglike": obs_likes,
             "stoch_loglike": stoch_likes,
@@ -306,6 +345,9 @@ def s_test_function(
             "cell_fracs": cell_fracs,
         },
     }
+
+    if "cell_pass" in cell_likes[cells[0]]:
+        test_result["test_data"]["cell_passes"] = cell_passes
 
     return test_result
 
@@ -354,6 +396,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     like_fn = S_TEST_FN[test_cfg["likelihood_fn"]]
     not_modeled_likelihood = test_cfg["not_modeled_likelihood"]
     N_norm = test_cfg["N_norm"]
+    N_iters = test_cfg.get("n_iters")
     not_modeled_log_like = (
         -np.inf
         if not_modeled_likelihood == 0.0
@@ -364,7 +407,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         rup_gdf, mag_bins, t_yrs=t_yrs, completeness_table=completeness_table
     )
 
-    rate_mfd = {mag: rate * N_norm for mag, rate in rate_mfd.items()}
+    rate_mfd = {mag: rate for mag, rate in rate_mfd.items()}
 
     # eq catalog is already trimmed to investigation period
     obs_mfd = get_obs_mfd(
@@ -374,51 +417,249 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
         stop_date=stop_date,
         annualize=False,
     )
-    obs_L, likes = like_fn(
+    likelihood_results = like_fn(
         rate_mfd,
         empirical_mfd=obs_mfd,
+        N_norm=N_norm,
         return_likes=True,
+        return_data=True,
         not_modeled_likelihood=not_modeled_likelihood,
+        conf_interval=1 - test_cfg["critical_frac"],
+        N_iters=N_iters,
     )
+
+    obs_L = likelihood_results["bin_obs_log_like"]
+    likes = likelihood_results["stoch_likes"]
 
     # handle bins with eqs but no rups
     bad_bins = []
+    unmatched_eqs = []
     for like in likes:
         if like == not_modeled_log_like:
             bad_bins.append(cell_id)
             bin_ctr = h3.h3_to_geo(cell_id)
             bin_ctr = (round(bin_ctr[0], 3), round(bin_ctr[1], 3))
-            logging.warn(f"{cell_id} {bin_ctr} has zero likelihood")
+            logging.warning(f"{cell_id} {bin_ctr} has zero likelihood")
             for mag, rate in rate_mfd.items():
                 if rate == 0.0 and obs_mfd[mag] > 0.0:
                     logging.warning(
                         f"mag bin {mag} has obs eqs but no ruptures"
                     )
+                unmatched_eqs.append(eq_gdf[eq_gdf.mag_bin == mag])
 
-    stoch_rup_counts = get_poisson_counts_from_mfd_iter(
-        rate_mfd, test_cfg["n_iters"]
-    )
+    if len(unmatched_eqs) > 0:
+        unmatched_eqs = pd.concat(unmatched_eqs, axis=0)
 
-    # should come up with vectorized likelihood functions (might work already)
-    # with proper setup
-
-    # calculate L for iterated stochastic event sets
-    stoch_Ls = np.array(
-        [
-            like_fn(
-                rate_mfd,
-                empirical_mfd=stoch_rup_counts[i],
-                not_modeled_likelihood=not_modeled_likelihood,
-            )
-            for i in range(test_cfg["n_iters"])
-        ]
-    )
-
-    return {
+    results = {
         "obs_loglike": obs_L,
-        "stoch_loglikes": stoch_Ls,
+        "stoch_loglikes": likes,
         "bad_bins": bad_bins,
+        "unmatched_eqs": unmatched_eqs,
+        "obs_rate": likelihood_results["obs_rate"],
+        "mod_rate": likelihood_results["mod_rate"],
+        "obs_mfd": likelihood_results["obs_mfd"],
+        "mod_mfd": likelihood_results["mod_mfd"],
     }
+
+    if "stoch_passes" in likelihood_results:
+        results["stoch_passes"] = likelihood_results["stoch_passes"]
+
+    if "cell_pass" in likelihood_results:
+        results["cell_pass"] = likelihood_results["cell_pass"]
+
+    return results
+
+
+def mfd_log_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    N_norm: float = 1.0,
+    N_iters: int = 1000,
+    not_modeled_likelihood: float = 0.0,
+    return_likes: bool = False,
+    return_data: bool = False,
+    **kwargs,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the whole MFD, which is the sum of the
+    log-likelihoods of each bin, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    likes = [
+        bin_observance_log_likelihood(
+            n_obs, rate_mfd[mag] * N_norm, not_modeled_likelihood
+        )
+        for mag, n_obs in num_obs_events.items()
+    ]
+
+    outputs = {"bin_obs_log_like": np.sum(likes)}
+
+    # still not sure if I'm normalizing correctly.
+    stoch_mfd_samples = {
+        mag_bin: np.random.poisson(rate, size=N_iters)
+        for mag_bin, rate in rate_mfd.items()
+    }
+
+    stoch_like_incremental = {
+        mag_bin: bin_observance_log_likelihood(
+            stoch_mfd_samples[mag_bin],
+            rate * N_norm,
+            not_modeled_val=not_modeled_likelihood,
+        )
+        for mag_bin, rate in rate_mfd.items()
+    }
+
+    stoch_likes = np.zeros(N_iters)
+    for mag_bin_likes in stoch_like_incremental.values():
+        stoch_likes += mag_bin_likes
+
+    if return_likes:
+        outputs["likes"] = likes
+        outputs["stoch_likes"] = stoch_likes
+    if return_data:
+        outputs["obs_mfd"] = num_obs_events
+        outputs["mod_mfd"] = rate_mfd
+        outputs["mod_rate"] = total_model_rate
+        outputs["obs_rate"] = total_num_events
+
+    return outputs
+
+
+def total_event_likelihood(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    N_norm: float = 1.0,
+    N_iters: int = 1000,
+    not_modeled_likelihood: float = 0.0,
+    return_likes: bool = False,
+    return_data: bool = False,
+    **kwargs,
+) -> float:
+    """
+    Calculates the log-likelihood of the observations (either `binned_events`
+    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
+    value is the log-likelihood of the total number of events compared to
+    the modeled number of events, calculated using Poisson statistics.
+    """
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    bin_obs_log_like = bin_observance_log_likelihood(
+        total_num_events,
+        total_model_rate * N_norm,
+        not_modeled_val=not_modeled_likelihood,
+    )
+
+    # do I normalize total_model_rate here?
+    stoch_N_events = np.random.poisson(total_model_rate, size=N_iters)
+    stoch_likes = bin_observance_log_likelihood(
+        stoch_N_events,
+        total_model_rate * N_norm,
+        not_modeled_val=not_modeled_likelihood,
+    )
+
+    outputs = {"bin_obs_log_like": bin_obs_log_like}
+    if return_likes:
+        outputs["stoch_likes"] = stoch_likes
+    if return_data:
+        outputs["obs_mfd"] = num_obs_events
+        outputs["mod_mfd"] = rate_mfd
+        outputs["mod_rate"] = total_model_rate
+        outputs["obs_rate"] = total_num_events
+
+    return outputs
+
+
+def conf_interval_poisson(
+    rate_mfd: dict,
+    binned_events: Optional[dict] = None,
+    empirical_mfd: Optional[dict] = None,
+    N_norm: float = 1.0,
+    N_iters: int = 1000,
+    conf_interval: float = 0.0,
+    return_likes: bool = False,
+    return_data: bool = False,
+    **kwargs,
+) -> float:
+    if binned_events is not None:
+        if empirical_mfd is None:
+            num_obs_events = {
+                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
+            }
+        else:
+            raise ValueError("Either use empirical_mfd or binned_events")
+    else:
+        num_obs_events = {
+            mag: int(rate) for mag, rate in empirical_mfd.items()
+        }
+
+    total_model_rate = sum(rate_mfd.values())
+    total_num_events = sum(num_obs_events.values())
+
+    # normalizing here, again not sure what to do
+    cell_poisson_norm = poisson(total_model_rate * N_norm)
+
+    conf_min, conf_max = cell_poisson_norm.interval(conf_interval)
+
+    cell_pass = conf_min <= total_num_events <= conf_max
+    bin_obs_log_like = cell_poisson_norm.cdf(total_num_events)
+    # perhaps calculate a z score
+
+    # if rate is 0, then need to give 0.5 as likelihood
+
+    stoch_N_events = np.random.poisson(total_model_rate, size=N_iters)
+    stoch_likes = cell_poisson_norm.cdf(stoch_N_events)
+    stoch_passes = 1.0 * (
+        (conf_min <= stoch_N_events) & (stoch_N_events <= conf_max)
+    ).astype(int)
+
+    if total_model_rate == 0.0:
+        if total_num_events == 0:
+            bin_obs_log_like = 0.5
+            stoch_likes[stoch_N_events == 0] = 0.5
+
+    outputs = {"bin_obs_log_like": bin_obs_log_like}
+    if return_likes:
+        outputs["stoch_likes"] = stoch_likes
+        outputs["stoch_passes"] = stoch_passes
+        outputs["cell_pass"] = cell_pass
+    if return_data:
+        outputs["obs_mfd"] = num_obs_events
+        outputs["mod_mfd"] = rate_mfd
+        outputs["mod_rate"] = total_model_rate
+        outputs["obs_rate"] = total_num_events
+
+    return outputs
 
 
 def n_test_function(rup_gdf, eq_gdf, test_config: dict):
@@ -488,78 +729,6 @@ def get_poisson_counts_from_mfd(mfd: dict):
     return {mag: np.random.poisson(rate) for mag, rate in mfd.items()}
 
 
-def mfd_log_likelihood(
-    rate_mfd: dict,
-    binned_events: Optional[dict] = None,
-    empirical_mfd: Optional[dict] = None,
-    not_modeled_likelihood: float = 0.0,
-    return_likes: bool = False,
-) -> float:
-    """
-    Calculates the log-likelihood of the observations (either `binned_events`
-    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
-    value is the log-likelihood of the whole MFD, which is the sum of the
-    log-likelihoods of each bin, calculated using Poisson statistics.
-    """
-    if binned_events is not None:
-        if empirical_mfd is None:
-            num_obs_events = {
-                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
-            }
-        else:
-            raise ValueError("Either use empirical_mfd or binned_events")
-    else:
-        num_obs_events = {
-            mag: int(rate) for mag, rate in empirical_mfd.items()
-        }
-
-    likes = [
-        bin_observance_log_likelihood(
-            n_obs, rate_mfd[mag], not_modeled_likelihood
-        )
-        for mag, n_obs in num_obs_events.items()
-    ]
-
-    if return_likes:
-        return np.sum(likes), likes
-    else:
-        return np.sum(likes)
-
-
-def total_event_likelihood(
-    rate_mfd: dict,
-    binned_events: Optional[dict] = None,
-    empirical_mfd: Optional[dict] = None,
-    not_modeled_likelihood: float = 0.0,
-) -> float:
-    """
-    Calculates the log-likelihood of the observations (either `binned_events`
-    or `empirical_mfd`) given the modeled rates (`rate_mfd`). The returned
-    value is the log-likelihood of the whole MFD, which is the sum of the
-    log-likelihoods of each bin, calculated using Poisson statistics.
-    """
-    if binned_events is not None:
-        if empirical_mfd is None:
-            num_obs_events = {
-                mag: len(obs_eq) for mag, obs_eq in binned_events.items()
-            }
-        else:
-            raise ValueError("Either use empirical_mfd or binned_events")
-    else:
-        num_obs_events = {
-            mag: int(rate) for mag, rate in empirical_mfd.items()
-        }
-
-    total_model_rate = sum(rate_mfd.values())
-    total_num_events = sum(num_obs_events.values())
-
-    return bin_observance_log_likelihood(
-        total_num_events,
-        total_model_rate,
-        not_modeled_val=not_modeled_likelihood,
-    )
-
-
 def N_test_empirical(
     num_obs_events: int, num_pred_events: Sequence[int], conf_interval: float
 ) -> dict:
@@ -573,7 +742,7 @@ def N_test_empirical(
     logging.info(f"N-Test: {test_res}")
 
     test_result = {
-        "conf_interval_pct": conf_interval,
+        "conf_interval_frac": conf_interval,
         "conf_interval": (conf_min, conf_max),
         "pred_samples": num_pred_events,
         "n_pred_earthquakes": rupture_rate,
@@ -596,7 +765,7 @@ def N_test_poisson(
     logging.info(f"N-Test: {test_res}")
 
     test_result = {
-        "conf_interval_pct": conf_interval,
+        "conf_interval_frac": conf_interval,
         "conf_interval": (conf_min, conf_max),
         "n_pred_earthquakes": rupture_rate,
         "n_obs_earthquakes": num_obs_events,
@@ -630,7 +799,7 @@ def N_test_neg_binom(
     logging.info(f"N-Test: {test_res}")
 
     test_result = {
-        "conf_interval_pct": conf_interval,
+        "conf_interval_frac": conf_interval,
         "conf_interval": (conf_min, conf_max),
         "inv_time_rate": rupture_rate,
         "n_obs_earthquakes": num_obs_events,
@@ -641,7 +810,11 @@ def N_test_neg_binom(
     return test_result
 
 
-S_TEST_FN = {"n_eqs": total_event_likelihood, "mfd": mfd_log_likelihood}
+S_TEST_FN = {
+    "n_eqs": total_event_likelihood,
+    "mfd": mfd_log_likelihood,
+    "conf_interval_poisson": conf_interval_poisson,
+}
 
 """
 def subdivide_observed_eqs_old(bin_gdf: GeoDataFrame, subcat_n_years: int):

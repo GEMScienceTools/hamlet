@@ -5,7 +5,13 @@ import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
 
-from openquake.hme.utils import get_mag_bins_from_cfg, deep_update
+from openquake.hme.utils import (
+    get_mag_bins_from_cfg,
+    deep_update,
+    get_mag_year_from_comp_table,
+    get_model_mfd,
+)
+
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
     # get_stochastic_mfd,
@@ -15,6 +21,7 @@ from .gem_test_functions import (
     model_mfd_eval_fn,
     moment_over_under_eval_fn,
     rupture_matching_eval_fn,
+    catalog_ground_motion_eval_fn,
 )
 
 from ..relm.relm_tests import (
@@ -39,7 +46,7 @@ def M_test(
     log-likelihood of a large number of stochastic catalogs generated from the
     same forecast. If the log-likelihood of the observed earthquake catalog is
     less than the majority of the log-likelihoods of stochastic catalogs
-    (specified by the `critical_pct` argument), then the test fails.
+    (specified by the `critical_frac` argument), then the test fails.
 
     The log-likelihoods are calculated first for each magnitude bin. The
     log-likelihood for each magnitude bin is the log-likelihood of the observed
@@ -68,8 +75,9 @@ def M_test(
     test_config = cfg["config"]["model_framework"]["gem"]["M_test"]
 
     prospective = test_config.get("prospective", False)
-    critical_pct = test_config.get("critical_pct", 0.25)
+    critical_frac = test_config.get("critical_frac", 0.25)
     not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
+    normalize_n_eqs = test_config.get("normalize_n_eqs", True)
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -91,11 +99,12 @@ def M_test(
         completeness_table=completeness_table,
         stop_date=stop_date,
         not_modeled_likelihood=not_modeled_likelihood,
-        critical_pct=critical_pct,
+        critical_frac=critical_frac,
+        normalize_n_eqs=normalize_n_eqs,
     )
 
-    logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))
-    logging.info("M-Test pct {}".format(test_result["percentile"]))
+    logging.info("M-Test crit frac {}".format(test_result["critical_frac"]))
+    logging.info("M-Test fractile {}".format(test_result["fractile"]))
     logging.info("M-Test {}".format(test_result["test_res"]))
     return test_result
 
@@ -111,8 +120,8 @@ def S_test(
     test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
     prospective = test_config.get("prospective", False)
     likelihood_function = test_config.get("likelihood_function", "mfd")
+    normalize_n_eqs = test_config.get("normalize_n_eqs", False)
     not_modeled_likelihood = test_config.get("not_modeled_likelihood", 1e-5)
-
     test_config["parallel"] = cfg["config"]["parallel"]
 
     if prospective:
@@ -136,16 +145,18 @@ def S_test(
         t_yrs,
         test_config["n_iters"],
         likelihood_function,
+        mag_bins=mag_bins,
+        normalize_n_eqs=normalize_n_eqs,
         completeness_table=completeness_table,
         stop_date=stop_date,
-        mag_bins=mag_bins,
-        critical_pct=test_config["critical_pct"],
+        critical_frac=test_config["critical_frac"],
         not_modeled_likelihood=not_modeled_likelihood,
+        parallel=test_config["parallel"],
     )
 
     logging.info("S-Test {}".format(test_results["test_res"]))
-    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
-    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
+    logging.info("S-Test crit frac: {}".format(test_results["critical_frac"]))
+    logging.info("S-Test model fractile: {}".format(test_results["fractile"]))
     return test_results
 
 
@@ -169,7 +180,7 @@ def L_test(
     else:
         eq_gdf = input_data["eq_gdf"]
         eq_groups = input_data["eq_groups"]
-        t_yrs = cfg["input"]["seis_catalog"]["duration"]
+        t_yrs = cfg["input"]["seis_catalog"].get("duration")
         stop_date = cfg["input"]["seis_catalog"].get("stop_date")
         completeness_table = cfg["input"]["seis_catalog"].get(
             "completeness_table"
@@ -185,13 +196,13 @@ def L_test(
         mag_bins,
         completeness_table=completeness_table,
         stop_date=stop_date,
-        critical_pct=test_config["critical_pct"],
+        critical_frac=test_config["critical_frac"],
         not_modeled_likelihood=not_modeled_likelihood,
     )
 
     logging.info("L-Test {}".format(test_results["test_res"]))
-    logging.info("L-Test crit pct: {}".format(test_results["critical_pct"]))
-    logging.info("L-Test model pct: {}".format(test_results["percentile"]))
+    logging.info("L-Test crit frac: {}".format(test_results["critical_frac"]))
+    logging.info("L-Test model fractile: {}".format(test_results["fractile"]))
     return test_results
 
 
@@ -342,27 +353,28 @@ def moment_over_under_eval(cfg, input_data):
     return test_results
 
 
+rup_match_default_params = {
+    "distance_lambda": 1.0,
+    "mag_window": 1.0,
+    "group_return_threshold": 0.9,
+    "min_likelihood": 0.1,
+    "no_attitude_default_like": 0.5,
+    "no_rake_default_like": 0.5,
+    "use_occurrence_rate": False,
+    "return_one": "best",
+    "parallel": False,
+}
+
+
 def rupture_matching_eval(cfg, input_data):
     logging.info("Running GEM Rupture Matching Eval")
-
-    default_params = {
-        "distance_lambda": 1.0,
-        "mag_window": 1.0,
-        "group_return_threshold": 0.9,
-        "min_likelihood": 0.1,
-        "no_attitude_default_like": 0.5,
-        "no_rake_default_like": 0.5,
-        "use_occurrence_rate": False,
-        "return_one": "best",
-        "parallel": False,
-    }
 
     test_config = cfg["config"]["model_framework"]["gem"][
         "rupture_matching_eval"
     ]
     prospective = test_config.get("prospective", False)
 
-    test_config = deep_update(default_params, test_config)
+    test_config = deep_update(rup_match_default_params, test_config)
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -416,6 +428,71 @@ def mfd_likelihood_test(cfg, input_data):
     return
 
 
+def cumulative_occurrence_eval(cfg, input_data):
+    logging.info("Running GEM Cumultive Earthquake Occurrence Eval")
+
+    eqs = input_data["eq_gdf"]
+    rup_gdf = input_data["rupture_gdf"]
+
+    start_date = cfg["input"]["seis_catalog"].get("start_date")
+    stop_date = cfg["input"]["seis_catalog"].get("stop_date")
+    comp_table = cfg["input"]["seis_catalog"].get("completeness_table")
+
+    mag_bins = get_mag_bins_from_cfg(cfg)
+
+    if not comp_table:
+        start_dates = {k: start_date for k in mag_bins.keys()}
+        t_yrs = stop_date - start_date
+    else:
+        start_dates = {
+            k: f"{get_mag_year_from_comp_table(comp_table, k)[1]}-01-01"
+            for k in mag_bins.keys()
+        }
+        t_yrs = None
+
+    eqs_by_mag_time = {
+        k: {
+            "start_date": start_dates[k],
+            "stop_date": stop_date,
+            "eqs": eqs[eqs.mag_bin == k].sort_values("time"),
+        }
+        for k in mag_bins.keys()
+    }
+
+    model_mfd = get_model_mfd(
+        rup_gdf,
+        mag_bins,
+        t_yrs=t_yrs,
+        completeness_table=comp_table,
+        stop_date=stop_date,
+    )
+
+    return {
+        "eqs_by_mag_time": eqs_by_mag_time,
+        "model_mfd": model_mfd,
+    }
+
+
+def catalog_ground_motion_eval(cfg, input_data):
+
+    logging.info("Running GEM catalog ground motion evaluation")
+
+    test_config = cfg["config"]["model_framework"]["gem"][
+        "catalog_ground_motion_eval"
+    ]
+
+    match_rups = test_config.get("match_rups", False)
+    test_config["gmf_method"] = test_config.get(
+        "gmf_method", "ground_motion_fields"
+    )
+
+    test_config = deep_update(rup_match_default_params, test_config)
+
+    gmm_comparisons = catalog_ground_motion_eval_fn(test_config, input_data)
+
+    return {"gmm_comparisons": gmm_comparisons}
+
+
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
@@ -426,4 +503,6 @@ gem_test_dict = {
     "N_test": N_test,
     "L_test": L_test,
     "rupture_matching_eval": rupture_matching_eval,
+    "cumulative_occurrence_eval": cumulative_occurrence_eval,
+    "catalog_ground_motion_eval": catalog_ground_motion_eval,
 }

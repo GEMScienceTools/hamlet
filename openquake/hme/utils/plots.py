@@ -1,8 +1,11 @@
 import os
+import json
+import datetime
 from typing import Union, Optional, Tuple, Sequence, Any
 
 import h3
 import numpy as np
+import pandas as pd
 import geopandas as gpd
 from scipy.stats import poisson
 import matplotlib.pyplot as plt
@@ -14,6 +17,13 @@ from matplotlib.colors import Normalize, BoundaryNorm
 
 import io
 from .stats import sample_event_times_in_interval
+
+from openquake.hme.utils.utils import (
+    timestamp_to_decimal_year,
+    datetime_to_string,
+)
+
+plt.rcParams["svg.fonttype"] = "none"
 
 natural_earth_countries_file = os.path.join(
     *os.path.split(__file__)[::-1],
@@ -151,7 +161,7 @@ def plot_L_test_results(
 
     stoch_loglikes = results["test_data"]["stoch_loglike_totals"]
     obs_loglike = results["test_data"]["obs_loglike_total"]
-    critical_pct = results["critical_pct"]
+    critical_frac = results["critical_frac"]
 
     fig, ax = plt.subplots()
     plt.hist(
@@ -168,7 +178,7 @@ def plot_L_test_results(
     )
 
     plt.axvline(
-        np.quantile(stoch_loglikes, critical_pct),
+        np.quantile(stoch_loglikes, critical_frac),
         color="C2",
         linestyle="-",
         label="Critical Fractile",
@@ -626,13 +636,54 @@ def plot_rup_match_map(
         return fig
 
 
+def prepare_rup_match_data_for_d3(
+    eqs, matched_rups, unmatched_eqs=None, map_epsg=None
+):
+    """
+    Prepares earthquake data for D3 visualization by converting to GeoJSON.
+    """
+    # Prepare matched earthquakes data
+    matched_eqs = eqs.loc[matched_rups.index].copy()
+    matched_eqs["likelihood"] = matched_rups["likelihood"]
+    matched_eqs["match_status"] = "matched"
+
+    # Prepare unmatched earthquakes data if available
+    if unmatched_eqs is not None and len(unmatched_eqs) > 0:
+        unmatched_eqs = unmatched_eqs.copy()
+        unmatched_eqs["likelihood"] = 0
+        unmatched_eqs["match_status"] = "unmatched"
+
+        # Combine matched and unmatched
+        all_eqs = pd.concat([matched_eqs, unmatched_eqs])
+    else:
+        all_eqs = matched_eqs
+
+    all_eqs["time"] = [datetime_to_string(ts) for ts in all_eqs["time"]]
+
+    # Convert to specified CRS if needed
+    if map_epsg is not None:
+        all_eqs = all_eqs.to_crs(epsg=map_epsg)
+
+    # Convert to GeoJSON
+    all_eqs_json = json.loads(all_eqs.to_json())
+
+    # Get world boundaries
+    world = gpd.read_file(natural_earth_countries_file)
+    if map_epsg is not None:
+        world = world.to_crs(epsg=map_epsg)
+
+    world_json = json.loads(world.to_json())
+
+    return {"earthquakes": all_eqs_json, "world": world_json}
+
+
 def plot_rup_match_mag_dist(
     matched_rups, eqs, s=6, return_str: bool = True, **kwargs
 ):
     eq_mags = eqs.loc[matched_rups.index, "magnitude"].values
     rup_mags = matched_rups.magnitude.values
     dists = matched_rups.eq_dist.values
-    likes = np.float_(matched_rups.likelihood.values)
+    likes = np.float64(matched_rups.likelihood.values)
     # norm_likes = (likes - likes.min()) / (likes.max() - likes.min())
     colors = plt.cm.viridis(likes)
 
@@ -773,7 +824,8 @@ def plot_histogram_heatmap(data):
 
     # Set y-axis ticks
     max_val = max(max(row) for row in bin_edges_all)
-    ax.set_yticks(range(int(max_val) + 1))
+    # ax.set_yticks(range(int(max_val) + 1))
+    ax.set_ylim(0, max_val + 1)
 
     # Add colorbar
     cbar = plt.colorbar(
@@ -788,3 +840,368 @@ def plot_histogram_heatmap(data):
     plt.legend()
 
     return fig
+
+
+def plot_eqs_by_mag_time(
+    eqs_by_mag_time,
+    model_mfd=None,
+    plot_obs_trendlines: bool = True,
+    plot_model_trendlines: bool = True,
+    return_str: bool = False,
+):
+    """
+    Plot earthquakes occurrence over time for different magnitude bins.
+
+    Args:
+        eqs_by_mag_time: Dictionary of earthquake data by magnitude bin
+        model_mfd: Model magnitude frequency distribution
+        plot_obs_trendlines: Whether to plot observed trendlines
+        plot_model_trendlines: Whether to plot model trendlines
+        return_str: If True, returns SVG string; otherwise returns figure
+
+    Returns:
+        Figure or SVG string representation of plot
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
+    import pandas as pd
+    import io
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+
+    # Get a colormap with distinct colors
+    cmap = cm.get_cmap("tab10")
+
+    # Sort magnitude bins for consistent color assignment
+    sorted_mag_bins = sorted(eqs_by_mag_time.keys())
+
+    for i, mag_bin in enumerate(sorted_mag_bins):
+        # Get color from colormap based on index
+        color = cmap(
+            i % 10
+        )  # Cycle through 10 colors if more than 10 mag bins
+
+        mag_eq_data = eqs_by_mag_time[mag_bin]
+        eqs = mag_eq_data["eqs"]
+
+        # Create time series including start and end dates
+        times = [pd.to_datetime(mag_eq_data["start_date"])]
+        times.extend(pd.to_datetime(eqs["time"]).tolist())
+        times.append(pd.to_datetime(mag_eq_data["stop_date"]))
+
+        # Convert to decimal years
+        times = [timestamp_to_decimal_year(t) for t in times]
+
+        # Create cumulative counts
+        cumulative_counts = list(range(len(times) - 1))
+        cumulative_counts.append(max(cumulative_counts))
+
+        # Plot observed data with consistent color
+        ax.step(
+            times,
+            cumulative_counts,
+            where="post",
+            label=mag_bin,
+            color=color,
+        )
+
+        # Plot model trendline if requested, with same color but dashed line
+        if plot_model_trendlines and model_mfd is not None:
+            if mag_bin in model_mfd:
+                end_number = model_mfd[
+                    mag_bin
+                ]  # * duration already factored in
+                ax.plot(
+                    [times[0], times[-1]],
+                    [0.0, end_number],
+                    "--",  # Dashed line
+                    color=color,  # Same color as empirical data
+                    lw=0.5,
+                    # label=f"Model {mag_bin}",
+                )
+
+    plt.xlabel("Year")
+    plt.ylabel("Number of Earthquake Occurrences")
+    plt.legend(loc="upper left")
+    plt.grid(True, linestyle="--", alpha=0.7)
+    plt.title("Cumulative Earthquake Occurrences by Magnitude Bin")
+
+    if return_str:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+    else:
+        return fig
+
+
+def prepare_eqs_by_mag_time_for_d3(eqs_by_mag_time, model_mfd=None):
+    """
+    Process earthquake data for D3.js visualization.
+
+    Args:
+        eqs_by_mag_time: Dictionary of earthquake data by magnitude bin
+        model_mfd: Model magnitude frequency distribution (optional)
+
+    Returns:
+        dict: JSON-serializable data for D3 visualization including:
+              - series: array of datasets (one per magnitude bin)
+              - modelLines: array of model trendlines if model_mfd is provided
+              - domainExtent: min/max values for x and y axes
+    """
+    d3_data = {
+        "series": [],
+        "modelLines": [],
+        "domainExtent": {
+            "x": [float("inf"), float("-inf")],  # [min, max]
+            "y": [0, 0],  # [min, max]
+        },
+    }
+
+    # Sort magnitude bins for consistent color assignment
+    sorted_mag_bins = sorted(eqs_by_mag_time.keys())
+
+    # get start dates
+    start_dates = []
+    stop_date = None
+    # Process each magnitude bin
+    for mag_bin in sorted_mag_bins:
+        mag_eq_data = eqs_by_mag_time[mag_bin]
+        eqs = mag_eq_data["eqs"]
+
+        # Create time series including start and end dates
+        times = [pd.to_datetime(mag_eq_data["start_date"])]
+        times.extend(pd.to_datetime(eqs["time"]).tolist())
+        times.append(pd.to_datetime(mag_eq_data["stop_date"]))
+
+        # Convert to decimal years
+        decimal_times = [timestamp_to_decimal_year(t) for t in times]
+        start_dates.append(decimal_times[0])
+        stop_date = decimal_times[-1]
+
+        # Create cumulative counts
+        cumulative_counts = list(range(len(times) - 1))
+        cumulative_counts.append(max(cumulative_counts))
+
+        # Track domain extent
+        d3_data["domainExtent"]["x"][0] = min(
+            d3_data["domainExtent"]["x"][0], decimal_times[0]
+        )
+        d3_data["domainExtent"]["x"][1] = max(
+            d3_data["domainExtent"]["x"][1], decimal_times[-1]
+        )
+        d3_data["domainExtent"]["y"][1] = max(
+            d3_data["domainExtent"]["y"][1], max(cumulative_counts)
+        )
+
+        # Create step data for D3 (creating pairs of points for step visualization)
+        points = []
+        for i in range(len(decimal_times)):
+            # Add current point
+            points.append({"x": decimal_times[i], "y": cumulative_counts[i]})
+
+            # If not the last point, add the horizontal step segment
+            if i < len(decimal_times) - 1:
+                points.append(
+                    {"x": decimal_times[i + 1], "y": cumulative_counts[i]}
+                )
+
+        # Store the series data
+        d3_data["series"].append(
+            {
+                "magBin": (
+                    float(mag_bin)
+                    if isinstance(mag_bin, (int, float))
+                    else mag_bin
+                ),
+                "label": f"Magnitude {mag_bin}",
+                "points": points,
+            }
+        )
+
+        # Add model trendline if available
+        if model_mfd is not None and mag_bin in model_mfd:
+            end_number = model_mfd[mag_bin]
+            d3_data["modelLines"].append(
+                {
+                    "magBin": (
+                        float(mag_bin)
+                        if isinstance(mag_bin, (int, float))
+                        else mag_bin
+                    ),
+                    "label": f"Model {mag_bin}",
+                    "start": {"x": decimal_times[0], "y": 0.0},
+                    "end": {"x": decimal_times[-1], "y": end_number},
+                }
+            )
+
+            # Update y-axis extent if needed
+            d3_data["domainExtent"]["y"][1] = max(
+                d3_data["domainExtent"]["y"][1], end_number
+            )
+
+    start_date = min(start_dates)
+
+    # Add some padding to the domain extents for better visualization
+    x_padding = (
+        d3_data["domainExtent"]["x"][1] - d3_data["domainExtent"]["x"][0]
+    ) * 0.05
+    y_padding = d3_data["domainExtent"]["y"][1] * 0.1
+
+    d3_data["domainExtent"]["x"][0] -= x_padding
+    d3_data["domainExtent"]["x"][1] += x_padding
+    d3_data["domainExtent"]["y"][1] += y_padding
+
+    return d3_data, start_date, stop_date
+
+
+def gmm_plots():
+    pass
+
+
+def plot_PGA_scatter(
+    gmm_results_trt,
+    trt="",
+    axes_type="loglog",
+    return_fig: bool = False,
+    return_string: bool = True,
+):
+    if len(gmm_results_trt.values()) == 0:
+        return
+
+    elif len(gmm_results_trt.values()) == 1:  # not sure if it works
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+    else:
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+
+    mod_cols = [
+        col
+        for col in res_df.columns
+        if (col[:4] == "PGA_") and (col != "PGA_obs")
+    ]
+
+    num_rows = len(mod_cols) // 2
+    if len(mod_cols) % 2 == 1:
+        num_rows += 1
+
+    fig, axs = plt.subplots(
+        nrows=num_rows, ncols=2, figsize=(12, 6 * num_rows)
+    )
+
+    axs = axs.ravel()
+
+    for i, col in enumerate(mod_cols):
+        if axes_type == "loglog":
+            axs[i].set_yscale("log")
+            axs[i].set_xscale("log")
+        axs[i].set_aspect("equal")
+        axs[i].scatter(res_df.PGA_obs, res_df[col], label=col[4:], s=2)
+        axs[i].plot(
+            [
+                min(res_df.PGA_obs.min(), res_df[col].min()) * 0.9,
+                max(res_df.PGA_obs.max(), res_df[col].max()) * 0.9,
+            ],
+            [
+                min(res_df.PGA_obs.min(), res_df[col].min()) * 0.9,
+                max(res_df.PGA_obs.max(), res_df[col].max()) * 0.9,
+            ],
+            "k--",
+            lw=0.5,
+            label="1:1",
+        )
+        axs[i].legend(loc="best")
+        axs[i].set_xlabel("obs PGA (g)")
+        axs[i].set_ylabel("model PGA (g)")
+
+    fig.suptitle(f"PGA comparisons for available earthquakes,\n{trt}")
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+
+def plot_PGA_distance(
+    gmm_results_trt,
+    trt="",
+    dist="rup_dist_ff",
+    axes_type="loglog",
+    return_fig: bool = False,
+    return_string: bool = True,
+):
+    # don't yet have uncertainteis
+    fig, ax = plt.subplots(nrows=2, figsize=(12, 16), sharex=True, sharey=True)
+    if axes_type == "loglog":
+        ax[0].set_yscale("log")
+        ax[0].set_xscale("log")
+        ax[1].set_yscale("log")
+        ax[1].set_xscale("log")
+    elif axes_type == "logy":
+        ax[0].set_yscale("log")
+        ax[1].set_yscale("log")
+    else:
+        raise NotImplementedError(f"wut is {axes_type}")
+
+    if len(gmm_results_trt.values()) == 0:
+        return
+
+    elif len(gmm_results_trt.values()) == 1:  # not sure if it works
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+    else:
+        res_df = pd.concat(gmm_results_trt.values(), axis=0)
+
+    for col in res_df.columns:
+        if (col[:4] == "PGA_") and (col != "PGA_obs"):
+            ax[0].scatter(res_df[dist], res_df[col], label=col[4:], s=2)
+            ax[1].scatter(
+                res_df[dist],
+                res_df["PGA_obs"] / res_df[col],
+                label=col[4:],
+                s=2,
+            )
+
+    ax[0].scatter(
+        res_df[dist],
+        res_df["PGA_obs"],
+        s=3,
+        color="black",
+        label="obs",
+    )
+
+    ax[1].axhline(1.0, color="k", linestyle="--", lw=0.5, label="1:1")
+
+    ax[0].legend(loc="best")
+
+    ax[0].set_xlabel("Distance (km)")
+    ax[0].set_ylabel("PGA (g)")
+    ax[0].legend(loc="best")
+
+    ax[1].set_xlabel("Distance (km)")
+    ax[1].set_ylabel("obs / model PGA (g)")
+    ax[1].legend(loc="best")
+
+    ax[0].set_title(f"PGA, obs and model with distance\n{trt}")
+    ax[1].set_title(f"PGA, obs / model with distance\n{trt}")
+
+    fig.suptitle(f"PGA comparisons for available earthquakes,\n{trt}")
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+
+# should make maps for gmm--spider plot linked to iml-dist plot?

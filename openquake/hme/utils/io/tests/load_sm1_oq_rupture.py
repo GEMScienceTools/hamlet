@@ -3,8 +3,11 @@ import unittest
 
 import numpy as np
 
-from openquake.hme.core.core import (load_obs_eq_catalog,
-                                     load_ruptures_from_ssm, load_inputs)
+from openquake.hme.core.core import (
+    load_obs_eq_catalog,
+    load_ruptures_from_ssm,
+    load_inputs,
+)
 
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
     get_model_mfd,
@@ -25,8 +28,7 @@ RUP_CSV = os.path.join(SM1_PATH, "sm1_rups.csv")
 
 # Doing this here because it takes several seconds and should be done once
 cfg = {
-    "meta": {
-            "description": "test"},
+    "meta": {"description": "test"},
     "config": {
         "model_framework": {
             "relm": {
@@ -38,7 +40,7 @@ cfg = {
                 "S_test": {
                     "investigation_time": 40.0,
                     "n_iters": 5,
-                    "critical_pct": 0.25,
+                    "critical_frac": 0.25,
                     "append": True,
                 },
             }
@@ -51,7 +53,7 @@ cfg = {
             "h3_res": 3,
             "mfd_bin_min": 6.0,
             "mfd_bin_max": 8.5,
-            "mfd_bin_width": 0.2
+            "mfd_bin_width": 0.2,
         },
         "subset": {
             "file": None,
@@ -76,7 +78,7 @@ cfg = {
         "rupture_file": {
             "rupture_file_path": RUP_CSV,
             "read_rupture_file": False,
-            "save_rupture_file": False
+            "save_rupture_file": False,
         },
         "simple_ruptures": False,
     },

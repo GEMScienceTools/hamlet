@@ -2,6 +2,7 @@
 Utility functions for running tests in the GEM model test framework.
 """
 
+import logging
 from multiprocessing import Pool
 
 from h3 import h3
@@ -10,7 +11,9 @@ import pandas as pd
 from geopandas import GeoDataFrame
 from tqdm.autonotebook import tqdm
 
+from openquake.hazardlib.imt import PGA, PGV
 from openquake.hazardlib.geo.geodetic import distance
+import openquake.hazardlib as hz
 
 from openquake.hme.utils import (
     parallelize,
@@ -22,7 +25,7 @@ from openquake.hme.utils import (
     angles_between_plane_and_planes,
     angles_between_rake_and_rakes,
 )
-from openquake.hme.utils.utils import _n_procs
+from openquake.hme.utils.utils import _n_procs, breakpoint
 from openquake.hme.utils.stats import geom_mean, weighted_geom_mean
 
 
@@ -242,7 +245,7 @@ def get_nearby_rups(eq, rup_df):
 def get_matching_rups(
     eq,
     rup_gdf,
-    distance_lambda=1.0,
+    distance_lambda=2.0,
     dist_by_mag=True,
     mag_window=1.0,
     group_return_threshold=0.9,
@@ -251,8 +254,8 @@ def get_matching_rups(
     no_rake_default_like=0.5,
     use_occurrence_rate=False,
     return_one=False,
-    attitude_rel_weight=0.01,
-    rake_rel_weight=0.01,
+    attitude_rel_weight=0.25,
+    rake_rel_weight=0.25,
     mag_rel_weight=1.0,
 ):
     # selection phase
@@ -280,6 +283,8 @@ def get_matching_rups(
     mag_likes = mag_diff_likelihood(
         eq.magnitude, rups.magnitude, mag_window=mag_window
     )
+    mag_likes[mag_likes < 1e-20] = 1e-20
+    rups["mag_like"] = np.float64(mag_likes)
 
     if hasattr(eq, "strike") and not np.isnan(eq.strike):
         # plane attitude diffs
@@ -299,12 +304,80 @@ def get_matching_rups(
         rake_diffs = angles_between_rake_and_rakes(
             eq.rake, rups.rake, return_radians=True
         )
+        rake_diffs = pd.Series(rake_diffs, index=rups.index)
         # angles > pi/2 should all have zero likelihood
         # rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
         rake_likes = np.cos(rake_diffs)
-        rake_likes[rake_likes <= 0.0] = 1e-20
+        rake_likes[rake_likes < 1e-20] = 1e-20
         rups["rake_diff"] = rake_diffs
+
+    elif hasattr(eq, "strike1") and not np.isnan(eq.strike1):
+        # plane attitude diffs for first plane
+        attitude_diffs1 = angles_between_plane_and_planes(
+            eq.strike1,
+            eq.dip1,
+            rups.strike.values,
+            rups.dip.values,
+            return_radians=True,
+        )
+        attitude_diffs1 = pd.Series(attitude_diffs1, index=rups.index)
+        attitude_likes1 = np.cos(attitude_diffs1)
+        attitude_likes1[attitude_likes1 < 1e-20] = 1e-20
+
+        # rake diffs for first plane
+        rake_diffs1 = angles_between_rake_and_rakes(
+            eq.rake1, rups.rake, return_radians=True
+        )
+        rake_likes1 = np.cos(rake_diffs1)
+        rake_likes1[rake_likes1 < 1e-20] = 1e-20
+
+        # Total likelihood for first plane (multiply attitude and rake likelihoods)
+        total_likes1 = attitude_likes1 * rake_likes1
+
+        # plane attitude diffs for second plane
+        attitude_diffs2 = angles_between_plane_and_planes(
+            eq.strike2,
+            eq.dip2,
+            rups.strike.values,
+            rups.dip.values,
+            return_radians=True,
+        )
+        attitude_diffs2 = pd.Series(attitude_diffs2, index=rups.index)
+        attitude_likes2 = np.cos(attitude_diffs2)
+        attitude_likes2[attitude_likes2 < 1e-20] = 1e-20
+
+        # rake diffs for second plane
+        rake_diffs2 = angles_between_rake_and_rakes(
+            eq.rake2, rups.rake, return_radians=True
+        )
+        rake_likes2 = np.cos(rake_diffs2)
+        rake_likes2[rake_likes2 < 1e-20] = 1e-20
+
+        # Total likelihood for second plane
+        total_likes2 = attitude_likes2 * rake_likes2
+
+        # Create boolean mask for where plane 1 is more likely
+        plane1_more_likely = total_likes1 > total_likes2
+
+        # Use the mask to select the appropriate differences
+        attitude_diffs = np.where(
+            plane1_more_likely, attitude_diffs1, attitude_diffs2
+        )
+        rake_diffs = np.where(plane1_more_likely, rake_diffs1, rake_diffs2)
+
+        rups["attitude_diff"] = attitude_diffs
+        rups["rake_diff"] = rake_diffs
+        attitude_likes = np.cos(attitude_diffs)
+        attitude_likes[attitude_likes < no_attitude_default_like] = (
+            no_attitude_default_like
+        )
+        rake_likes = np.cos(rake_diffs)
+        rake_likes[rake_likes < no_attitude_default_like] = (
+            no_attitude_default_like
+        )
+
     else:
+        # breakpoint()
         attitude_likes = np.ones(len(rups)) * no_attitude_default_like
         rups["attitude_diff"] = np.empty(len(rups))
         rups["attitude_diff"].values[:] = np.nan
@@ -424,7 +497,7 @@ def match_eqs_to_rups(
         )
         for i, eq in eq_gdf.iterrows()
     )
-    if parallel is True:
+    if False is True:
         with Pool(_n_procs) as pool:
             match_results = list(
                 tqdm(
@@ -494,6 +567,7 @@ def rupture_matching_eval_fn(
         "attitude_diff",
         "rake_diff",
         "likelihood",
+        "mag_like",
     ]:
         matched_rups[col] = matched_rups[col].astype(float)
 
@@ -504,3 +578,150 @@ def rupture_matching_eval_fn(
     unmatched_eqs = eq_gdf.loc[unmatched_indices]
 
     return {"matched_rups": matched_rups, "unmatched_eqs": unmatched_eqs}
+
+
+from openquake.hme.utils.gmm_utils import (
+    make_sitecol,
+    build_oq_rupture,
+    gmf_from_rupture,
+    get_imls_from_flatfile_row,
+    make_rup_from_flatfile,
+)
+
+
+def get_flatfile_records_for_eq(event_id, gm_df: pd.DataFrame) -> pd.DataFrame:
+    return gm_df.loc[gm_df.event_id == event_id]
+
+
+def predict_gms_for_eq(eq, gm_df, gsim_lt, test_config, imts=(PGA(),)):
+    site_records = get_flatfile_records_for_eq(eq.event_id, gm_df)
+    sitecol = make_sitecol(
+        site_records["st_longitude"].values,
+        site_records["st_latitude"].values,
+        vs30s=site_records["vs30_m_sec"].values,
+        vs30s_meas_type=site_records["vs30_meas_type"].values,
+    )
+
+    if not isinstance(eq, hz.source.rupture.BaseRupture):
+        rupture = build_oq_rupture(eq)
+    else:
+        rupture = eq
+
+    results = {}
+
+    gsims = gsim_lt.values[eq.tectonic_region_type]
+
+    if test_config["gmf_method"] == "ground_motion_fields":
+        for gsim in gsims:
+            results[gsim.__repr__().strip("[]")] = gmf_from_rupture(
+                rupture, sites=sitecol, gsim=gsim, imts=imts
+            )
+
+    elif test_config["gmf_method"] == "calc_gmf_simplified":
+        # ebr = hz.source.rupture.EBRupture()
+        raise NotImplementedError("don't know how to make EBR, context")
+
+    results["obs"] = {imt.__repr__(): {} for imt in imts}
+    for i, row in site_records.iterrows():
+        row_obs = get_imls_from_flatfile_row(row, imts)
+        for imt, v in row_obs.items():
+            results["obs"][imt][i] = v
+
+    results_df = pd.concat(
+        [
+            pd.Series(res, name=f"{imt}_obs")
+            for imt, res in results["obs"].items()
+        ],
+        axis=1,
+    )
+
+    for gsim, gms in results.items():
+        if gsim != "obs":
+            for imt, vals in gms.items():
+                results_df[f"{imt}_{gsim}"] = vals
+
+    rrup_calc = rupture.surface.get_min_distance(sitecol.mesh)
+    results_df["rup_dist_calc"] = rrup_calc
+    results_df["rup_dist_ff"] = site_records["rup_dist"]
+
+    # breakpoint()
+
+    return results_df
+
+
+def get_closest_rupture(eq, rupture_df):
+    dists = get_distances(eq, rupture_df)
+    return rupture_df.iloc[dists.argmin()]
+
+
+def catalog_ground_motion_eval_fn(test_config, input_data):
+
+    # defining this here for now, will go in config later
+    imts = (PGA(),)
+
+    logging.info("Matching ruptures to GM Earthquakes")
+    match_results = rupture_matching_eval_fn(
+        input_data["rupture_gdf"],
+        input_data["eq_gm_df"],
+        distance_lambda=test_config["distance_lambda"],
+        mag_window=test_config["mag_window"],
+        group_return_threshold=test_config["group_return_threshold"],
+        no_attitude_default_like=test_config["no_attitude_default_like"],
+        no_rake_default_like=test_config["no_rake_default_like"],
+        use_occurrence_rate=test_config["use_occurrence_rate"],
+        return_one=test_config["return_one"],
+        # parallel is often slower
+        parallel=test_config["parallel"],  # cfg["config"]["parallel"],
+    )
+
+    gmm_results = {}
+
+    match_rups = test_config.get("match_rups", False)
+
+    if match_rups:
+        match_results["matched_rups"]["event_id"] = (
+            input_data["eq_gm_df"]
+            .loc[match_results["matched_rups"].index]
+            .event_id
+        )
+        for idx, matched_rupture in match_results["matched_rups"].iterrows():
+            rupture = matched_rupture
+            trt = rupture.tectonic_region_type
+
+            if trt not in gmm_results:
+                gmm_results[trt] = {}
+
+            logging.info(f"Calculating GMFs for rupture {idx}")
+            gmm_results[trt][idx] = predict_gms_for_eq(
+                matched_rupture,
+                input_data["gm_df"],
+                input_data["gsim_lt"],
+                test_config,
+                imts=imts,
+            )
+    else:
+        match_results["unmatched_eqs"] = input_data["eq_gm_df"]
+
+    for idx, eq in match_results["unmatched_eqs"].iterrows():
+        trt = get_closest_rupture(
+            eq, input_data["rupture_gdf"]
+        ).tectonic_region_type
+
+        if trt not in gmm_results:
+            gmm_results[trt] = {}
+
+        try:
+            rupture = make_rup_from_flatfile(eq, trt=trt)
+
+            logging.info(f"Calculating GMFs for rupture {idx}")
+            gmm_results[trt][idx] = predict_gms_for_eq(
+                rupture,
+                input_data["gm_df"],
+                input_data["gsim_lt"],
+                test_config,
+                imts=imts,
+            )
+        except:
+            logging.warning(f"can't do eq {eq.name}")
+
+    return gmm_results

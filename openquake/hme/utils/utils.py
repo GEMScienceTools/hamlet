@@ -4,10 +4,12 @@ import json
 import logging
 import datetime
 from time import sleep
+from calendar import isleap
 from functools import partial
 from multiprocessing import Pool
 from collections.abc import Mapping
 from typing import Sequence, List, Optional, Union, Tuple, Dict
+
 
 import attr
 import dateutil
@@ -258,7 +260,7 @@ def make_earthquake_gdf_from_csv(
     dip1: Optional[str] = None,
     rake1: Optional[str] = None,
     epsg: int = 4326,
-    select_nodal_planes=True,
+    select_nodal_planes=False,
     nodal_plane_algorithm="pick_andersonian_nodal_plane",
     h3_res: int = 3,
 ) -> gpd.GeoDataFrame:
@@ -434,6 +436,7 @@ def trim_eq_catalog_with_completeness_table(
 ):
     logging.info("Trimming EQ catalog to end date {}".format(stop_date))
     out_gdf = eq_gdf.loc[eq_gdf.time <= pd.to_datetime(stop_date)]
+    logging.debug(f"{len(out_gdf):_} earthquakes")
     logging.info("Trimming EQ catalog with completeness table")
     drop_idxs = []
     for i, eq in out_gdf.iterrows():
@@ -520,6 +523,7 @@ def get_model_mfd(
     delete_col: bool = True,
     t_yrs: Optional[float] = None,
     completeness_table=None,  # Optional[List[List[float, float]]] = None,
+    stop_date: Optional[datetime.date] = None,
 ) -> Dict[float, float]:
 
     annual_mfd = get_rup_df_mfd(
@@ -530,7 +534,9 @@ def get_model_mfd(
         model_mfd = {}
         for mag, rate in annual_mfd.items():
             duration = get_mag_duration_from_comp_table(
-                completeness_table, mag
+                completeness_table,
+                mag,
+                stop_date=stop_date,
             )
             model_mfd[mag] = rate * duration
     elif t_yrs is not None:
@@ -607,13 +613,30 @@ def get_mag_year_from_comp_table(comp_table, mag):
         next_smaller_mag_idx = np.where(mags <= mag)[0][-1]
         mag = mags[next_smaller_mag_idx]
         comp_year = yrs[next_smaller_mag_idx]
-        # print(mags[next_smaller_mag_idx], comp_year)
+        # logging.info(mags[next_smaller_mag_idx], comp_year)
 
     return mag, comp_year
 
 
 class MagTooSmallError(Exception):
     pass
+
+
+def get_eq_df_mag_bins(
+    eq_df,
+    mag_bins,
+) -> None:
+    bin_centers = np.array(sorted(mag_bins.keys()))
+    bin_edges = get_bin_edges_from_mag_bins(mag_bins)
+
+    if "mag_bin" not in eq_df.columns:
+        eq_df["mag_bin"] = pd.cut(
+            eq_df.magnitude,
+            bin_edges,
+            right=False,
+            include_lowest=True,
+            labels=bin_centers,
+        )
 
 
 def get_obs_mfd(
@@ -716,10 +739,10 @@ def sample_rups(
     return sampled_rups
 
 
-def random_dates(start, end, n, rand_seed=1, replace=False):
-    dates = pd.date_range(start, end).to_series()
-    return dates.sample(n, replace=replace, random_state=rand_seed)
-
+def random_dates(start, end, n, rand_seed=1):
+    rng = np.random.default_rng(seed)
+    rand_ns = rng.integers(lo, hi + 1, size=n, dtype=np.int64)
+    return pd.to_datetime(rand_ns).round('S')
 
 def trim_inputs(input_data, cfg):
     mag_bins = get_mag_bins_from_cfg(cfg)
@@ -727,8 +750,21 @@ def trim_inputs(input_data, cfg):
     min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
     max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
 
+    min_depth = cfg["input"].get("min_depth", 0.0)
+    max_depth = cfg["input"].get("max_depth", np.inf)
+
     rup_gdf = input_data["rupture_gdf"]
     eq_gdf = input_data["eq_gdf"]
+
+    if min_depth > 0.0 or max_depth < np.inf:
+        logging.info(f"Trimming data to {min_depth} <= z <= {max_depth}")
+    rup_depth_range = (rup_gdf.depth >= min_depth) & (
+        rup_gdf.depth <= max_depth
+    )
+    eq_depth_range = (eq_gdf.depth >= min_depth) & (eq_gdf.depth <= max_depth)
+
+    rup_gdf = rup_gdf.loc[rup_depth_range]
+    eq_gdf = eq_gdf.loc[eq_depth_range]
 
     mag_range_idxs = (rup_gdf.magnitude >= min_bin_mag) & (
         rup_gdf.magnitude <= max_bin_mag
@@ -887,3 +923,69 @@ def pick_andersonian_nodal_plane(strike1, dip1, rake1, strike2, dip2, rake2):
         chosen_set = (strike1, dip1, rake1)
 
     return chosen_set
+
+
+def timestamp_to_decimal_year(timestamp):
+    """
+    Convert a pandas Timestamp to decimal year.
+
+    Args:
+        timestamp (pd.Timestamp): The pandas Timestamp to convert
+
+    Returns:
+        float: The decimal year representation (e.g., 2023.58 for a date in July 2023)
+    """
+    if not isinstance(timestamp, pd.Timestamp):
+        try:
+            timestamp = pd.Timestamp(timestamp)
+        except:
+            raise TypeError("Input must be convertible to pandas Timestamp")
+
+    # Get the year
+    year = timestamp.year
+
+    # Calculate the total number of days in the year (accounting for leap years)
+    days_in_year = 366 if isleap(year) else 365
+
+    # Calculate the day of the year (ordinal day, 1-366)
+    day_of_year = timestamp.dayofyear
+
+    # Calculate the fraction of the day
+    seconds_in_day = 24 * 60 * 60
+    fraction_of_day = (
+        timestamp.hour * 3600 + timestamp.minute * 60 + timestamp.second
+    ) / seconds_in_day
+
+    # The final decimal year
+    decimal_year = year + (day_of_year - 1 + fraction_of_day) / days_in_year
+
+    return decimal_year
+
+
+def datetime_to_decimal_year(dt):
+    """
+    Convert a Python datetime to decimal year.
+
+    Args:
+        dt (datetime.datetime): The datetime object to convert
+
+    Returns:
+        float: The decimal year representation
+    """
+    if not isinstance(dt, datetime.datetime):
+        try:
+            dt = datetime.datetime.fromisoformat(str(dt))
+        except:
+            raise TypeError(
+                "Input must be a datetime object or convertible to one"
+            )
+
+    # Convert to pandas Timestamp for consistent handling
+    timestamp = pd.Timestamp(dt)
+    return timestamp_to_decimal_year(timestamp)
+
+
+def datetime_to_string(dt):
+    # Convert to pandas Timestamp for consistent handling
+    timestamp = pd.Timestamp(dt)
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S")

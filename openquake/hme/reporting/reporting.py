@@ -4,6 +4,7 @@ testing.
 """
 
 import os
+import json
 import logging
 from typing import Optional
 from xml.parsers.expat import model
@@ -24,10 +25,24 @@ from openquake.hme.utils.plots import (
     plot_N_test_results,
     plot_L_test_results,
     plot_M_test_results,
+    plot_eqs_by_mag_time,
+    prepare_eqs_by_mag_time_for_d3,
+    prepare_rup_match_data_for_d3,
+    plot_PGA_distance,
+    plot_PGA_scatter,
 )
+
+from openquake.hme.utils.utils import breakpoint
 
 BASE_DATA_PATH = os.path.dirname(__file__)
 template_dir = os.path.join(BASE_DATA_PATH, "templates")
+
+natural_earth_countries_file = os.path.join(
+    *os.path.split(__file__)[::-1],
+    "..",
+    "datasets",
+    "ne_50m_admin_0_countries.geojson",
+)
 
 
 def _init_env() -> Environment:
@@ -96,16 +111,6 @@ def render_result_text(
         if "model_mfd" in results["gem"].keys():
             render_mfd_eval(env=env, cfg=cfg, results=results)
 
-        # will remove likelhood eval
-        # if "likelihood" in results["gem"].keys():
-        #    render_likelihood(
-        #        env=env,
-        #        cfg=cfg,
-        #        results=results,
-        #        bin_gdf=bin_gdf,
-        #        eq_gdf=eq_gdf,
-        #    )
-
         if "moment_over_under" in results["gem"].keys():
             render_moment_over_under(
                 env=env, cfg=cfg, results=results, cell_gdf=results["cell_gdf"]
@@ -141,6 +146,16 @@ def render_result_text(
         if "rupture_matching_eval" in results["gem"].keys():
             render_rupture_matching_eval(
                 env=env, cfg=cfg, input_data=input_data, results=results
+            )
+
+        if "cumulative_occurrence_eval" in results["gem"].keys():
+            render_cumulative_occurrence_eval(
+                env=env, cfg=cfg, results=results
+            )
+
+        if "catalog_ground_motion_eval" in results["gem"].keys():
+            render_catalog_ground_motion_eval(
+                env=env, cfg=cfg, results=results
             )
 
     if "relm" in results.keys():
@@ -284,13 +299,6 @@ def render_M_test(
     )
 
 
-def render_gem_M_test(env: Environment, cfg: dict, results: dict) -> None:
-    n_test = env.get_template("gem_m_test.html")
-    results["gem"]["M_test"]["rendered_text"] = n_test.render(
-        res=results["gem"]["M_test"]["val"]
-    )
-
-
 def render_S_test(
     env: Environment,
     cfg: dict,
@@ -317,40 +325,15 @@ def render_S_test(
         model_test_framework=model_test_framework,
     )
 
+    with open(natural_earth_countries_file) as f:
+        country_geojson = json.load(f)
+
     results[model_test_framework]["S_test"]["rendered_text"] = s_test.render(
         mtf=model_test_framework,
         res=results[model_test_framework]["S_test"]["val"],
         S_test_map_str=S_test_map_str,
-    )
-
-
-def render_gem_S_test(
-    env: Environment,
-    cfg: dict,
-    results: dict,
-    bin_gdf: GeoDataFrame,
-) -> None:
-
-    s_test = env.get_template("gem_s_test.html")
-
-    test_config = cfg["config"]["model_framework"]["gem"]["S_test"]
-
-    if "map_epsg" in cfg["report"]["basic"].keys():
-        map_epsg = cfg["report"]["basic"]["map_epsg"]
-    else:
-        map_epsg = None
-    if "append" in test_config.keys():
-        if test_config["append"] is True:
-            S_test_map_str = plot_S_test_map(
-                bin_gdf,
-                map_epsg=map_epsg,
-                bad_bins=results["gem"]["S_test"]["val"]["bad_bins"],
-            )
-        else:
-            S_test_map_str = ""
-
-    results["gem"]["S_test"]["rendered_text"] = s_test.render(
-        res=results["gem"]["S_test"]["val"], S_test_map_str=S_test_map_str
+        geojsonData=results["cell_gdf"].__geo_interface__,
+        countryJson=country_geojson,
     )
 
 
@@ -403,6 +386,13 @@ def render_rupture_matching_eval(
         return_str=True,
     )
 
+    rup_match_json = prepare_rup_match_data_for_d3(
+        input_data["eq_gdf"],
+        rup_match_results["matched_rups"],
+        rup_match_results["unmatched_eqs"],
+        map_epsg=map_epsg,
+    )
+
     if len(rup_match_results["unmatched_eqs"]) > 0:
         unmatched_eq_table_str = rup_match_results["unmatched_eqs"].to_html()
     else:
@@ -413,7 +403,8 @@ def render_rupture_matching_eval(
             res=rup_match_results,
             mag_dist_plot_str=mag_dist_plot_str,
             unmatched_eq_table_str=unmatched_eq_table_str,
-            map_str=rup_match_map,
+            # map_str=rup_match_map,
+            earthquake_data=json.dumps(rup_match_json),
         )
     )
 
@@ -441,20 +432,52 @@ def render_mfd_eval(env: Environment, cfg: dict, results: dict):
     )
 
 
-#####
-# old
-#####
+def render_cumulative_occurrence_eval(
+    env: Environment, cfg: dict, results: dict
+):
+    eval_results = results["gem"]["cumulative_occurrence_eval"]["val"]
 
+    prepped_data, start_date, stop_date = prepare_eqs_by_mag_time_for_d3(
+        eval_results["eqs_by_mag_time"], model_mfd=eval_results["model_mfd"]
+    )
 
-def render_N_test_old(env: Environment, cfg: dict, results: dict) -> None:
-    n_test = env.get_template("n_test.html")
-    results["relm"]["N_test"]["rendered_text"] = n_test.render(
-        res=results["relm"]["N_test"]["val"]
+    json_data = json.dumps(prepped_data).strip("'")
+
+    # fig_str = plot_eqs_by_mag_time(
+    #    eval_results["eqs_by_mag_time"],
+    #    model_mfd=eval_results["model_mfd"],
+    #    return_str=True,
+    # )
+
+    # cum_occ_template = env.get_template("cumulative_occurrence.html")
+    # results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
+    #    cum_occ_template.render(cum_occ_str=fig_str)
+    # )
+
+    cum_occ_template = env.get_template("cumulative_occurrence.html")
+    results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
+        cum_occ_template.render(earthquake_data=json_data)
     )
 
 
-def render_mfd_old(env: Environment, cfg: dict, results: dict):
-    mfd_template = env.get_template("mfd.html")
-    results["gem"]["model_mfd"]["rendered_text"] = mfd_template.render(
-        cfg=cfg, results=results
+def render_catalog_ground_motion_eval(
+    env: Environment, cfg: dict, results: dict
+):
+    eval_results = results["gem"]["catalog_ground_motion_eval"]["val"]
+
+    res_plots = {}
+
+    for trt, gmm_comp in eval_results["gmm_comparisons"].items():
+        res_plots[trt] = []
+        plot = plot_PGA_distance(gmm_comp, trt)
+        if plot:
+            res_plots[trt].append(plot)
+        plot = plot_PGA_scatter(gmm_comp, trt)
+        if plot:
+            res_plots[trt].append(plot)
+
+    cat_gm_template = env.get_template("catalog_ground_motion_eval.html")
+
+    results["gem"]["catalog_ground_motion_eval"]["rendered_text"] = (
+        cat_gm_template.render(res_plots=res_plots)
     )

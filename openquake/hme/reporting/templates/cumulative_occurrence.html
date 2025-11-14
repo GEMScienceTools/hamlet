@@ -1,0 +1,334 @@
+<h3>Cumulative Earthquake Occurrence Plot</h3>
+<div id="earthquake-plot-container" style="width: 100%; height: 1200px;">
+    <svg id="earthquake-plot" width="100%" height="100%"></svg>
+</div>
+
+<script>
+    (function () {
+        // Parse the earthquake data from JSON
+        const earthquakeData = JSON.parse('{{ earthquake_data|safe }}');
+
+        // Configuration
+        const margin = { top: 40, right: 60, bottom: 60, left: 60 };
+        const containerWidth = document.getElementById('earthquake-plot-container').clientWidth;
+        const containerHeight = document.getElementById('earthquake-plot-container').clientHeight;
+        const width = containerWidth - margin.left - margin.right;
+        const height = containerHeight - margin.top - margin.bottom;
+
+        // Color scale - using D3's schemeCategory10
+        // Initialize once and reuse for both series and models
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Process all unique magBins up front to ensure consistent color assignment
+        const allMagBins = [];
+        earthquakeData.series.forEach(series => {
+            if (!allMagBins.includes(series.magBin)) {
+                allMagBins.push(series.magBin);
+            }
+        });
+
+        // Pre-assign colors to all magnitude bins
+        const colorMap = {};
+        allMagBins.forEach(magBin => {
+            colorMap[magBin] = color(magBin);
+        });
+
+        // Create SVG and append a group for the plot content
+        const svg = d3.select('#earthquake-plot');
+
+        // Clear any existing content
+        svg.selectAll('*').remove();
+
+        const plotGroup = svg.append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        // Create scales
+        const xScale = d3.scaleLinear()
+            .domain(earthquakeData.domainExtent.x)
+            .range([0, width]);
+
+        const yScale = d3.scaleLinear()
+            .domain([0, earthquakeData.domainExtent.y[1]])
+            .range([height, 0]);
+
+        // Create line generator for the step function
+        const line = d3.line()
+            .x(d => xScale(d.x))
+            .y(d => yScale(d.y));
+
+        // Add X and Y axes
+        const xAxis = plotGroup.append('g')
+            .attr('class', 'x-axis')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(xScale)
+                .ticks(10)
+                .tickFormat(d3.format('.0f')));
+
+        const yAxis = plotGroup.append('g')
+            .attr('class', 'y-axis')
+            .call(d3.axisLeft(yScale));
+
+        // Add axis labels
+        plotGroup.append('text')
+            .attr('class', 'x-axis-label')
+            .attr('text-anchor', 'middle')
+            .attr('x', width / 2)
+            .attr('y', height + margin.bottom - 10)
+            .text('Year');
+
+        plotGroup.append('text')
+            .attr('class', 'y-axis-label')
+            .attr('text-anchor', 'middle')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -height / 2)
+            .attr('y', -margin.left + 15)
+            .text('Number of Earthquake Occurrences');
+
+        // Add grid lines
+        plotGroup.append('g')
+            .attr('class', 'grid-lines')
+            .selectAll('line.horizontal')
+            .data(yScale.ticks())
+            .enter()
+            .append('line')
+            .attr('class', 'horizontal')
+            .attr('x1', 0)
+            .attr('x2', width)
+            .attr('y1', d => yScale(d))
+            .attr('y2', d => yScale(d))
+            .style('stroke', '#e0e0e0')
+            .style('stroke-dasharray', '3,3');
+
+        // Add tooltip div that follows the mouse - WITH UNIQUE CLASS NAME
+        const occurrenceTooltip = d3.select("body").append("div")
+            .attr("class", "occurrence-tooltip")
+            .style("opacity", 0)
+            .style("position", "absolute")
+            .style("pointer-events", "none");
+
+        // Create groups for observed series and model lines
+        const seriesGroup = plotGroup.append('g').attr('class', 'series-group');
+        const modelGroup = plotGroup.append('g').attr('class', 'model-group');
+
+        // Map to store references to lines for hover interactions
+        const seriesElements = {};
+
+        // Plot observed data for each magnitude bin
+        earthquakeData.series.forEach((series, i) => {
+            const magBin = series.magBin;
+            const seriesColor = colorMap[magBin];
+
+            // Store the series references
+            seriesElements[magBin] = {
+                observed: null,
+                model: null
+            };
+
+            // Plot the step lines
+            const path = seriesGroup.append('path')
+                .datum(series.points)
+                .attr('class', `line-series line-series-${i}`)
+                .attr('data-magbin', magBin)
+                .attr('fill', 'none')
+                .attr('stroke', seriesColor)
+                .attr('stroke-width', 2)
+                .attr('d', line)
+                .style('transition', 'opacity 0.2s');
+
+            // Store reference to the path
+            seriesElements[magBin].observed = path;
+
+            // Add hover interactions - UPDATED TO USE MODERN D3 EVENT HANDLING
+            path
+                .on('mouseover', function (event) {
+                    // Make other lines transparent
+                    seriesGroup.selectAll('.line-series').style('opacity', 0.2);
+                    modelGroup.selectAll('.model-line').style('opacity', 0.2);
+
+                    // Keep this line and its model line opaque
+                    seriesElements[magBin].observed.style('opacity', 1);
+                    if (seriesElements[magBin].model) {
+                        seriesElements[magBin].model.style('opacity', 1);
+                    }
+
+                    // Show tooltip
+                    occurrenceTooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    occurrenceTooltip.html(magBin)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on('mousemove', function (event) {
+                    // Update tooltip position as mouse moves
+                    occurrenceTooltip
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on('mouseout', function () {
+                    // Restore all lines
+                    seriesGroup.selectAll('.line-series').style('opacity', 1);
+                    modelGroup.selectAll('.model-line').style('opacity', 1);
+
+                    // Hide tooltip
+                    occurrenceTooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+        });
+
+        // Plot model trendlines if available
+        earthquakeData.modelLines.forEach((model, i) => {
+            const magBin = model.magBin;
+            // Get the color from the colorMap to ensure consistency
+            const modelColor = colorMap[magBin];
+
+            // Plot the trendline
+            const modelLine = modelGroup.append('line')
+                .attr('class', `model-line model-line-${i}`)
+                .attr('data-magbin', magBin)
+                .attr('x1', xScale(model.start.x))
+                .attr('y1', yScale(model.start.y))
+                .attr('x2', xScale(model.end.x))
+                .attr('y2', yScale(model.end.y))
+                .attr('stroke', modelColor)
+                .attr('stroke-width', 1)
+                .attr('stroke-dasharray', '5,5')
+                .style('transition', 'opacity 0.2s');
+
+            // Store reference to the model line
+            if (seriesElements[magBin]) {
+                seriesElements[magBin].model = modelLine;
+            }
+        });
+
+        // Add legend to the upper left
+        const legendGroup = svg.append('g')
+            .attr('class', 'legend')
+            .attr('transform', `translate(${margin.left + 10}, ${margin.top + 10})`);
+
+        // Add legend for observed data only
+        earthquakeData.series.forEach((series, i) => {
+            const g = legendGroup.append('g')
+                .attr('transform', `translate(0, ${i * 20})`)
+                .attr('class', 'legend-item')
+                .attr('data-magbin', series.magBin);
+
+            g.append('line')
+                .attr('x1', 0)
+                .attr('y1', 8)
+                .attr('x2', 20)
+                .attr('y2', 8)
+                .attr('stroke', colorMap[series.magBin])
+                .attr('stroke-width', 2);
+
+            g.append('text')
+                .attr('x', 25)
+                .attr('y', 12)
+                .text(series.magBin)
+                .style('font-size', '12px');
+
+            // Add hover interaction to legend items - UPDATED TO USE MODERN D3 EVENT HANDLING
+            g.on('mouseover', function (event) {
+                const magBin = d3.select(this).attr('data-magbin');
+
+                // Make other lines transparent
+                seriesGroup.selectAll('.line-series').style('opacity', 0.2);
+                modelGroup.selectAll('.model-line').style('opacity', 0.2);
+
+                // Keep this line and its model line opaque
+                seriesElements[magBin].observed.style('opacity', 1);
+                if (seriesElements[magBin].model) {
+                    seriesElements[magBin].model.style('opacity', 1);
+                }
+
+                // Show tooltip
+                occurrenceTooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                occurrenceTooltip.html(magBin)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+                .on('mousemove', function (event) {
+                    // Update tooltip position as mouse moves
+                    occurrenceTooltip
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on('mouseout', function () {
+                    // Restore all lines
+                    seriesGroup.selectAll('.line-series').style('opacity', 1);
+                    modelGroup.selectAll('.model-line').style('opacity', 1);
+
+                    // Hide tooltip
+                    occurrenceTooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+        });
+
+        // Add title
+        svg.append('text')
+            .attr('class', 'plot-title')
+            .attr('text-anchor', 'middle')
+            .attr('x', containerWidth / 2)
+            .attr('y', margin.top / 2)
+            .attr('font-weight', 'bold')
+            .text('Cumulative Earthquake Occurrences by Magnitude Bin');
+
+        // Add some styling for the axes and labels
+        svg.selectAll('.axis path, .axis line')
+            .style('stroke', '#000')
+            .style('shape-rendering', 'crispEdges');
+
+        svg.selectAll('text')
+            .style('font-family', 'Arial, sans-serif');
+    })();
+</script>
+
+<style>
+    #earthquake-plot-container {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #fff;
+        margin: 20px 0;
+    }
+
+    /* Set the style for the axes and labels */
+    .x-axis-label,
+    .y-axis-label {
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .plot-title {
+        font-size: 14px;
+    }
+
+    /* Make the plot lines a bit nicer */
+    path.line {
+        fill: none;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+    }
+
+    /* Tooltip style - UPDATED CLASS NAME */
+    .occurrence-tooltip {
+        padding: 6px 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border-radius: 4px;
+        pointer-events: none;
+        font-size: 14px;
+        font-weight: bold;
+        font-family: Arial, sans-serif;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Legend item hover effect */
+    .legend-item {
+        cursor: pointer;
+    }
+</style>

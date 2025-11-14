@@ -11,26 +11,44 @@ from openquake.commonlib import datastore
 from openquake.commonlib.readinput import get_params
 from openquake.engine.engine import create_jobs, run_jobs
 
-from openquake.hme.utils.utils import _get_class_name
+from openquake.hazardlib.gsim_lt import GsimLogicTree
+
+from openquake.hme.utils.utils import _get_class_name, breakpoint
 
 
 from openquake.hme.utils.utils import breakpoint
 
-def csm_from_job_ini(job_ini):
+def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     if not isinstance(job_ini, dict) and os.path.isfile(job_ini):
         job_ini = get_params(job_ini)
         if not job_ini["inputs"].get("site_model", None):
             job_ini["ground_motion_fields"] = False
             job_ini["inputs"]["job_ini"] = "<in-memory>"
 
+    logging.debug(job_ini)
+
+    logging.debug("creating job")
     [job] = create_jobs([job_ini])
+    logging.debug("\tcreated job")
+    logging.debug(job)
+    logging.debug("setting calculation mode")
     job.params["calculation_mode"] = "preclassical"
+    logging.debug("\tset calculation mode")
+    logging.debug("running job")
     run_jobs([job])
+    logging.debug("\tran job")
+    logging.debug("getting csm from dstore")
     with job, datastore.read(job.calc_id) as dstore:
         csm = dstore["_csm"]
         sources = csm.get_sources()
+        logging.debug("\tgot csm from dstore")
 
-    return csm, sources, dstore
+        if get_gsim_lt:
+            gmm_lt_filepath = job.params["inputs"]["gsim_logic_tree"]
+        else:
+            gmm_lt_filepath = None
+
+    return csm, sources, dstore, gmm_lt_filepath
 
 
 #def get_sources_by_branch(csm):
@@ -128,7 +146,9 @@ def process_source_logic_tree_oq(
     source_types: Optional[Sequence] = None,
     tectonic_region_types: Optional[Sequence] = None,
     description: Optional[str] = None,
+    get_gsim_lt: bool = False,
 ):
+    logging.debug("we are at the beginning of process_source_logic_tree_oq")
     if job_ini_file is not None:
         logging.info("Job ini found")
         job_ini = os.path.join(base_dir, job_ini_file)
@@ -142,7 +162,9 @@ def process_source_logic_tree_oq(
             sites_file=sites_file,
         )
 
-    csm, _sources, dstore = csm_from_job_ini(job_ini)
+    csm, _sources, dstore, gmm_lt_filepath = csm_from_job_ini(
+        job_ini, get_gsim_lt=get_gsim_lt
+    )
 
     rlz_info = {r.ordinal: {'path': r.pid, 'weight': r.weight}
                 for r in dstore["full_lt"].sm_rlzs }
@@ -211,7 +233,12 @@ def process_source_logic_tree_oq(
 
     #breakpoint()
 
-    return ssm_lt_sources, ssm_lt_weights, ssm_lt_rup_counts
+    if get_gsim_lt:
+        gsim_lt = read_gsim_lt(gmm_lt_filepath)
+    else:
+        gsim_lt = None
+
+    return ssm_lt_sources, ssm_lt_weights, ssm_lt_rup_counts, gsim_lt
 
 
 def make_composite_source(branch_sources, branch_weights):
@@ -231,7 +258,7 @@ def make_job_ini(
     sites_file: Optional[str] = None,
 ):
     ssm_lt_path = os.path.join(base_dir, lt_file)
-    #gmm_lt_path = os.path.join(base_dir, gmm_lt_file)
+    # gmm_lt_path = os.path.join(base_dir, gmm_lt_file)
     job_ini_params = {
         "general": {
             "calculation_mode": "preclassical",
@@ -244,7 +271,7 @@ def make_job_ini(
             "maximum_distance": 200,
             "investigation_time": 1.0,
             "source_model_logic_tree": ssm_lt_path,
-           # "gsim_logic_tree": gmm_lt_path,
+            # "gsim_logic_tree": gmm_lt_path,
             "ground_motion_fields": False,
             "truncation_level": 3.0,
             "intensity_measure_types_and_levels": {"PGA": [0.5]},
@@ -271,3 +298,15 @@ def make_job_ini(
         job_ini_params_flat["inputs"] = ["sites_file"]
 
     return job_ini_params_flat
+
+
+def read_gsim_lt(gsim_filepath, tectonic_region_types=["*"], ltnode=None):
+
+    logging.info("Reading gsim_lt")
+    gsim_lt = GsimLogicTree(
+        gsim_filepath,
+        tectonic_region_types=tectonic_region_types,
+        ltnode=ltnode,
+    )
+
+    return gsim_lt

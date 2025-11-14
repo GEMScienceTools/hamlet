@@ -74,6 +74,11 @@ def _chunk_source_list(
     if source_counts_unweighted == []:
         logging.info("     no rup counts provided; counting...")
         source_counts_unweighted = [s.count_ruptures() for s in sources]
+    else:
+        if len(source_counts_unweighted) != len(sources):
+            logging.info("    source weights have wrong length, recalculating")
+            source_counts_unweighted = [s.count_ruptures() for s in sources]
+
     source_counts = [
         source_counts_unweighted[i] * source_weight(s)
         for i, s in enumerate(sources)
@@ -127,7 +132,7 @@ def _chunk_source_list(
 def _process_rupture(
     rup: Union[
         ParametricProbabilisticRupture, NonParametricProbabilisticRupture
-    ]
+    ],
 ):
     rd = np.zeros(8, dtype=float)  # experiment w/ lower precision later
 
@@ -168,7 +173,13 @@ def _process_source_chunk(source_chunk_w_args) -> list:
     rups = (
         [
             # _process_source(source, h3_res=sc["h3_res"], pbar=None)
-            _process_source(source, h3_res=sc["h3_res"], pbar=pbar)
+            _process_source(
+                source,
+                h3_res=sc["h3_res"],
+                pbar=pbar,
+                return_surface=sc["return_surface"],
+                return_trt=sc["return_trt"],
+            )
             for source in sc["source_chunk"]
         ],
     )
@@ -181,7 +192,12 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 
 
 def _process_source(
-    source, h3_res: int = 3, n_rups: Optional[int] = None, pbar: tqdm = None
+    source,
+    h3_res: int = 3,
+    n_rups: Optional[int] = None,
+    pbar: tqdm = None,
+    return_surface: bool = False,
+    return_trt: bool = False,
 ):
     rup_cols = [
         "longitude",
@@ -197,12 +213,22 @@ def _process_source(
     if n_rups is None:
         n_rups = source.count_ruptures()
 
+    if return_surface:
+        surfaces = []
+
+    if return_trt:
+        trts = []
+
     rup_data = np.zeros((n_rups, len(rup_cols)), dtype=float)
     cell_ids = []
 
     for i, rup in enumerate(source.iter_ruptures()):
         _add_rup_data(i, rup, rup_data)
         cell_ids.append(h3.geo_to_h3(rup_data[i, 1], rup_data[i, 0], h3_res))
+        if return_surface:
+            surfaces.append(rup.surface)
+        if return_trt:
+            trts.append(rup.tectonic_region_type)
         if pbar is not None:
             pbar.update(n=1)
 
@@ -213,12 +239,27 @@ def _process_source(
     rup_df.index = ["{}_{}".format(source.source_id, i) for i in rup_df.index]
     rup_df.index.name = "rup_id"
 
+    if return_surface:
+        rup_df["surface"] = surfaces
+
+    if return_trt:
+        rup_df["tectonic_region_type"] = trts
+
     return rup_df
 
 
 def rupture_df_from_source_list(
-    source_list: list, source_rup_counts: list = [], h3_res: int = 3
+    source_list: list,
+    simple_ruptures: bool = False,
+    return_trt: bool = False,
+    h3_res: int = 3,
 ):
+
+    if simple_ruptures:
+        return_surface = False
+    else:
+        return_surface = True
+
     rup_counts = [s.count_ruptures() for s in source_list]
     n_rups = sum(rup_counts)
     source_df_list = []
@@ -227,7 +268,13 @@ def rupture_df_from_source_list(
     logging.info("{} ruptures".format(n_rups))
 
     for i, source in enumerate(source_list):
-        rup_df = _process_source(source, h3_res=h3_res, pbar=pbar)
+        rup_df = _process_source(
+            source,
+            h3_res=h3_res,
+            pbar=pbar,
+            return_surface=return_surface,
+            return_trt=return_trt,
+        )
         source_df_list.append(rup_df)
 
     rupture_df = pd.concat(source_df_list, axis=0)
@@ -238,9 +285,17 @@ def rupture_df_from_source_list(
 def rupture_list_from_source_list_parallel(
     source_list: list,
     source_rup_counts: list = [],
+    simple_ruptures: bool = False,
+    return_trt: bool = False,
     n_procs: int = _n_procs,
     h3_res: int = 3,
 ) -> pd.DataFrame:
+
+    if simple_ruptures:
+        return_surface = False
+    else:
+        return_surface = True
+
     logger.info("    chunking sources")
     source_chunks, chunk_sums = _chunk_source_list(
         source_list, source_rup_counts, n_procs
@@ -252,6 +307,8 @@ def rupture_list_from_source_list_parallel(
             "position": i + 1,
             "chunk_sum": chunk_sums[i],
             "h3_res": h3_res,
+            "return_surface": return_surface,
+            "return_trt": return_trt,
         }
         for i, source_chunk in enumerate(source_chunks)
     ]
@@ -272,6 +329,8 @@ def rupture_list_from_source_list_parallel(
                 "position": i,
                 "chunk_sum": chunk_sums[i],
                 "h3_res": h3_res,
+                "return_surface": return_surface,
+                "return_trt": return_trt,
             }
             for i, source_chunk in enumerate(source_chunks)
         ]
@@ -297,6 +356,8 @@ def rupture_list_from_source_list_parallel(
 def rupture_dict_from_logic_tree_dict(
     logic_tree_dict: dict,
     source_rup_counts: dict,
+    simple_ruptures: bool = True,
+    return_trt: bool = False,
     parallel: bool = True,
     n_procs: int = _n_procs,
     h3_res: int = 3,
@@ -345,6 +406,8 @@ def rupture_dict_from_logic_tree_dict(
             rup_dict[branch_name] = rupture_list_from_source_list_parallel(
                 source_list,
                 source_rup_counts=source_rup_counts[branch_name],
+                simple_ruptures=simple_ruptures,
+                return_trt=return_trt,
                 h3_res=h3_res,
                 n_procs=n_procs,
             )
@@ -357,7 +420,10 @@ def rupture_dict_from_logic_tree_dict(
                 f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
             )
             rup_dict[branch_name] = rupture_df_from_source_list(
-                source_list, h3_res=h3_res
+                source_list,
+                h3_res=h3_res,
+                simple_ruptures=simple_ruptures,
+                return_trt=return_trt,
             )
     return rup_dict
 

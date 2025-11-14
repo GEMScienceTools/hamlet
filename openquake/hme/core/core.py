@@ -10,17 +10,21 @@ import os
 import time
 import logging
 from copy import deepcopy
+from datetime import datetime
 from typing import Union, Optional, Tuple
 import pdb
 
+import math
 import json
 import yaml
 import numpy as np
 import pandas as pd
+from shapely.geometry import Point
 from geopandas import GeoDataFrame
 
 from openquake.hme.utils.io import (
     process_source_logic_tree_oq,
+    load_flatfile,
 )
 
 from openquake.hme.utils.validate_inputs import validate_cfg
@@ -31,13 +35,14 @@ from openquake.hme.utils import (
     trim_eq_catalog,
     trim_eq_catalog_with_completeness_table,
     trim_inputs,
+    breakpoint,
+    get_eq_df_mag_bins,
+    get_mag_bins_from_cfg,
 )
 
 from openquake.hme.utils.results_processing import process_results
 
 from openquake.hme.reporting import generate_basic_report
-
-from openquake.hme.utils.utils import breakpoint
 
 from openquake.hme.utils.io.source_processing import (
     rupture_dict_from_logic_tree_dict,
@@ -192,6 +197,9 @@ def load_obs_eq_catalog(cfg: dict) -> GeoDataFrame:
             duration=duration,
         )
 
+    mag_bins = get_mag_bins_from_cfg(cfg)
+    get_eq_df_mag_bins(eq_gdf, mag_bins)
+
     return eq_gdf
 
 
@@ -256,6 +264,17 @@ def load_ruptures_from_file(cfg: dict):
     return rupture_gdf
 
 
+def needs_gsim_lt(cfg: dict):
+    gsim_test_list = ["catalog_ground_motion_eval"]
+
+    needs_gsim = False
+    if "gem" in cfg["config"]["model_framework"]:
+        for test in gsim_test_list:
+            if test in cfg["config"]["model_framework"]["gem"]:
+                needs_gsim = True
+    return needs_gsim
+
+
 def load_ruptures_from_ssm(cfg: dict):
     """
     Reads a seismic source model, processes it, and returns a GeoDataFrame with
@@ -267,22 +286,33 @@ def load_ruptures_from_ssm(cfg: dict):
         config file.
 
     :returns:
-        A GeoDataFrame of the ruptures.
+        A GeoDataFrame of the ruptures, and a possibly-null ground motion
+        logic tree.
     """
 
     logger.info("loading ruptures into geodataframe")
 
     source_cfg: dict = cfg["input"]["ssm"]
 
+    return_trt = cfg["input"].get("return_trt", False)
+    simple_ruptures = cfg["input"]["simple_ruptures"]
+    needs_gsim = needs_gsim_lt(cfg)
+    if needs_gsim:
+        return_trt = True
+        simple_ruptures = False
+
     logger.info("  processing logic tree")
-    ssm_lt_sources, weights, source_rup_counts = process_source_logic_tree_oq(
-        source_cfg["job_ini_file"],
-        source_cfg["ssm_dir"],
-        lt_file=source_cfg["ssm_lt_file"],
-        source_types=source_cfg["source_types"],
-        tectonic_region_types=source_cfg["tectonic_region_types"],
-        branch=source_cfg["branch"],
-        description=cfg["meta"]["description"],
+    ssm_lt_sources, weights, source_rup_counts, gsim_lt = (
+        process_source_logic_tree_oq(
+            source_cfg["job_ini_file"],
+            source_cfg["ssm_dir"],
+            lt_file=source_cfg["ssm_lt_file"],
+            source_types=source_cfg["source_types"],
+            tectonic_region_types=source_cfg["tectonic_region_types"],
+            branch=source_cfg["branch"],
+            description=cfg["meta"]["description"],
+            get_gsim_lt=needs_gsim,
+        )
     )
 
     logger.info("  making dictionary of ruptures")
@@ -290,6 +320,9 @@ def load_ruptures_from_ssm(cfg: dict):
         ssm_lt_sources,
         source_rup_counts=source_rup_counts,
         parallel=cfg["config"]["parallel"],
+        h3_res=cfg["input"]["bins"]["h3_res"],
+        simple_ruptures=simple_ruptures,
+        return_trt=return_trt,
     )
 
     del ssm_lt_sources
@@ -301,7 +334,7 @@ def load_ruptures_from_ssm(cfg: dict):
     )
     logger.info("  done preparing rupture dataframe")
 
-    return rupture_gdf
+    return rupture_gdf, gsim_lt
 
 
 def load_inputs(cfg: dict) -> dict:
@@ -315,13 +348,18 @@ def load_inputs(cfg: dict) -> dict:
     """
 
     eq_gdf = load_obs_eq_catalog(cfg)
+    logger.info(f"{len(eq_gdf):_} earthquakes in catalog")
 
     if cfg["input"]["rupture_file"]["read_rupture_file"] is True:
         rupture_gdf = load_ruptures_from_file(cfg)
+        gsim_lt = None
     else:
-        rupture_gdf = load_ruptures_from_ssm(cfg)
+        rupture_gdf, gsim_lt = load_ruptures_from_ssm(cfg)
 
-    if cfg["input"]["rupture_file"]["save_rupture_file"] is True:
+    if (
+        cfg["input"]["rupture_file"]["save_rupture_file"] is True
+        and cfg["input"]["rupture_file"]["read_rupture_file"] is False
+    ):
         logging.info("Writing ruptures to file")
         write_ruptures_to_file(
             rupture_gdf,
@@ -356,6 +394,7 @@ def load_inputs(cfg: dict) -> dict:
     cells_in_model = rupture_gdf.cell_id.unique()
     eq_in_model = (cell_id in cells_in_model for cell_id in eq_gdf.cell_id)
     eq_gdf = eq_gdf.loc[eq_in_model]
+    logger.info(f"{len(eq_gdf):_} earthquakes in trimmed catalog")
 
     logging.info("grouping earthquakes by cell")
     eq_groups = eq_gdf.groupby("cell_id")
@@ -365,6 +404,7 @@ def load_inputs(cfg: dict) -> dict:
         "cell_groups": cell_groups,
         "eq_gdf": eq_gdf,
         "eq_groups": eq_groups,
+        "gsim_lt": gsim_lt,
     }
 
     if "prospective_catalog" in cfg["input"].keys():
@@ -376,6 +416,36 @@ def load_inputs(cfg: dict) -> dict:
         pro_eq_gdf = pro_gdf.loc[pro_eq_in_model]
         input_data["pro_gdf"] = pro_eq_gdf
         input_data["pro_groups"] = pro_eq_gdf.groupby("cell_id")
+
+    if needs_gsim_lt(cfg):
+        mag_bins = get_mag_bins_from_cfg(cfg)
+
+        min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
+        max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
+        input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile(
+            cfg["input"]["flatfile"],
+            min_mag=min_bin_mag,
+            max_mag=max_bin_mag,
+            h3_res=cfg["input"]["bins"]["h3_res"],
+        )
+
+        gm_eq_in_model = (
+            cell_id in cells_in_model
+            for cell_id in input_data["eq_gm_df"].cell_id
+        )
+
+        input_data["eq_gm_df"] = input_data["eq_gm_df"].loc[gm_eq_in_model]
+        input_data["gm_df"] = input_data["gm_df"].loc[
+            input_data["gm_df"].event_id.isin(
+                input_data["eq_gm_df"].event_id.tolist()
+            )
+        ]
+
+        logger.info(
+            f"{len(input_data['eq_gm_df']):_} earthquakes "
+            + f"and {len(input_data['gm_df']):_} shaking records in"
+            + " ground motion database"
+        )
 
     return input_data
 
@@ -432,10 +502,9 @@ def run_tests(cfg: dict) -> None:
     logger.info("trimming rupture and earthquake data to test magnitude range")
     trim_inputs(input_data, cfg)
     logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
-    
-    logging.info(
-        "Mean annual occurrence rate (post-trim): " +
-        f"{input_data['rupture_gdf'].occurrence_rate.sum()}"
+    logger.info(
+        "Annual rupture rate over test magnitude range: "
+        + f"{input_data['rupture_gdf'].occurrence_rate.sum():0.2f}"
     )
 
     for framework, tests in test_lists.items():
@@ -451,13 +520,12 @@ def run_tests(cfg: dict) -> None:
     )
 
     process_results(cfg, input_data, results)
+    write_outputs(cfg, results)
 
     if "report" in cfg.keys():
         write_reports(cfg, results=results, input_data=input_data)
 
     if "json" in cfg.keys():
-        # raise NotImplementedError()
-        logging.warn("JSON output not implemented")
         write_json(cfg, results)
 
     t_out_done = time.time()
@@ -478,17 +546,41 @@ output processing
 """
 
 
+def write_outputs(cfg, results):
+    """go through and write test-specific results, trash can function"""
+    if "gem" in results.keys():
+        gr = results["gem"]
+        gc = cfg["config"]["model_framework"]["gem"]
+
+        if "rupture_matching_eval" in gr.keys():
+            if len(gr["rupture_matching_eval"]["val"]["unmatched_eqs"]) > 0:
+                if "write_unmatched_eqs" in gc["rupture_matching_eval"]:
+                    gr["rupture_matching_eval"]["val"]["unmatched_eqs"].to_csv(
+                        gc["rupture_matching_eval"]["unmatched_eq_file"],
+                        index=False,
+                    )
+
+        if "S_test" in gr.keys():
+            if len(gr["S_test"]["val"]["unmatched_eqs"]) > 0:
+                if "write_unmatched_eqs" in gc["S_test"]:
+                    gr["S_test"]["val"]["unmatched_eqs"].to_csv(
+                        gc["S_test"]["unmatched_eq_file"],
+                        index=False,
+                    )
+            del gr["S_test"]["val"]["unmatched_eqs"]
+
+
 def format_output_for_json(out_results):
-    def find_dataframe(d, path=None):
+    def find_obj(d, obj_type, path=None):
         if path is None:
             path = []
 
         for k, v in d.items():
             current_path = path + [k]
-            if isinstance(v, pd.DataFrame):
+            if isinstance(v, obj_type):
                 return v, current_path
             elif isinstance(v, dict):
-                result = find_dataframe(v, current_path)
+                result = find_obj(v, obj_type, current_path)
                 if result is not None:
                     return result
         return None
@@ -519,13 +611,49 @@ def format_output_for_json(out_results):
         return d
 
     out_results = delete_key_substring(out_results, "plot")
-    out_results["gem"]["model_mfd"]["test_data"]["mfd_df"] = eval(
-        out_results["gem"]["model_mfd"]["test_data"]["mfd_df"].to_json()
-    )
-    out_results["gem"]["rupture_matching_eval"]["matched_rups"] = out_results[
-        "gem"
-    ]["rupture_matching_eval"]["matched_rups"].to_dict()
-    del out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"]
+    try:
+        out_results["gem"]["model_mfd"]["test_data"]["mfd_df"] = eval(
+            out_results["gem"]["model_mfd"]["test_data"]["mfd_df"].to_json()
+        )
+    except KeyError:
+        pass
+
+    try:
+        out_results["gem"]["rupture_matching_eval"]["matched_rups"] = (
+            out_results["gem"]["rupture_matching_eval"][
+                "matched_rups"
+            ].to_dict()
+        )
+
+        if (
+            len(out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"])
+            > 0
+        ):
+            del out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"][
+                "geometry"
+            ]
+        out_results["gem"]["rupture_matching_eval"]["unmatched_eqs"] = (
+            out_results["gem"]["rupture_matching_eval"][
+                "unmatched_eqs"
+            ].to_dict()
+        )
+    except KeyError:
+        pass
+
+    try:
+        for cell in out_results["gem"]["S_test"]["test_data"][
+            "cell_loglikes"
+        ].values():
+            del cell["unmatched_eqs"]
+    except KeyError:
+        pass
+    try:
+        for cell in out_results["relm"]["S_test"]["test_data"][
+            "cell_loglikes"
+        ].values():
+            del cell["unmatched_eqs"]
+    except KeyError:
+        pass
 
     out_results = convert_arrays_to_lists(out_results)
 
@@ -546,29 +674,53 @@ def write_json(cfg: dict, results: dict):
                 out_results[test_framework][test] = res["val"]
 
         elif test_framework == "cell_gdf":
-            out_results[test_framework] = eval(test_results.to_json())  # :(
+            if "cell_gdf_file" in cfg["json"]:
+                # test_results.to_file(
+                #    cfg["json"]["cell_gdf_file"], driver="GeoJSON"
+                # )
+                with open(cfg["json"]["cell_gdf_file"], "w") as f:
+                    f.write(test_results.to_json())
+            else:
+                out_results[test_framework] = eval(
+                    test_results.to_json()
+                )  # :(
     # process outputs here for now
     out_results = format_output_for_json(out_results)
 
+    class CustomJSONEncoder(json.JSONEncoder):
+        def default(self, obj):
+            # Handle special cases before falling back to default encoding
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, (datetime, pd.Timestamp)):
+                return obj.isoformat()
+            if isinstance(obj, GeoDataFrame):  # can format later
+                return None
+            return super().default(obj)
 
-    def nan2None(obj):
-        if isinstance(obj, dict):
-            return {k:nan2None(v) for k,v in obj.items()}
-        elif isinstance(obj, list):
-            return [nan2None(v) for v in obj]
-        elif isinstance(obj, float) and math.isnan(obj):
-            return None
-        return obj
+        def encode(self, obj):
+            return super().encode(self.transform_object(obj))
 
-    class NanConverter(json.JSONEncoder):
-        def encode(self, obj, *args, **kwargs):
-            return super().encode(nan2None(obj), *args, **kwargs)
+        def transform_object(self, obj):
+            if isinstance(obj, dict):
+                return {k: self.transform_object(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [self.transform_object(v) for v in obj]
+            elif isinstance(obj, float) and math.isnan(obj):
+                return None
+            elif isinstance(obj, np.float64) and np.isnan(obj):
+                return None
+            elif isinstance(obj, pd.Timestamp):
+                return obj.isoformat()
+            elif isinstance(obj, GeoDataFrame):
+                return None
+            return obj
 
     with open(cfg["json"]["outfile"], "w") as f:
-        json.dump(out_results, f,  cls=NanConverter)
+        json.dump(out_results, f, cls=CustomJSONEncoder)
 
 
-def write_outputs(
+def write_outputs_old(
     cfg: dict,
     bin_gdf: GeoDataFrame,
     eq_gdf: GeoDataFrame,

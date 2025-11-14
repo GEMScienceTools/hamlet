@@ -1,35 +1,11 @@
 import logging
-from typing import Optional
-from webbrowser import get
 
-import numpy as np
-from numpy.lib.function_base import append
-import pandas as pd
-from geopandas import GeoDataFrame
-
-from openquake.hme.utils.stats import (
-    negative_binomial_distribution,
-    estimate_negative_binom_parameters,
-)
 from openquake.hme.utils import (
     get_mag_bins_from_cfg,
-    # get_source_bins,
-    # get_n_eqs_from_mfd,
 )
 
-# from openquake.hme.utils.plots import plot_mfd
-# from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
 from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
-    # N_test_poisson,
-    # N_test_neg_binom,
     s_test_function,
-    # subdivide_observed_eqs,
-    # get_model_annual_eq_rate,
-    # get_total_obs_eqs,
-    # get_model_mfd,
-    # get_obs_mfd,
-    # s_test_bin,
-    # s_test_gdf_series,
     m_test_function,
     s_test_function,
     n_test_function,
@@ -43,7 +19,7 @@ def M_test(cfg, input_data):
     mag_bins = get_mag_bins_from_cfg(cfg)
     test_config = cfg["config"]["model_framework"]["relm"]["M_test"]
     prospective = test_config.get("prospective", False)
-    critical_pct = test_config.get("critical_pct", 0.25)
+    critical_frac = test_config.get("critical_frac", 0.25)
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -65,11 +41,11 @@ def M_test(cfg, input_data):
         completeness_table=completeness_table,
         stop_date=stop_date,
         not_modeled_likelihood=0.0,
-        critical_pct=critical_pct,
+        critical_frac=critical_frac,
     )
 
-    logging.info("M-Test crit pct {}".format(test_result["critical_pct"]))
-    logging.info("M-Test pct {}".format(test_result["percentile"]))
+    logging.info("M-Test crit frac {}".format(test_result["critical_frac"]))
+    logging.info("M-Test fractile {}".format(test_result["fractile"]))
     logging.info("M-Test {}".format(test_result["test_res"]))
     return test_result
 
@@ -85,6 +61,7 @@ def S_test(
     test_config = cfg["config"]["model_framework"]["relm"]["S_test"]
     prospective = test_config.get("prospective", False)
     likelihood_function = test_config.get("likelihood_function", "mfd")
+    normalize_n_eqs = test_config.get("normalize_n_eqs", False)
     not_modeled_likelihood = 0.0  # hardcoded for RELM
 
     parallel = cfg["config"]["parallel"]
@@ -110,17 +87,18 @@ def S_test(
         t_yrs,
         test_config["n_iters"],
         likelihood_function,
+        mag_bins=mag_bins,
+        normalize_n_eqs=normalize_n_eqs,
         completeness_table=completeness_table,
         stop_date=stop_date,
-        mag_bins=mag_bins,
-        critical_pct=test_config["critical_pct"],
+        critical_frac=test_config["critical_frac"],
         not_modeled_likelihood=not_modeled_likelihood,
         parallel=parallel,
     )
 
     logging.info("S-Test {}".format(test_results["test_res"]))
-    logging.info("S-Test crit pct: {}".format(test_results["critical_pct"]))
-    logging.info("S-Test model pct: {}".format(test_results["percentile"]))
+    logging.info("S-Test crit frac: {}".format(test_results["critical_frac"]))
+    logging.info("S-Test model fractile: {}".format(test_results["fractile"]))
     return test_results
 
 
@@ -160,13 +138,13 @@ def L_test(
         mag_bins,
         completeness_table=completeness_table,
         stop_date=stop_date,
-        critical_pct=test_config["critical_pct"],
+        critical_frac=test_config["critical_frac"],
         not_modeled_likelihood=not_modeled_likelihood,
     )
 
     logging.info("L-Test {}".format(test_results["test_res"]))
-    logging.info("L-Test crit pct: {}".format(test_results["critical_pct"]))
-    logging.info("L-Test model pct: {}".format(test_results["percentile"]))
+    logging.info("L-Test crit frac: {}".format(test_results["critical_frac"]))
+    logging.info("L-Test model fractile: {}".format(test_results["fractile"]))
     return test_results
 
 

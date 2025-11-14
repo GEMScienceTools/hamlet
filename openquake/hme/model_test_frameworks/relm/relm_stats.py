@@ -1,7 +1,11 @@
 import logging
 
 import numpy as np
-from openquake.hme.utils.stats import poisson_likelihood, poisson_log_likelihood
+from openquake.hme.utils.stats import (
+    poisson_likelihood,
+    poisson_log_likelihood,
+    poisson_log_likelihood_vect,
+)
 
 
 def bin_observance_likelihood(
@@ -20,8 +24,15 @@ def bin_observance_log_likelihood(
     returned.
     """
 
+    if not np.isscalar(num_events):
+        return poisson_log_likelihood_vect(
+            num_events, bin_rate, not_modeled_val=not_modeled_val
+        )
+
     if bin_rate == 0:
-        return bin_observance_log_likelihood_zero_rate(num_events, not_modeled_val)
+        return bin_observance_log_likelihood_zero_rate(
+            num_events, not_modeled_val
+        )
     else:
         return poisson_log_likelihood(num_events, bin_rate)
 
