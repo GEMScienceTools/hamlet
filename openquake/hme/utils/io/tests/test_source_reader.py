@@ -5,7 +5,6 @@ from openquake.hazardlib.source import SimpleFaultSource
 from openquake.hme.utils.tests import load_sm1
 from openquake.hme.utils.io.source_reader import (
     csm_from_job_ini,
-    get_rlz_source,
     # get_csm_rlzs,
     process_source_logic_tree_oq,
     make_composite_source,
@@ -107,11 +106,11 @@ def test_process_source_logic_tree_oq():
         description=load_sm1.cfg["meta"]["description"],
     )
 
-    assert list(ssm_lt_sources.keys()) == ["composite"]
-    assert len(ssm_lt_sources["composite"]) == 18
-    assert isinstance(ssm_lt_sources["composite"][0], SimpleFaultSource)
+    assert list(ssm_lt_sources.keys()) == [0]
+    assert len(ssm_lt_sources[0]) == 18
+    assert isinstance(ssm_lt_sources[0][0], SimpleFaultSource)
 
-    assert list(ssm_lt_weights.keys()) == ["composite"]
-    assert len(ssm_lt_weights["composite"]) == 7797
-    assert ssm_lt_weights["composite"][0] == 1.0
-    assert sum(ssm_lt_weights["composite"]) == 7797.0
+    assert list(ssm_lt_weights.keys()) == [0]
+    assert len(ssm_lt_weights[0]) == 7797
+    assert ssm_lt_weights[0][0] == 1.0
+    assert sum(ssm_lt_weights[0]) == 7797.0

@@ -144,7 +144,6 @@ def process_source_logic_tree_oq(
 
     csm, _sources, dstore = csm_from_job_ini(job_ini)
 
-
     rlz_info = {r.ordinal: {'path': r.pid, 'weight': r.weight}
                 for r in dstore["full_lt"].sm_rlzs }
     logging.info("Realizations:")
