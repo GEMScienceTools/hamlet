@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nrml
+xmlns="http://openquake.org/xmlns/nrml/0.4"
+xmlns:gml="http://www.opengis.net/gml"
+>
+  <sourceModel
+      name="Classical Hazard test, 2 branches"
+      >
+    <pointSource
+        id="2"
+        name="point source"
+        tectonicRegion="active shallow crust"
+        >
+      <pointGeometry>
+        <gml:Point>
+          <gml:pos>
+            0.0000000E+00 0.0000000E+00
+          </gml:pos>
+        </gml:Point>
+        <upperSeismoDepth>
+          0.0000000E+00
+        </upperSeismoDepth>
+        <lowerSeismoDepth>
+          1.0000000E+01
+        </lowerSeismoDepth>
+      </pointGeometry>
+      <magScaleRel>
+        CScalingMSR.C = 3.90
+      </magScaleRel>
+      <ruptAspectRatio>
+        1.0000000E+00
+      </ruptAspectRatio>
+      <incrementalMFD
+          binWidth="1.0000000E+00"
+          minMag="7.0000000E+00"
+          >        
+        <occurRates>
+          1
+        </occurRates>
+      </incrementalMFD>
+      <nodalPlaneDist>
+        <nodalPlane strike="0" dip="90" rake="0" probability="1.0"/>
+      </nodalPlaneDist>
+      <hypoDepthDist>
+        <hypoDepth depth="4" probability="1"/>
+      </hypoDepthDist>
+    </pointSource>
+  </sourceModel>
+</nrml>

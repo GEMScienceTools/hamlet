@@ -1,0 +1,2 @@
+eventID,Agency,year,month,day,hour,minute,second,timeError,longitude,latitude,SemiMajor90,SemiMinor90,ErrorStrike,depth,depthError,magnitude,sigmaMagnitude,magnitudeType
+cmt156831,oGCMT|oGCMT,2020,12,31,23,12,35.0,,0.001,0.002,,,,85.7,,6.99,0.1,
