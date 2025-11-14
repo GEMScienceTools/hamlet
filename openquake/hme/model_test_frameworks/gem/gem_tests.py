@@ -21,6 +21,7 @@ from .gem_test_functions import (
     model_mfd_eval_fn,
     moment_over_under_eval_fn,
     rupture_matching_eval_fn,
+    catalog_ground_motion_eval_fn,
 )
 
 from ..relm.relm_tests import (
@@ -352,27 +353,28 @@ def moment_over_under_eval(cfg, input_data):
     return test_results
 
 
+rup_match_default_params = {
+    "distance_lambda": 1.0,
+    "mag_window": 1.0,
+    "group_return_threshold": 0.9,
+    "min_likelihood": 0.1,
+    "no_attitude_default_like": 0.5,
+    "no_rake_default_like": 0.5,
+    "use_occurrence_rate": False,
+    "return_one": "best",
+    "parallel": False,
+}
+
+
 def rupture_matching_eval(cfg, input_data):
     logging.info("Running GEM Rupture Matching Eval")
-
-    default_params = {
-        "distance_lambda": 1.0,
-        "mag_window": 1.0,
-        "group_return_threshold": 0.9,
-        "min_likelihood": 0.1,
-        "no_attitude_default_like": 0.5,
-        "no_rake_default_like": 0.5,
-        "use_occurrence_rate": False,
-        "return_one": "best",
-        "parallel": False,
-    }
 
     test_config = cfg["config"]["model_framework"]["gem"][
         "rupture_matching_eval"
     ]
     prospective = test_config.get("prospective", False)
 
-    test_config = deep_update(default_params, test_config)
+    test_config = deep_update(rup_match_default_params, test_config)
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -471,6 +473,26 @@ def cumulative_occurrence_eval(cfg, input_data):
     }
 
 
+def catalog_ground_motion_eval(cfg, input_data):
+
+    logging.info("Running GEM catalog ground motion evaluation")
+
+    test_config = cfg["config"]["model_framework"]["gem"][
+        "catalog_ground_motion_eval"
+    ]
+
+    match_rups = test_config.get("match_rups", False)
+    test_config["gmf_method"] = test_config.get(
+        "gmf_method", "ground_motion_fields"
+    )
+
+    test_config = deep_update(rup_match_default_params, test_config)
+
+    gmm_comparisons = catalog_ground_motion_eval_fn(test_config, input_data)
+
+    return {"gmm_comparisons": gmm_comparisons}
+
+
 gem_test_dict = {
     "likelihood": mfd_likelihood_test,
     "max_mag_check": max_mag_check,
@@ -482,4 +504,5 @@ gem_test_dict = {
     "L_test": L_test,
     "rupture_matching_eval": rupture_matching_eval,
     "cumulative_occurrence_eval": cumulative_occurrence_eval,
+    "catalog_ground_motion_eval": catalog_ground_motion_eval,
 }

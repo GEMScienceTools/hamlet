@@ -120,4 +120,4 @@ validate_cfg(cfg)
 
 input_data = load_inputs(cfg)
 eq_gdf = load_obs_eq_catalog(cfg)  # repeating but works for some testing
-rup_gdf = load_ruptures_from_ssm(cfg)
+rup_gdf = load_ruptures_from_ssm(cfg)[0]

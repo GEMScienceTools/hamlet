@@ -28,6 +28,8 @@ from openquake.hme.utils.plots import (
     plot_eqs_by_mag_time,
     prepare_eqs_by_mag_time_for_d3,
     prepare_rup_match_data_for_d3,
+    plot_PGA_distance,
+    plot_PGA_scatter,
 )
 
 from openquake.hme.utils.utils import breakpoint
@@ -148,6 +150,11 @@ def render_result_text(
 
         if "cumulative_occurrence_eval" in results["gem"].keys():
             render_cumulative_occurrence_eval(
+                env=env, cfg=cfg, results=results
+            )
+
+        if "catalog_ground_motion_eval" in results["gem"].keys():
+            render_catalog_ground_motion_eval(
                 env=env, cfg=cfg, results=results
             )
 
@@ -450,4 +457,27 @@ def render_cumulative_occurrence_eval(
     cum_occ_template = env.get_template("cumulative_occurrence.html")
     results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
         cum_occ_template.render(earthquake_data=json_data)
+    )
+
+
+def render_catalog_ground_motion_eval(
+    env: Environment, cfg: dict, results: dict
+):
+    eval_results = results["gem"]["catalog_ground_motion_eval"]["val"]
+
+    res_plots = {}
+
+    for trt, gmm_comp in eval_results["gmm_comparisons"].items():
+        res_plots[trt] = []
+        plot = plot_PGA_distance(gmm_comp, trt)
+        if plot:
+            res_plots[trt].append(plot)
+        plot = plot_PGA_scatter(gmm_comp, trt)
+        if plot:
+            res_plots[trt].append(plot)
+
+    cat_gm_template = env.get_template("catalog_ground_motion_eval.html")
+
+    results["gem"]["catalog_ground_motion_eval"]["rendered_text"] = (
+        cat_gm_template.render(res_plots=res_plots)
     )

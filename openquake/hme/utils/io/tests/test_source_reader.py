@@ -80,7 +80,7 @@ def test_single_branch_without_job_ini():
     job_ini = test_make_job_ini()
 
     def test_csm_from_job_ini():
-        csm, sources, source_info = csm_from_job_ini(job_ini)
+        csm, sources, source_info, gmm_filepath = csm_from_job_ini(job_ini)
 
         assert csm.count_ruptures() == 7797
         # not really sure what can be easily checked, because
@@ -97,6 +97,7 @@ def test_process_source_logic_tree_oq():
         ssm_lt_sources,
         ssm_lt_weights,
         ssm_lt_rup_counts,
+        gsim_lt,
     ) = process_source_logic_tree_oq(
         source_cfg["job_ini_file"],
         source_cfg["ssm_dir"],
