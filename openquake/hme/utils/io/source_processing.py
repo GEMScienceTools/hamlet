@@ -402,7 +402,8 @@ def rupture_dict_from_logic_tree_dict(
             logic_tree_dict.items()
         ):
             logging.info(
-                f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
+                f"processing {branch_name} ({i+1}/"
+                + f"{len(logic_tree_dict.keys())})"
             )
             rup_dict[branch_name] = rupture_list_from_source_list_parallel(
                 source_list,
@@ -418,7 +419,8 @@ def rupture_dict_from_logic_tree_dict(
             logic_tree_dict.items()
         ):
             logging.info(
-                f"processing {branch_name} ({i+1}/{len(logic_tree_dict.keys())})"
+                f"processing {branch_name} ({i+1}/"
+                + f"{len(logic_tree_dict.keys())})"
             )
             rup_dict[branch_name] = rupture_df_from_source_list(
                 source_list,
@@ -456,7 +458,8 @@ def rupture_dict_to_gdf(
             df = df[df.occurrence_rate > 0.0]
             df_trim_len = len(df)
             logging.info(
-                f"{df_trim_len} ruptures remaining, {df_len - df_trim_len} removed"
+                f"{df_trim_len} ruptures remaining, "
+                + f"{df_len - df_trim_len} removed"
             )
 
     if return_gdf:
@@ -473,47 +476,17 @@ def rupture_dict_to_gdf(
     return df
 
 
-def _get_h3_cell_for_rupture_df(rupture_df, h3_res):
-    logging.info("getting H3 cells")
-    cell_ids = list(
-        tqdm(
-            (
-                h3.geo_to_h3(row.latitude, row.longitude, h3_res)
-                for i, row in rupture_df.iterrows()
-            ),
-            total=len(rupture_df),
-        )
-    )
-    rupture_df["cell_id"] = cell_ids
-
-
 def _get_h3_cell(args):
     return h3.geo_to_h3(*args)
 
 
-def _get_h3_cell_for_rupture_df_vectorized(rupture_df, h3_res):
+def _get_h3_cell_for_rupture_df(rupture_df, h3_res):
     lats = rupture_df["latitude"].to_numpy()
     lons = rupture_df["longitude"].to_numpy()
 
     cell_ints = h3_vect.geo_to_h3(lats, lons, h3_res)
     h3_to_string = np.frompyfunc(h3.h3_to_string, 1, 1)
     cell_ids = h3_to_string(cell_ints)
-    rupture_df["cell_id"] = cell_ids
-
-
-def _get_h3_cell_for_rupture_df_parallel(rupture_df, h3_res):
-    logging.info("getting H3 cells in parallel")
-
-    lons = rupture_df.longitude.values
-    lats = rupture_df.latitude.values
-
-    args = ((lat, lons[i], h3_res) for i, lat in enumerate(lats))
-    chunksize = max(1, len(lons) // (_n_procs * 10))
-
-    logging.info(f"N procs: {_n_procs}, chunksize: {chunksize}")
-    with Pool(_n_procs) as pool:
-        cell_ids = pool.map(_get_h3_cell, args, chunksize=chunksize)
-
     rupture_df["cell_id"] = cell_ids
 
 
