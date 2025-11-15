@@ -255,11 +255,11 @@ def load_ruptures_from_file(cfg: dict):
     logging.info("Reading ruptures from {}".format(rup_file))
     if os.path.exists(rup_file):
         rupture_gdf = read_rupture_file(
-            rup_file, h3_res=h3_res, parallel=parallel
+            rup_file, h3_res=h3_res, parallel=False
         )
 
     else:
-        logging.warn("Rupture file does not exist; reading SSM.")
+        logging.warning("Rupture file does not exist; reading SSM.")
         rupture_gdf = load_ruptures_from_ssm(cfg)
 
     return rupture_gdf
@@ -370,7 +370,7 @@ def load_inputs(cfg: dict) -> dict:
     logging.info("grouping ruptures by cell")
     cell_groups = rupture_gdf.groupby("cell_id")
 
-    logger.info("rupture_gdf shape: {}".format(rupture_gdf.shape))
+    logger.info(f"{len(rupture_gdf):_} ruptures in model")
     logger.debug(
         "rupture_gdf memory: {} GB".format(
             sum(rupture_gdf.memory_usage(index=True, deep=True)) * 1e-9
@@ -378,12 +378,15 @@ def load_inputs(cfg: dict) -> dict:
     )
 
     if cfg["input"]["subset"]["file"] is not None:
-        logger.info("   Subsetting bin_gdf")
+        logger.info("Subsetting rupture_gdf")
         rupture_gdf = subset_source(
             rupture_gdf,
-            subset_file=cfg["input"]["subset"]["file"],
+            cfg["input"]["subset"]["file"],
+            buffer=cfg["input"]["subset"].get("buffer"),
+            fid=cfg["input"]["subset"].get("fid"),
+            feature_number=cfg["input"]["subset"].get("feature_number"),
         )
-        logger.warning("CANNOT SUBSET SOURCE YET!!!")
+        logger.info(f"{len(rupture_gdf):_} ruptures after subset")
 
     if len(rupture_gdf) != len(rupture_gdf.index.unique()):
         logging.warning(

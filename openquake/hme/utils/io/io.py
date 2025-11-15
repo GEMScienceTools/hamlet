@@ -20,6 +20,7 @@ from ..utils import rupture_list_to_gdf
 from ..simple_rupture import SimpleRupture, rup_to_dict
 from openquake.hme.utils.io.source_processing import (
     _get_h3_cell_for_rupture_df,
+    _get_h3_cell_for_rupture_df_vectorized,
     _get_h3_cell_for_rupture_df_parallel,
 )
 
@@ -128,7 +129,8 @@ def read_rupture_file(
         raise ValueError("Cannot read filetype {}".format(rup_file_type))
 
     if parallel is False:
-        _get_h3_cell_for_rupture_df(rupture_df, h3_res)
+        # _get_h3_cell_for_rupture_df(rupture_df, h3_res)
+        _get_h3_cell_for_rupture_df_vectorized(rupture_df, h3_res)
     else:
         _get_h3_cell_for_rupture_df_parallel(rupture_df, h3_res)
 

@@ -21,7 +21,8 @@ from scipy.stats import poisson
 from h3 import h3
 
 from tqdm.autonotebook import tqdm
-from shapely.geometry import Point
+
+from shapely.geometry import Point, shape, mapping
 
 from openquake.hazardlib.geo.point import Point as OQPoint
 
@@ -992,8 +993,49 @@ def datetime_to_string(dt):
     return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def buffer_geojson_polygon(geojson_feature, buffer_distance):
+    """
+    Buffer a GeoJSON polygon and return a new GeoJSON dict.
+
+    Parameters:
+    -----------
+    geojson_feature : dict
+        GeoJSON Feature or Geometry dict with a Polygon
+    buffer_distance : float
+        Buffer distance in degrees
+
+    Returns:
+    --------
+    dict
+        GeoJSON geometry dict with buffered polygon
+    """
+    is_feature = "geometry" in geojson_feature
+
+    if is_feature:
+        geometry_dict = geojson_feature["geometry"]
+    else:
+        geometry_dict = geojson_feature
+
+    polygon = shape(geometry_dict)
+    buffered_polygon = polygon.buffer(buffer_distance)
+    buffered_geometry = mapping(buffered_polygon)
+
+    if is_feature:
+        return {
+            "type": "Feature",
+            "geometry": buffered_geometry,
+            "properties": geojson_feature.get("properties", {}),
+        }
+    else:
+        return buffered_geometry
+
+
 def subset_source(
-    rupture_gdf, subset_geojson_file, fid=None, feature_number=None
+    rupture_gdf,
+    subset_geojson_file,
+    buffer=None,
+    fid=None,
+    feature_number=None,
 ):
 
     with open(subset_geojson_file) as f:
@@ -1017,12 +1059,15 @@ def subset_source(
 
     if subset_geojson["geometry"]["type"] not in [
         "Polygon",
-        "MultiPolygon",
     ]:
         raise ValueError(
-            "`subset_geojson_file` not Polygon or MultiPolygon: "
+            "`subset_geojson_file` not Polygon: "
             + f"is {subset_geojson['geometry']['type']}"
         )
+
+    if buffer is not None:
+        logging.info(f"  Buffering subset polygon at {buffer} degrees.")
+        subset_geojson = buffer_geojson_polygon(subset_geojson, buffer)
 
     h3_res = h3.h3_get_resolution(rupture_gdf.iloc[0]["cell_id"])
 

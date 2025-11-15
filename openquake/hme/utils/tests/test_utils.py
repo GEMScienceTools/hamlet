@@ -53,13 +53,29 @@ class TestBasicUtils(unittest.TestCase):
         )
 
 
-def test_subset_source():
+def test_subset_source_no_buffer():
     rups = pd.read_csv(
         os.path.join(test_data_dir, "sm1_rups.csv"), index_col=0
     )
     subset_gj_file = os.path.join(test_data_dir, "data", "phl_subset.geojson")
 
     rups_inside = subset_source(rups, subset_gj_file, feature_number=0)
+
+    assert "88.3_20_0" in rups_inside.index
+    assert "88.0_313_0" not in rups_inside.index
+
+    assert len(rups_inside) == 4814
+
+
+def test_subset_source_buffer():
+    rups = pd.read_csv(
+        os.path.join(test_data_dir, "sm1_rups.csv"), index_col=0
+    )
+    subset_gj_file = os.path.join(test_data_dir, "data", "phl_subset.geojson")
+
+    rups_inside = subset_source(
+        rups, subset_gj_file, feature_number=0, buffer=0.001
+    )  # small but checks if fns work
 
     assert "88.3_20_0" in rups_inside.index
     assert "88.0_313_0" not in rups_inside.index
