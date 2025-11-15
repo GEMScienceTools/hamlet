@@ -38,6 +38,7 @@ from openquake.hme.utils import (
     breakpoint,
     get_eq_df_mag_bins,
     get_mag_bins_from_cfg,
+    subset_source,
 )
 
 from openquake.hme.utils.results_processing import process_results
@@ -377,12 +378,11 @@ def load_inputs(cfg: dict) -> dict:
     )
 
     if cfg["input"]["subset"]["file"] is not None:
-        # logger.info("   Subsetting bin_gdf")
-        # bin_gdf = subset_source(
-        #    bin_gdf,
-        #    subset_file=cfg["input"]["subset"]["file"],
-        #    buffer=cfg["input"]["subset"]["buffer"],
-        # )
+        logger.info("   Subsetting bin_gdf")
+        rupture_gdf = subset_source(
+            rupture_gdf,
+            subset_file=cfg["input"]["subset"]["file"],
+        )
         logger.warning("CANNOT SUBSET SOURCE YET!!!")
 
     if len(rupture_gdf) != len(rupture_gdf.index.unique()):
