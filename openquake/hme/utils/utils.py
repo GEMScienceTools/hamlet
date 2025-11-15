@@ -742,7 +742,8 @@ def sample_rups(
 def random_dates(start, end, n, rand_seed=1):
     rng = np.random.default_rng(seed)
     rand_ns = rng.integers(lo, hi + 1, size=n, dtype=np.int64)
-    return pd.to_datetime(rand_ns).round('S')
+    return pd.to_datetime(rand_ns).round("S")
+
 
 def trim_inputs(input_data, cfg):
     mag_bins = get_mag_bins_from_cfg(cfg)
@@ -989,3 +990,58 @@ def datetime_to_string(dt):
     # Convert to pandas Timestamp for consistent handling
     timestamp = pd.Timestamp(dt)
     return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def subset_source(
+    rupture_gdf, subset_geojson_file, fid=None, feature_number=None
+):
+
+    with open(subset_geojson_file) as f:
+        gj = json.load(f)
+
+    # lumping them both to keep error lines under 80 cols
+    if fid is not None and feature_number is not None:
+        raise ValueError(
+            "need to declare EITHER `fid` or `feature_number`, not both"
+            + f"(currently `fid`={fid}) and `feature_number`={feature_number}"
+        )
+
+    if fid is not None:
+        subset_geojson = [
+            f for f in gj["features"] if f["properties"]["fid"] == fid
+        ][0]
+    elif feature_number is not None:
+        subset_geojson = gj["features"][feature_number]
+    else:
+        subset_geojson = gj["features"][0]
+
+    if subset_geojson["geometry"]["type"] not in [
+        "Polygon",
+        "MultiPolygon",
+    ]:
+        raise ValueError(
+            "`subset_geojson_file` not Polygon or MultiPolygon: "
+            + f"is {subset_geojson['geometry']['type']}"
+        )
+
+    h3_res = h3.h3_get_resolution(rupture_gdf.iloc[0]["cell_id"])
+
+    subset_h3_cells = h3.polyfill_geojson(
+        subset_geojson["geometry"],
+        res=h3_res,
+    )
+
+    if subset_h3_cells == {}:
+        raise ValueError(
+            f"No H3 cell centers at resolution {h3_res} in polygon; "
+            + "may need to expand polygon or increase resolution."
+        )
+
+    rupture_gdf = rupture_gdf[rupture_gdf["cell_id"].isin(subset_h3_cells)]
+
+    if len(rupture_gdf) == 0:
+        raise Exception(
+            "No ruptures inside subset polygon (may be h3 resolution issue)"
+        )
+
+    return rupture_gdf

@@ -3,6 +3,7 @@ import datetime
 import unittest
 
 import numpy as np
+import pandas as pd
 
 from openquake.hme.utils import (
     get_mag_duration_from_comp_table,
@@ -12,6 +13,7 @@ from openquake.hme.utils import (
     make_earthquake_gdf_from_csv,
     get_model_mfd,
     get_obs_mfd,
+    subset_source,
 )
 
 BASE_PATH = os.path.dirname(__file__)
@@ -49,3 +51,17 @@ class TestBasicUtils(unittest.TestCase):
             )
             == 123.0
         )
+
+
+def test_subset_source():
+    rups = pd.read_csv(
+        os.path.join(test_data_dir, "sm1_rups.csv"), index_col=0
+    )
+    subset_gj_file = os.path.join(test_data_dir, "data", "phl_subset.geojson")
+
+    rups_inside = subset_source(rups, subset_gj_file, feature_number=0)
+
+    assert "88.3_20_0" in rups_inside.index
+    assert "88.0_313_0" not in rups_inside.index
+
+    assert len(rups_inside) == 4814
