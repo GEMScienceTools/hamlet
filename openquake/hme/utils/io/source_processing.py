@@ -1,4 +1,5 @@
 import logging
+import warnings
 from time import sleep
 from typing import Union, Optional, Tuple
 from multiprocessing import Pool
@@ -9,6 +10,11 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from tqdm.autonotebook import tqdm
+
+warnings.filterwarnings(
+    "ignore",
+    message="Modules under `h3.unstable` are experimental, and may change at any time.",
+)
 
 from h3.unstable import vect as h3_vect  # name in 3.x
 
