@@ -241,7 +241,7 @@ def _process_source(
 
     rup_df = pd.DataFrame(rup_data, columns=rup_cols)
 
-    rup_df["cell_id"] = cell_ids
+    rup_df["cell_id"] = pd.Categorical(cell_ids)
 
     rup_df.index = ["{}_{}".format(source.source_id, i) for i in rup_df.index]
     rup_df.index.name = "rup_id"

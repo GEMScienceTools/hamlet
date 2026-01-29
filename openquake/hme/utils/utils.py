@@ -559,16 +559,13 @@ def get_rup_df_mfd(rdf, mag_bins, cumulative=False, delete_col=True):
             right=False,
             include_lowest=True,
             labels=bin_centers,
+            ordered=True,
         )
 
-    mag_bin_groups = rdf.groupby("mag_bin")
-
-    mfd = {}
-
-    for bc in bin_centers:
-        mfd[bc] = 0.0
-        if bc in mag_bin_groups.groups.keys():
-            mfd[bc] += rdf.loc[mag_bin_groups.groups[bc]].occurrence_rate.sum()
+    mag_bin_groups = rdf.groupby("mag_bin", observed=True)
+    mfd = {bc: 0.0 for bc in bin_centers}
+    for name, group in mag_bin_groups:
+        mfd[name] = group.occurrence_rate.sum()
 
     if cumulative is True:
         cum_mfd = {}
@@ -657,31 +654,32 @@ def get_obs_mfd(
     bin_edges = get_bin_edges_from_mag_bins(mag_bins)
 
     if "mag_bin" not in eq_df.columns:
+        # Use ordered=True for categorical to enable proper sorting
         eq_df["mag_bin"] = pd.cut(
             eq_df.magnitude,
             bin_edges,
             right=False,
             include_lowest=True,
             labels=bin_centers,
+            ordered=True,
         )
 
-    mag_bin_groups = eq_df.groupby("mag_bin")
+    # Use observed=True to only iterate over bins that actually exist in data
+    mag_bin_groups = eq_df.groupby("mag_bin", observed=True)
 
-    mfd = {}
+    # Use more efficient aggregation - direct count instead of loc indexing
+    mfd = {bc: 0 for bc in bin_centers}
+    for name, group in mag_bin_groups:
+        mfd[name] = len(group)
+        if annualize:
+            if completeness_table is None:
+                duration = t_yrs
+            else:
+                duration = get_mag_duration_from_comp_table(
+                    completeness_table, name, stop_date
+                )
 
-    for bc in bin_centers:
-        mfd[bc] = 0
-        if bc in mag_bin_groups.groups.keys():
-            mfd[bc] += eq_df.loc[mag_bin_groups.groups[bc]].magnitude.count()
-            if annualize:
-                if completeness_table is None:
-                    duration = t_yrs
-                else:
-                    duration = get_mag_duration_from_comp_table(
-                        completeness_table, bc, stop_date
-                    )
-
-                mfd[bc] /= duration
+            mfd[name] /= duration
 
     if cumulative is True:
         cum_mfd = {}
