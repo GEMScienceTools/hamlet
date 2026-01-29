@@ -654,6 +654,66 @@ def get_closest_rupture(eq, rupture_df):
     return rupture_df.iloc[dists.argmin()]
 
 
+def annual_N_eval_fn(
+    rup_gdf,
+    eq_gdf,
+    mag_bins,
+    investigation_time,
+):
+    """
+    Creates a distribution of annual earthquake counts from the catalog
+    and compares it to a Poisson distribution based on the mean annual model rate.
+
+    This function counts the number of earthquakes per year in the catalog
+    and compares this distribution to what would be expected from a Poisson
+    distribution with the model's mean annual rate.
+
+    Parameters
+    ----------
+    rup_gdf : GeoDataFrame
+        Rupture geodataframe with model ruptures
+    eq_gdf : GeoDataFrame
+        Earthquake geodataframe with observed earthquakes
+    mag_bins : dict
+        Magnitude bins used in the test
+    investigation_time : float
+        Total investigation time in years
+
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - annual_counts: array of earthquake counts per year
+        - mean_annual_model_rate: mean annual rate from the model
+        - years: array of years in the catalog
+    """
+    # Get the mean annual model rate
+    model_mfd = get_model_mfd(rup_gdf, mag_bins, t_yrs=1.0)
+    mean_annual_model_rate = sum(model_mfd.values())
+
+    # Extract years from earthquake times
+    eq_years = pd.DatetimeIndex(eq_gdf['time']).year
+    unique_years = sorted(eq_years.unique())
+
+    # Count earthquakes per year
+    annual_counts = np.array([
+        (eq_years == year).sum() for year in unique_years
+    ])
+
+    results = {
+        "test_data": {
+            "annual_counts": annual_counts.tolist(),
+            "mean_annual_model_rate": mean_annual_model_rate,
+            "years": unique_years,
+            "n_years": len(unique_years),
+            "mean_annual_obs_count": annual_counts.mean(),
+            "std_annual_obs_count": annual_counts.std(),
+        }
+    }
+
+    return results
+
+
 def catalog_ground_motion_eval_fn(test_config, input_data):
 
     # defining this here for now, will go in config later

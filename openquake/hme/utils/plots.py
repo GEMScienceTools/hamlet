@@ -62,6 +62,106 @@ def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
     return stoch_mfd_vals
 
 
+def plot_annual_N_eval_results(
+    annual_N_eval_results: dict,
+    return_fig: bool = False,
+    return_string: bool = False,
+    save_fig: Union[bool, str] = False,
+):
+    """
+    Plot histogram of annual earthquake counts compared to Poisson distribution.
+
+    Parameters
+    ----------
+    annual_N_eval_results : dict
+        Results from annual_N_eval containing annual_counts and mean_annual_model_rate
+    return_fig : bool
+        If True, return the figure object
+    return_string : bool
+        If True, return SVG string
+    save_fig : Union[bool, str]
+        If string, save figure to this path
+
+    Returns
+    -------
+    fig or str
+        Matplotlib figure or SVG string
+    """
+    test_data = annual_N_eval_results["test_data"]
+    annual_counts = np.array(test_data["annual_counts"])
+    mean_annual_model_rate = test_data["mean_annual_model_rate"]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Create histogram of observed annual counts
+    max_count = int(np.ceil(max(annual_counts.max(), mean_annual_model_rate * 2)))
+    bins = np.arange(-0.5, max_count + 1.5, 1)
+
+    ax.hist(
+        annual_counts,
+        bins=bins,
+        density=True,
+        histtype="stepfilled",
+        alpha=0.6,
+        color="C0",
+        label=f"Observed annual counts (n={len(annual_counts)} years)",
+        edgecolor="black",
+        linewidth=0.5,
+    )
+
+    # Plot Poisson distribution for model
+    x_poisson = np.arange(0, max_count + 1)
+    poisson_probs = poisson.pmf(x_poisson, mean_annual_model_rate)
+
+    ax.plot(
+        x_poisson,
+        poisson_probs,
+        "o-",
+        color="C1",
+        label=f"Poisson (λ={mean_annual_model_rate:.2f})",
+        linewidth=2,
+        markersize=6,
+    )
+
+    # Add mean lines
+    ax.axvline(
+        annual_counts.mean(),
+        color="C0",
+        linestyle="--",
+        linewidth=2,
+        label=f"Mean observed ({annual_counts.mean():.2f})",
+    )
+    ax.axvline(
+        mean_annual_model_rate,
+        color="C1",
+        linestyle="--",
+        linewidth=2,
+        label=f"Mean model ({mean_annual_model_rate:.2f})",
+    )
+
+    ax.set_xlabel("Number of Earthquakes per Year", fontsize=12)
+    ax.set_ylabel("Probability Density", fontsize=12)
+    ax.set_title("Annual Earthquake Count Distribution vs. Model", fontsize=14)
+    ax.legend(loc="best")
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+
+    if return_fig is True:
+        return fig
+
+    elif return_string is True:
+        plt.switch_backend("svg")
+        fig_str = io.StringIO()
+        fig.savefig(fig_str, format="svg")
+        plt.close(fig)
+        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
+        return fig_svg
+
+
 def plot_N_test_results(
     N_test_results: dict,
     return_fig: bool = False,
