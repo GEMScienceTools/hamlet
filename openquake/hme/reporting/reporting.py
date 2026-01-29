@@ -23,7 +23,6 @@ from openquake.hme.utils.plots import (
     plot_rup_match_mag_dist,
     plot_rup_match_map,
     plot_N_test_results,
-    plot_annual_N_eval_results,
     plot_L_test_results,
     plot_M_test_results,
     plot_eqs_by_mag_time,
@@ -125,11 +124,6 @@ def render_result_text(
                 env=env, cfg=cfg, results=results, model_test_framework="gem"
             )
 
-        if "annual_N_eval" in results["gem"].keys():
-            render_annual_N_eval(
-                env=env, cfg=cfg, results=results, model_test_framework="gem"
-            )
-
         if "M_test" in results["gem"].keys():
             render_M_test(
                 env=env, cfg=cfg, results=results, model_test_framework="gem"
@@ -207,32 +201,6 @@ def render_N_test(
         mtf=model_test_framework,
         n_test_plot_str=n_test_plot_str,
     )
-
-
-def render_annual_N_eval(
-    env: Environment, cfg: dict, results: dict, model_test_framework="gem"
-):
-
-    annual_n_eval_plot_str = plot_annual_N_eval_results(
-        results[model_test_framework]["annual_N_eval"]["val"],
-        return_string=True,
-    )
-
-    # Try to use a template if it exists, otherwise just store the plot
-    try:
-        annual_n_eval = env.get_template("annual_n_eval.html")
-        results[model_test_framework]["annual_N_eval"]["rendered_text"] = (
-            annual_n_eval.render(
-                res=results[model_test_framework]["annual_N_eval"]["val"],
-                mtf=model_test_framework,
-                annual_n_eval_plot_str=annual_n_eval_plot_str,
-            )
-        )
-    except Exception:
-        # If template doesn't exist, just store the plot
-        results[model_test_framework]["annual_N_eval"]["rendered_text"] = (
-            "<h3>Annual N Evaluation</h3>" + annual_n_eval_plot_str
-        )
 
 
 def render_L_test(

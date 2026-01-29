@@ -62,34 +62,29 @@ def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
     return stoch_mfd_vals
 
 
-def plot_annual_N_eval_results(
-    annual_N_eval_results: dict,
-    return_fig: bool = False,
-    return_string: bool = False,
-    save_fig: Union[bool, str] = False,
-):
+def plot_N_test_annual(N_test_results: dict):
     """
-    Plot histogram of annual earthquake counts compared to Poisson distribution.
+    Plot histogram of annual earthquake counts with model distribution.
+
+    Shows either Poisson (if no overdispersion) or Negative Binomial
+    (if overdispersion detected) distribution for comparison.
 
     Parameters
     ----------
-    annual_N_eval_results : dict
-        Results from annual_N_eval containing annual_counts and mean_annual_model_rate
-    return_fig : bool
-        If True, return the figure object
-    return_string : bool
-        If True, return SVG string
-    save_fig : Union[bool, str]
-        If string, save figure to this path
+    N_test_results : dict
+        N-test results with prob_model='annual' containing annual_counts and
+        mean_annual_model_rate
 
     Returns
     -------
-    fig or str
-        Matplotlib figure or SVG string
+    fig
+        Matplotlib figure
     """
-    test_data = annual_N_eval_results["test_data"]
-    annual_counts = np.array(test_data["annual_counts"])
-    mean_annual_model_rate = test_data["mean_annual_model_rate"]
+    annual_counts = np.array(N_test_results["annual_counts"])
+    mean_annual_model_rate = N_test_results["mean_annual_model_rate"]
+    is_overdispersed = N_test_results.get("is_overdispersed", False)
+    r_dispersion = N_test_results.get("r_dispersion")
+    conf_interval = N_test_results.get("conf_interval", (None, None))
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -109,19 +104,40 @@ def plot_annual_N_eval_results(
         linewidth=0.5,
     )
 
-    # Plot Poisson distribution for model
-    x_poisson = np.arange(0, max_count + 1)
-    poisson_probs = poisson.pmf(x_poisson, mean_annual_model_rate)
+    # Plot model distribution - use negative binomial if overdispersed, otherwise Poisson
+    x_vals = np.arange(0, max_count + 1)
 
-    ax.plot(
-        x_poisson,
-        poisson_probs,
-        "o-",
-        color="C1",
-        label=f"Poisson (λ={mean_annual_model_rate:.2f})",
-        linewidth=2,
-        markersize=6,
-    )
+    if is_overdispersed and r_dispersion is not None:
+        # Negative binomial distribution
+        # Convert (mu, r) to scipy's (n, p) parameterization
+        # n = r, p = r / (r + mu)
+        from scipy.stats import nbinom
+        n_param = r_dispersion
+        p_param = r_dispersion / (r_dispersion + mean_annual_model_rate)
+        model_probs = nbinom.pmf(x_vals, n_param, p_param)
+
+        ax.plot(
+            x_vals,
+            model_probs,
+            "o-",
+            color="C1",
+            label=f"Negative Binomial (μ={mean_annual_model_rate:.2f}, r={r_dispersion:.2f})",
+            linewidth=2,
+            markersize=6,
+        )
+    else:
+        # Poisson distribution
+        model_probs = poisson.pmf(x_vals, mean_annual_model_rate)
+
+        ax.plot(
+            x_vals,
+            model_probs,
+            "o-",
+            color="C1",
+            label=f"Poisson (λ={mean_annual_model_rate:.2f})",
+            linewidth=2,
+            markersize=6,
+        )
 
     # Add mean lines
     ax.axvline(
@@ -139,27 +155,25 @@ def plot_annual_N_eval_results(
         label=f"Mean model ({mean_annual_model_rate:.2f})",
     )
 
+    # Add confidence interval shading if available
+    if conf_interval[0] is not None and conf_interval[1] is not None:
+        ax.axvspan(
+            conf_interval[0],
+            conf_interval[1],
+            alpha=0.2,
+            color="C0",
+            label=f"Obs. CI ({N_test_results.get('conf_interval_frac', 0.95)*100:.0f}%)",
+        )
+
     ax.set_xlabel("Number of Earthquakes per Year", fontsize=12)
     ax.set_ylabel("Probability Density", fontsize=12)
-    ax.set_title("Annual Earthquake Count Distribution vs. Model", fontsize=14)
+    ax.set_title("Annual Earthquake Count Distribution", fontsize=14)
     ax.legend(loc="best")
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
 
-    if save_fig is not False:
-        fig.savefig(save_fig)
-
-    if return_fig is True:
-        return fig
-
-    elif return_string is True:
-        plt.switch_backend("svg")
-        fig_str = io.StringIO()
-        fig.savefig(fig_str, format="svg")
-        plt.close(fig)
-        fig_svg = "<svg" + fig_str.getvalue().split("<svg")[1]
-        return fig_svg
+    return fig
 
 
 def plot_N_test_results(
@@ -175,6 +189,9 @@ def plot_N_test_results(
             N_o=N_test_results["n_obs_earthquakes"],
             conf_interval=N_test_results["conf_interval"],
         )
+    elif N_test_results["prob_model"] == "annual":
+        # Use the annual plotting function
+        fig = plot_N_test_annual(N_test_results)
     elif N_test_results.get("pred_samples"):
         fig = plot_N_test_empirical(
             N_test_results["pred_samples"],

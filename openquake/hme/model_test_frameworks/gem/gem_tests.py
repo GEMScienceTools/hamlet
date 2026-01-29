@@ -22,7 +22,7 @@ from .gem_test_functions import (
     moment_over_under_eval_fn,
     rupture_matching_eval_fn,
     catalog_ground_motion_eval_fn,
-    annual_N_eval_fn,
+    N_test_annual,
 )
 
 from ..relm.relm_tests import (
@@ -209,16 +209,50 @@ def L_test(
 
 def N_test(cfg: dict, input_data: dict) -> dict:
     logging.info("Running N-Test")
-    
+
     test_config = cfg["config"]["model_framework"]["gem"]["N_test"]
     completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
     test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
 
     prospective = test_config.get("prospective", False)
+    prob_model = test_config["prob_model"]
 
-    if (
-        test_config["prob_model"] in ["poisson", "poisson_cum"]
-    ) and not prospective:
+    # Handle annual prob_model separately (GEM-specific implementation)
+    if prob_model == "annual":
+        if prospective:
+            eq_gdf = input_data["pro_gdf"]
+        else:
+            eq_gdf = input_data["eq_gdf"]
+
+        if completeness_table is not None:
+            logging.warning(
+                "N-Test with prob_model='annual' does not support completeness tables. "
+                "Results may not be accurate."
+            )
+
+        # Get mean annual rate from model
+        mag_bins = get_mag_bins_from_cfg(cfg)
+        model_mfd = get_model_mfd(input_data["rupture_gdf"], mag_bins, t_yrs=1.0)
+        mean_annual_rate = sum(model_mfd.values())
+
+        conf_interval = test_config.get("conf_interval", 0.95)
+        test_results = N_test_annual(eq_gdf, mean_annual_rate, conf_interval)
+
+        # Add metadata for plotting/reporting
+        test_results["M_min"] = min(mag_bins.keys())
+        test_results["prob_model"] = "annual"
+
+        logging.info(
+            "N-Test number obs eqs: {}".format(test_results["n_obs_earthquakes"])
+        )
+        logging.info(
+            "N-Test number pred eqs: {}".format(test_results["n_pred_earthquakes"])
+        )
+        logging.info("N-Test {}".format(test_results["test_pass"]))
+        return test_results
+
+    # For other prob_models, use RELM implementation
+    if prob_model in ["poisson", "poisson_cum"] and not prospective:
         if completeness_table is not None:
             test_config["completeness_table"] = completeness_table
             test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
@@ -474,62 +508,6 @@ def cumulative_occurrence_eval(cfg, input_data):
     }
 
 
-def annual_N_eval(cfg, input_data):
-    """
-    Annual N Evaluation: Compares the distribution of annual earthquake counts
-    from the catalog to a Poisson distribution based on the model's mean annual rate.
-
-    This evaluation is similar to the N_test, but instead of comparing a single
-    observed count to a model rate, it compares the full distribution of annual
-    counts across all years in the catalog.
-
-    Note: This evaluation currently only works when the test_config does not have
-    a completeness table, as the completeness table would change the number of
-    events in different years.
-    """
-    logging.info("Running GEM Annual N Evaluation")
-
-    test_config = cfg["config"]["model_framework"]["gem"]["annual_N_eval"]
-    mag_bins = get_mag_bins_from_cfg(cfg)
-    completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
-
-    if completeness_table is not None:
-        logging.warning(
-            "annual_N_eval does not currently support completeness tables. "
-            "Results may not be accurate."
-        )
-
-    prospective = test_config.get("prospective", False)
-    investigation_time = test_config.get(
-        "investigation_time", cfg["input"]["seis_catalog"].get("duration")
-    )
-
-    if prospective:
-        eq_gdf = input_data["pro_gdf"]
-    else:
-        eq_gdf = input_data["eq_gdf"]
-
-    results = annual_N_eval_fn(
-        input_data["rupture_gdf"],
-        eq_gdf,
-        mag_bins,
-        investigation_time,
-    )
-
-    logging.info(
-        "Annual N Eval: mean annual obs count: {:.2f}".format(
-            results["test_data"]["mean_annual_obs_count"]
-        )
-    )
-    logging.info(
-        "Annual N Eval: mean annual model rate: {:.2f}".format(
-            results["test_data"]["mean_annual_model_rate"]
-        )
-    )
-
-    return results
-
-
 def catalog_ground_motion_eval(cfg, input_data):
 
     logging.info("Running GEM catalog ground motion evaluation")
@@ -559,7 +537,6 @@ gem_test_dict = {
     "S_test": S_test,
     "N_test": N_test,
     "L_test": L_test,
-    "annual_N_eval": annual_N_eval,
     "rupture_matching_eval": rupture_matching_eval,
     "cumulative_occurrence_eval": cumulative_occurrence_eval,
     "catalog_ground_motion_eval": catalog_ground_motion_eval,

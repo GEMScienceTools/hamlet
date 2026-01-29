@@ -27,6 +27,7 @@ from openquake.hme.utils import (
 )
 from openquake.hme.utils.utils import _n_procs, breakpoint
 from openquake.hme.utils.stats import geom_mean, weighted_geom_mean
+from scipy.stats import poisson, nbinom, t as t_dist
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
@@ -654,66 +655,6 @@ def get_closest_rupture(eq, rupture_df):
     return rupture_df.iloc[dists.argmin()]
 
 
-def annual_N_eval_fn(
-    rup_gdf,
-    eq_gdf,
-    mag_bins,
-    investigation_time,
-):
-    """
-    Creates a distribution of annual earthquake counts from the catalog
-    and compares it to a Poisson distribution based on the mean annual model rate.
-
-    This function counts the number of earthquakes per year in the catalog
-    and compares this distribution to what would be expected from a Poisson
-    distribution with the model's mean annual rate.
-
-    Parameters
-    ----------
-    rup_gdf : GeoDataFrame
-        Rupture geodataframe with model ruptures
-    eq_gdf : GeoDataFrame
-        Earthquake geodataframe with observed earthquakes
-    mag_bins : dict
-        Magnitude bins used in the test
-    investigation_time : float
-        Total investigation time in years
-
-    Returns
-    -------
-    dict
-        Dictionary containing:
-        - annual_counts: array of earthquake counts per year
-        - mean_annual_model_rate: mean annual rate from the model
-        - years: array of years in the catalog
-    """
-    # Get the mean annual model rate
-    model_mfd = get_model_mfd(rup_gdf, mag_bins, t_yrs=1.0)
-    mean_annual_model_rate = sum(model_mfd.values())
-
-    # Extract years from earthquake times
-    eq_years = pd.DatetimeIndex(eq_gdf['time']).year
-    unique_years = sorted(eq_years.unique())
-
-    # Count earthquakes per year
-    annual_counts = np.array([
-        (eq_years == year).sum() for year in unique_years
-    ])
-
-    results = {
-        "test_data": {
-            "annual_counts": annual_counts.tolist(),
-            "mean_annual_model_rate": mean_annual_model_rate,
-            "years": unique_years,
-            "n_years": len(unique_years),
-            "mean_annual_obs_count": annual_counts.mean(),
-            "std_annual_obs_count": annual_counts.std(),
-        }
-    }
-
-    return results
-
-
 def catalog_ground_motion_eval_fn(test_config, input_data):
 
     # defining this here for now, will go in config later
@@ -785,3 +726,109 @@ def catalog_ground_motion_eval_fn(test_config, input_data):
             logging.warning(f"can't do eq {eq.name}")
 
     return gmm_results
+
+
+def N_test_annual(
+    eq_gdf: GeoDataFrame, mean_annual_model_rate: float, conf_interval: float
+) -> dict:
+    """
+    N-test using annual earthquake count distribution.
+
+    Tests if the model's mean annual rate is consistent with the observed
+    annual earthquake counts, accounting for temporal variability without
+    assuming a Poisson process. Uses a t-based confidence interval approach.
+
+    If the data shows overdispersion (variance > mean), estimates a negative
+    binomial dispersion parameter for visualization and reporting.
+
+    Parameters
+    ----------
+    eq_gdf : GeoDataFrame
+        Earthquake geodataframe with observed earthquakes
+    mean_annual_model_rate : float
+        Mean annual rate from the model
+    conf_interval : float
+        Confidence interval for the test (e.g., 0.95 for 95%)
+
+    Returns
+    -------
+    dict
+        Test results including annual counts, dispersion statistics, and
+        confidence intervals
+    """
+    # Extract years from earthquake times
+    eq_years = pd.DatetimeIndex(eq_gdf['time']).year
+    unique_years = sorted(eq_years.unique())
+    n_years = len(unique_years)
+
+    # Count earthquakes per year
+    annual_counts = np.array([
+        (eq_years == year).sum() for year in unique_years
+    ])
+
+    # Mean and standard deviation of annual counts
+    mean_annual_obs = annual_counts.mean()
+    std_annual_obs = annual_counts.std(ddof=1)
+
+    # Calculate variance for dispersion estimation
+    var_annual_obs = annual_counts.var(ddof=1)
+
+    # Estimate dispersion parameter r for negative binomial
+    # r = mu^2 / (var - mu)
+    # If var <= mu, data is not overdispersed (Poisson-like or underdispersed)
+    if var_annual_obs > mean_annual_obs:
+        r_dispersion = mean_annual_obs**2 / (var_annual_obs - mean_annual_obs)
+        is_overdispersed = True
+        logging.info(
+            f"N-Test (annual): Observed overdispersion - "
+            f"mean={mean_annual_obs:.2f}, var={var_annual_obs:.2f}, r={r_dispersion:.2f}"
+        )
+    else:
+        r_dispersion = None
+        is_overdispersed = False
+        logging.info(
+            f"N-Test (annual): No overdispersion detected - "
+            f"mean={mean_annual_obs:.2f}, var={var_annual_obs:.2f}"
+        )
+
+    # Test if model mean is consistent with observed data
+    # Use t-distribution confidence interval (doesn't assume Poisson)
+    t_crit = t_dist.ppf((1 + conf_interval) / 2, n_years - 1)
+    margin_error = t_crit * (std_annual_obs / np.sqrt(n_years))
+
+    conf_min = mean_annual_obs - margin_error
+    conf_max = mean_annual_obs + margin_error
+
+    # Test passes if model mean is within CI of observed mean
+    test_pass = conf_min <= mean_annual_model_rate <= conf_max
+
+    logging.info(
+        f"N-Test (annual): Model rate {mean_annual_model_rate:.2f}, "
+        f"Observed mean {mean_annual_obs:.2f} ± {margin_error:.2f} "
+        f"({conf_interval*100:.0f}% CI: [{conf_min:.2f}, {conf_max:.2f}])"
+    )
+
+    test_res = "Pass" if test_pass else "Fail"
+    logging.info(f"N-Test (annual): {test_res}")
+
+    test_result = {
+        "conf_interval_frac": conf_interval,
+        "conf_interval": (conf_min, conf_max),
+        "n_pred_earthquakes": mean_annual_model_rate,  # annual rate
+        "n_obs_earthquakes": mean_annual_obs,  # mean annual count
+        "test_res": test_res,
+        "test_pass": bool(test_pass),
+        # Temporal variability statistics
+        "is_overdispersed": is_overdispersed,
+        "r_dispersion": float(r_dispersion) if r_dispersion is not None else None,
+        "variance_annual_obs": float(var_annual_obs),
+        # Additional data for annual distribution plotting
+        "annual_counts": annual_counts.tolist(),
+        "years": unique_years,
+        "n_years": n_years,
+        "mean_annual_obs_count": float(mean_annual_obs),
+        "std_annual_obs_count": float(std_annual_obs),
+        "mean_annual_model_rate": mean_annual_model_rate,
+    }
+
+    return test_result

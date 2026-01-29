@@ -695,6 +695,12 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
         ]
         test_result = N_test_empirical(n_obs, n_eq_samples, conf_interval)
 
+    elif test_config["prob_model"] == "annual":
+        raise ValueError(
+            "prob_model='annual' is not supported in the RELM framework. "
+            "Use the GEM framework instead (model_framework: gem: N_test:)."
+        )
+
     elif test_config["prob_model"] == "neg_binom":
         raise NotImplementedError("can't subdivide earthquakes yet")
         n_eqs_in_subs = subdivide_observed_eqs(
