@@ -236,7 +236,8 @@ def N_test(cfg: dict, input_data: dict) -> dict:
         mean_annual_rate = sum(model_mfd.values())
 
         conf_interval = test_config.get("conf_interval", 0.95)
-        test_results = N_test_annual(eq_gdf, mean_annual_rate, conf_interval)
+        test_method = test_config.get("test_method", "ecdf")
+        test_results = N_test_annual(eq_gdf, mean_annual_rate, conf_interval, test_method)
 
         # Add metadata for plotting/reporting
         test_results["M_min"] = min(mag_bins.keys())

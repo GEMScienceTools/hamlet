@@ -729,14 +729,17 @@ def catalog_ground_motion_eval_fn(test_config, input_data):
 
 
 def N_test_annual(
-    eq_gdf: GeoDataFrame, mean_annual_model_rate: float, conf_interval: float
+    eq_gdf: GeoDataFrame,
+    mean_annual_model_rate: float,
+    conf_interval: float,
+    test_method: str = "ecdf"
 ) -> dict:
     """
     N-test using annual earthquake count distribution.
 
     Tests if the model's mean annual rate is consistent with the observed
     annual earthquake counts, accounting for temporal variability without
-    assuming a Poisson process. Uses a t-based confidence interval approach.
+    assuming a Poisson process.
 
     If the data shows overdispersion (variance > mean), estimates a negative
     binomial dispersion parameter for visualization and reporting.
@@ -749,6 +752,10 @@ def N_test_annual(
         Mean annual rate from the model
     conf_interval : float
         Confidence interval for the test (e.g., 0.95 for 95%)
+    test_method : str, optional
+        Method for calculating confidence intervals:
+        - "ecdf": Use empirical percentiles from observed distribution (default)
+        - "t_distribution": Use t-distribution confidence interval
 
     Returns
     -------
@@ -780,36 +787,58 @@ def N_test_annual(
         r_dispersion = mean_annual_obs**2 / (var_annual_obs - mean_annual_obs)
         is_overdispersed = True
         logging.info(
-            f"N-Test (annual): Observed overdispersion - "
+            f"N-Test (annual, {test_method}): Observed overdispersion - "
             f"mean={mean_annual_obs:.2f}, var={var_annual_obs:.2f}, r={r_dispersion:.2f}"
         )
     else:
         r_dispersion = None
         is_overdispersed = False
         logging.info(
-            f"N-Test (annual): No overdispersion detected - "
+            f"N-Test (annual, {test_method}): No overdispersion detected - "
             f"mean={mean_annual_obs:.2f}, var={var_annual_obs:.2f}"
         )
 
-    # Test if model mean is consistent with observed data
-    # Use t-distribution confidence interval (doesn't assume Poisson)
-    t_crit = t_dist.ppf((1 + conf_interval) / 2, n_years - 1)
-    margin_error = t_crit * (std_annual_obs / np.sqrt(n_years))
+    # Calculate confidence interval based on test_method
+    if test_method == "ecdf":
+        # Use empirical percentiles from observed distribution
+        alpha = 1 - conf_interval
+        lower_percentile = (alpha / 2) * 100
+        upper_percentile = (1 - alpha / 2) * 100
 
-    conf_min = mean_annual_obs - margin_error
-    conf_max = mean_annual_obs + margin_error
+        conf_min = np.percentile(annual_counts, lower_percentile)
+        conf_max = np.percentile(annual_counts, upper_percentile)
 
-    # Test passes if model mean is within CI of observed mean
+        # Calculate what percentile the model rate corresponds to
+        model_percentile = (annual_counts < mean_annual_model_rate).sum() / n_years * 100
+
+        logging.info(
+            f"N-Test (annual, ECDF): Model rate {mean_annual_model_rate:.2f}, "
+            f"Observed {conf_interval*100:.0f}% CI: [{conf_min:.2f}, {conf_max:.2f}] "
+            f"(from {lower_percentile:.1f}th to {upper_percentile:.1f}th percentile)"
+        )
+        logging.info(
+            f"N-Test (annual, ECDF): Model rate at {model_percentile:.1f}th percentile "
+            f"of observed distribution"
+        )
+    else:
+        # Use t-distribution confidence interval (doesn't assume Poisson)
+        t_crit = t_dist.ppf((1 + conf_interval) / 2, n_years - 1)
+        margin_error = t_crit * (std_annual_obs / np.sqrt(n_years))
+
+        conf_min = mean_annual_obs - margin_error
+        conf_max = mean_annual_obs + margin_error
+
+        logging.info(
+            f"N-Test (annual, t-distribution): Model rate {mean_annual_model_rate:.2f}, "
+            f"Observed mean {mean_annual_obs:.2f} ± {margin_error:.2f} "
+            f"({conf_interval*100:.0f}% CI: [{conf_min:.2f}, {conf_max:.2f}])"
+        )
+
+    # Test passes if model mean is within CI
     test_pass = conf_min <= mean_annual_model_rate <= conf_max
 
-    logging.info(
-        f"N-Test (annual): Model rate {mean_annual_model_rate:.2f}, "
-        f"Observed mean {mean_annual_obs:.2f} ± {margin_error:.2f} "
-        f"({conf_interval*100:.0f}% CI: [{conf_min:.2f}, {conf_max:.2f}])"
-    )
-
     test_res = "Pass" if test_pass else "Fail"
-    logging.info(f"N-Test (annual): {test_res}")
+    logging.info(f"N-Test (annual, {test_method}): {test_res}")
 
     test_result = {
         "conf_interval_frac": conf_interval,
@@ -818,6 +847,8 @@ def N_test_annual(
         "n_obs_earthquakes": mean_annual_obs,  # mean annual count
         "test_res": test_res,
         "test_pass": bool(test_pass),
+        # Test method
+        "test_method": test_method,
         # Temporal variability statistics
         "is_overdispersed": is_overdispersed,
         "r_dispersion": float(r_dispersion) if r_dispersion is not None else None,
@@ -830,5 +861,13 @@ def N_test_annual(
         "std_annual_obs_count": float(std_annual_obs),
         "mean_annual_model_rate": mean_annual_model_rate,
     }
+
+    # Add ECDF-specific fields if using ECDF method
+    if test_method == "ecdf":
+        test_result.update({
+            "model_percentile": float(model_percentile),
+            "lower_percentile": float(lower_percentile),
+            "upper_percentile": float(upper_percentile),
+        })
 
     return test_result
