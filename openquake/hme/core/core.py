@@ -25,6 +25,8 @@ from geopandas import GeoDataFrame
 from openquake.hme.utils.io import (
     process_source_logic_tree_oq,
     load_flatfile,
+    load_flatfile_from_api,
+    APIClientError,
 )
 
 from openquake.hme.utils.validate_inputs import validate_cfg
@@ -425,12 +427,32 @@ def load_inputs(cfg: dict) -> dict:
 
         min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
         max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
-        input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile(
-            cfg["input"]["flatfile"],
-            min_mag=min_bin_mag,
-            max_mag=max_bin_mag,
-            h3_res=cfg["input"]["bins"]["h3_res"],
-        )
+
+        # Check if API URL is configured, otherwise use file-based loading
+        flatfile_api_url = cfg["input"].get("flatfile_api_url")
+
+        if flatfile_api_url:
+            logger.info(f"Loading flatfile from API: {flatfile_api_url}")
+            try:
+                input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile_from_api(
+                    base_url=flatfile_api_url,
+                    min_mag=min_bin_mag,
+                    max_mag=max_bin_mag,
+                    h3_res=cfg["input"]["bins"]["h3_res"],
+                    rupture_gdf=rupture_gdf,  # Use ruptures for spatial filtering
+                    buffer_degrees=cfg["input"].get("flatfile_api_buffer_deg", 2.0),
+                )
+            except APIClientError as e:
+                logger.error(f"Failed to load flatfile from API: {e}")
+                raise
+        else:
+            logger.info("Loading flatfile from CSV file")
+            input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile(
+                cfg["input"]["flatfile"],
+                min_mag=min_bin_mag,
+                max_mag=max_bin_mag,
+                h3_res=cfg["input"]["bins"]["h3_res"],
+            )
 
         gm_eq_in_model = (
             cell_id in cells_in_model

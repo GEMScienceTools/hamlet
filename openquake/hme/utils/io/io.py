@@ -186,12 +186,12 @@ gem_flatfile_eq_cols = [
     "ev_depth_km",
     "fm_type_code",
     "ML",
-    "ML_ref",
+    # "ML_ref",  # these were only in some source datasets and not used
     "Mw",
-    "Mw_ref",
+    # "Mw_ref",
     "Ms",
-    "Ms_ref",
-    "event_source_id",
+    # "Ms_ref",
+    # "event_source_id",
     "es_strike",
     "es_dip",
     "es_rake",
@@ -241,7 +241,8 @@ def read_flatfile_gpkg(filepath):
 
 def read_flatfile_df(filepath):
     # assuming GEM Global Flatfile format
-    flatfile = pd.read_csv(filepath, index_col=0)
+    # flatfile = pd.read_csv(filepath, index_col=0) # older flatfile version
+    flatfile = pd.read_csv(filepath)
     return flatfile
 
 
@@ -283,15 +284,16 @@ def process_flatfile_df(
         parse_geometry, axis=1, x="st_longitude", y="st_latitude", z=None
     )
 
-    eq_gm_df["cell_id"] = [
-        h3.geo_to_h3(row.latitude, row.longitude, h3_res)
-        for i, row in eq_gm_df.iterrows()
-    ]
+    if h3_res is not None:
+        eq_gm_df["cell_id"] = [
+            h3.geo_to_h3(row.latitude, row.longitude, h3_res)
+            for i, row in eq_gm_df.iterrows()
+        ]
 
-    gm_df["cell_id"] = [
-        h3.geo_to_h3(row.st_latitude, row.st_longitude, h3_res)
-        for i, row in gm_df.iterrows()
-    ]
+        gm_df["cell_id"] = [
+            h3.geo_to_h3(row.st_latitude, row.st_longitude, h3_res)
+            for i, row in gm_df.iterrows()
+        ]
 
     return eq_gm_df, gm_df
 
