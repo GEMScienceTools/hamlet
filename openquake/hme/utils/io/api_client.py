@@ -21,13 +21,14 @@ logger = logging.getLogger(__name__)
 
 class APIClientError(Exception):
     """Exception raised for API client errors"""
+
     pass
 
 
 def _create_session_with_retries(
     retries: int = 3,
     backoff_factor: float = 0.3,
-    status_forcelist: tuple = (500, 502, 504)
+    status_forcelist: tuple = (500, 502, 504),
 ) -> requests.Session:
     """
     Create a requests session with retry logic.
@@ -49,14 +50,13 @@ def _create_session_with_retries(
         status_forcelist=status_forcelist,
     )
     adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
     return session
 
 
 def compute_rupture_bbox(
-    rupture_gdf: gpd.GeoDataFrame,
-    buffer_degrees: float = 2.0
+    rupture_gdf: gpd.GeoDataFrame, buffer_degrees: float = 2.0
 ) -> Tuple[float, float, float, float]:
     """
     Compute bounding box from rupture locations with buffer.
@@ -125,7 +125,12 @@ def compute_rupture_bbox(
 
             # For now, return expanded bbox that covers both sides
             # This may over-query but ensures we don't miss data
-            return -180.0, min_lat - buffer_degrees, 180.0, max_lat + buffer_degrees
+            return (
+                -180.0,
+                min_lat - buffer_degrees,
+                180.0,
+                max_lat + buffer_degrees,
+            )
         else:
             # Convert back to [-180, 180]
             if min_lon > 180.0:
@@ -205,16 +210,20 @@ def load_flatfile_from_api(
                     f"Found pre-computed H3 cells at resolution {h3_res} "
                     f"(column: {h3_col_name})"
                 )
-            elif 'cell_id' in rupture_gdf.columns:
+            elif "cell_id" in rupture_gdf.columns:
                 # Fall back to generic cell_id column (backward compatibility)
                 cells_in_model = rupture_gdf.cell_id.unique().tolist()
-                h3_col_name = 'cell_id'
+                h3_col_name = "cell_id"
                 logger.info(
                     f"Using generic 'cell_id' column "
                     f"(resolution may not match {h3_res})"
                 )
 
-        if cells_in_model and len(cells_in_model) > 0 and len(cells_in_model) < 10000:
+        if (
+            cells_in_model
+            and len(cells_in_model) > 0
+            and len(cells_in_model) < 10000
+        ):
             use_h3_filter = True
             logger.info(
                 f"Using H3 cell filtering with {len(cells_in_model)} cells "
@@ -228,7 +237,7 @@ def load_flatfile_from_api(
             use_h3_filter = False
 
     # Step 2: Query earthquakes with spatial and magnitude filters
-    params = {"limit": 100000}  # Large limit for bulk loading
+    params = {"limit": 100_000}  # Large limit for bulk loading
 
     if min_mag is not None:
         params["min_mag"] = min_mag
@@ -261,13 +270,13 @@ def load_flatfile_from_api(
 
     try:
         response = session.get(
-            f"{base_url}/earthquakes",
-            params=params,
-            timeout=timeout
+            f"{base_url}/earthquakes", params=params, timeout=timeout
         )
         response.raise_for_status()
         eq_data = response.json()
-    except requests.exceptions.RequestException as e:
+    except requests.HTTPError as e:
+        # Print the response body to see validation details
+        logging.warning(f"Response body: {e.response.text}")
         raise APIClientError(f"Failed to fetch earthquakes: {e}")
 
     if not eq_data.get("earthquakes"):
@@ -288,7 +297,7 @@ def load_flatfile_from_api(
         response = session.post(
             f"{base_url}/ground-motions/bulk",
             json={"event_ids": event_ids},
-            timeout=timeout
+            timeout=timeout,
         )
         response.raise_for_status()
         gm_data = response.json()
@@ -302,6 +311,7 @@ def load_flatfile_from_api(
     if h3_res is not None:
         try:
             import h3
+
             logger.info(f"Computing H3 cells at resolution {h3_res}")
 
             # Add H3 cells to earthquakes
@@ -317,19 +327,19 @@ def load_flatfile_from_api(
                     for _, row in gm_df.iterrows()
                 ]
         except ImportError:
-            logger.warning("h3 library not available, skipping H3 cell computation")
+            logger.warning(
+                "h3 library not available, skipping H3 cell computation"
+            )
 
     # Step 4: Add geometry columns (matching load_flatfile behavior)
     if len(eq_gm_df) > 0:
         eq_gm_df["geometry"] = eq_gm_df.apply(
-            lambda row: Point(row.longitude, row.latitude, row.depth),
-            axis=1
+            lambda row: Point(row.longitude, row.latitude, row.depth), axis=1
         )
 
     if len(gm_df) > 0:
         gm_df["geometry"] = gm_df.apply(
-            lambda row: Point(row.st_longitude, row.st_latitude),
-            axis=1
+            lambda row: Point(row.st_longitude, row.st_latitude), axis=1
         )
 
     logger.info("Flatfile loading from API complete")
@@ -364,7 +374,9 @@ def load_flatfile_from_api_with_cells(
     Raises:
         APIClientError: If API requests fail
     """
-    logger.info(f"Loading flatfile from API with {len(cell_ids or [])} H3 cells")
+    logger.info(
+        f"Loading flatfile from API with {len(cell_ids or [])} H3 cells"
+    )
 
     session = _create_session_with_retries()
 
@@ -372,7 +384,7 @@ def load_flatfile_from_api_with_cells(
     # For now, we'll query all and filter client-side
     # TODO: Add cell_ids parameter to API endpoint
 
-    params = {"limit": 100000}
+    params = {"limit": 100_000}
     if min_mag is not None:
         params["min_mag"] = min_mag
     if max_mag is not None:
@@ -380,9 +392,7 @@ def load_flatfile_from_api_with_cells(
 
     try:
         response = session.get(
-            f"{base_url}/earthquakes",
-            params=params,
-            timeout=timeout
+            f"{base_url}/earthquakes", params=params, timeout=timeout
         )
         response.raise_for_status()
         eq_data = response.json()
@@ -394,7 +404,9 @@ def load_flatfile_from_api_with_cells(
     # Filter by cell_ids if provided
     if cell_ids and "cell_id" in eq_gm_df.columns:
         eq_gm_df = eq_gm_df[eq_gm_df.cell_id.isin(cell_ids)]
-        logger.info(f"Filtered to {len(eq_gm_df)} earthquakes in specified cells")
+        logger.info(
+            f"Filtered to {len(eq_gm_df)} earthquakes in specified cells"
+        )
 
     # Get ground motions
     event_ids = eq_gm_df["event_id"].tolist()
@@ -405,7 +417,7 @@ def load_flatfile_from_api_with_cells(
         response = session.post(
             f"{base_url}/ground-motions/bulk",
             json={"event_ids": event_ids},
-            timeout=timeout
+            timeout=timeout,
         )
         response.raise_for_status()
         gm_data = response.json()
@@ -417,14 +429,12 @@ def load_flatfile_from_api_with_cells(
     # Add geometry columns
     if len(eq_gm_df) > 0:
         eq_gm_df["geometry"] = eq_gm_df.apply(
-            lambda row: Point(row.longitude, row.latitude, row.depth),
-            axis=1
+            lambda row: Point(row.longitude, row.latitude, row.depth), axis=1
         )
 
     if len(gm_df) > 0:
         gm_df["geometry"] = gm_df.apply(
-            lambda row: Point(row.st_longitude, row.st_latitude),
-            axis=1
+            lambda row: Point(row.st_longitude, row.st_latitude), axis=1
         )
 
     return eq_gm_df, gm_df
