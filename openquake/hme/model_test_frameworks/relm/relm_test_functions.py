@@ -122,8 +122,8 @@ def m_test_function(
     obs_mfd = get_obs_mfd(
         eq_gdf,
         mag_bins,
-        # t_yrs=t_yrs,
-        # completeness_table=completeness_table,
+        t_yrs=t_yrs,
+        completeness_table=completeness_table,
         stop_date=stop_date,
         annualize=False,
     )
@@ -666,23 +666,34 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
     prospective = test_config.get("prospective", False)
 
     conf_interval = test_config.get("conf_interval", 0.95)
+    stop_date = test_config.get("stop_date")
 
     if test_config.get("completeness_table"):
         model_mfd = get_model_mfd(
             rup_gdf,
             test_config["mag_bins"],
             completeness_table=test_config["completeness_table"],
+            stop_date=stop_date,
         )
         test_rup_rate = sum(model_mfd.values())
+
+        # Calculate observed count using completeness table for consistency
+        obs_mfd = get_obs_mfd(
+            eq_gdf,
+            test_config["mag_bins"],
+            completeness_table=test_config["completeness_table"],
+            stop_date=stop_date,
+            annualize=False,
+        )
+        n_obs = sum(obs_mfd.values())
 
     else:
         model_mfd = get_model_mfd(rup_gdf, test_config["mag_bins"], t_yrs=1.0)
         annual_rup_rate = rup_gdf.occurrence_rate.sum()
         test_rup_rate = annual_rup_rate * test_config["investigation_time"]
+        n_obs = len(eq_gdf)
 
     M_min = min(model_mfd.keys())
-
-    n_obs = len(eq_gdf)
 
     if test_config["prob_model"] == "poisson":
         test_result = N_test_poisson(n_obs, test_rup_rate, conf_interval)

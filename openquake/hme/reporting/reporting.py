@@ -410,20 +410,33 @@ def render_rupture_matching_eval(
 
 
 def render_mfd_eval(env: Environment, cfg: dict, results: dict):
+    from openquake.hme.utils import get_mag_duration_from_comp_table
 
     test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
     test_data = results["gem"]["model_mfd"]["val"]["test_data"]
     mfd_df = test_data["mfd_df"]
     annualize = test_data.get("annualize", True)
 
-    # t_yrs = test_config.get("investigation_time", 1.0)
-    # if t_yrs is None:
-    #    t_yrs = 1.0
+    completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
+    stop_date = cfg["input"]["seis_catalog"].get("stop_date")
+
+    # Calculate per-bin durations if completeness table is present
+    if completeness_table is not None and annualize:
+        t_yrs = {
+            mag: get_mag_duration_from_comp_table(
+                completeness_table, mag, stop_date
+            )
+            for mag in mfd_df.index
+        }
+    else:
+        t_yrs = test_config.get("investigation_time")
+        if t_yrs is None:
+            t_yrs = cfg["input"]["seis_catalog"].get("duration", 1.0)
 
     results["gem"]["model_mfd"]["val"]["mfd_plot"] = plot_mfd(
         model=mfd_df["mod_mfd_cum"].to_dict(),
         observed=mfd_df["obs_mfd_cum"].to_dict(),
-        t_yrs=1.0,
+        t_yrs=t_yrs,
         return_fig=False,
         return_string=True,
         annualize=annualize,

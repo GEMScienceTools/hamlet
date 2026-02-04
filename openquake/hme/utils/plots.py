@@ -40,6 +40,7 @@ def _sample_n_events(rate):
 def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
 
     cum_rates = list(mfd.values())
+    mag_bins = list(mfd.keys())
 
     incr_rates = []
     for i, rate in enumerate(cum_rates):
@@ -48,15 +49,23 @@ def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
         elif i == len(cum_rates) - 1:
             incr_rates.append(rate)
 
-    incr_rates = np.array(incr_rates) * t_yrs
+    incr_rates = np.array(incr_rates)
+
+    # Handle per-bin durations if t_yrs is a dict
+    if isinstance(t_yrs, dict):
+        durations = np.array([t_yrs.get(mag, 1.0) for mag in mag_bins])
+    else:
+        durations = np.full(len(incr_rates), t_yrs)
+
+    incr_rates_scaled = incr_rates * durations
 
     stoch_mfd_vals = []
 
     for i in range(iters):
         n_event_list = np.array(
-            [_sample_n_events(rate) for rate in incr_rates], dtype=float
+            [_sample_n_events(rate) for rate in incr_rates_scaled], dtype=float
         )
-        n_event_list /= t_yrs
+        n_event_list /= durations
         stoch_mfd_vals.append(np.cumsum(n_event_list[::-1])[::-1])
 
     return stoch_mfd_vals
@@ -292,6 +301,10 @@ def plot_mfd(
 ):
     """
     Makes a plot of empirical MFDs
+
+    :param t_yrs: Investigation time in years. Can be a single float for uniform duration,
+                  or a dict mapping magnitude bins to their individual durations (for
+                  completeness tables).
 
     """
     fig = plt.figure(figsize=(5, 4))

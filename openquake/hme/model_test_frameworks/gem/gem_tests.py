@@ -208,9 +208,10 @@ def L_test(
 
 def N_test(cfg: dict, input_data: dict) -> dict:
     logging.info("Running N-Test")
-    
+
     test_config = cfg["config"]["model_framework"]["gem"]["N_test"]
     completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
+    stop_date = cfg["input"]["seis_catalog"].get("stop_date")
     test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
 
     prospective = test_config.get("prospective", False)
@@ -220,6 +221,7 @@ def N_test(cfg: dict, input_data: dict) -> dict:
     ) and not prospective:
         if completeness_table is not None:
             test_config["completeness_table"] = completeness_table
+            test_config["stop_date"] = stop_date
             test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
         else:
             inv_time = test_config.get("investigation_time")
