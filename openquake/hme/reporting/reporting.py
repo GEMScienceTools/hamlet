@@ -189,10 +189,14 @@ def render_result_text(
 def render_N_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ):
+    # Get save_plot parameter from config
+    test_config = cfg["config"]["model_framework"][model_test_framework]["N_test"]
+    save_plot = test_config.get("save_plot", False)
 
     n_test_plot_str = plot_N_test_results(
         results[model_test_framework]["N_test"]["val"],
         return_string=True,
+        save_fig=save_plot,
     )
 
     n_test = env.get_template("n_test.html")
@@ -206,10 +210,14 @@ def render_N_test(
 def render_L_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ):
+    # Get save_plot parameter from config
+    test_config = cfg["config"]["model_framework"][model_test_framework]["L_test"]
+    save_plot = test_config.get("save_plot", False)
 
     l_test_plot_str = plot_L_test_results(
         results[model_test_framework]["L_test"]["val"],
         return_string=True,
+        save_fig=save_plot,
     )
 
     l_test = env.get_template("l_test.html")
@@ -283,12 +291,15 @@ def render_max_mag(env: Environment, cfg: dict, results: dict) -> None:
 def render_M_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ) -> None:
+    # Get save_plot parameter from config
+    test_config = cfg["config"]["model_framework"][model_test_framework]["M_test"]
+    save_plot = test_config.get("save_plot", False)
 
     m_test_results_data = results[model_test_framework]["M_test"]["val"][
         "test_data"
     ]
     M_test_plot_str = plot_M_test_results(
-        m_test_results_data, return_string=True
+        m_test_results_data, return_string=True, save_fig=save_plot
     )
 
     m_test = env.get_template("m_test.html")
@@ -318,11 +329,15 @@ def render_S_test(
     else:
         map_epsg = None
 
+    # Get save_plot parameter from config
+    save_plot = test_config.get("save_plot", False)
+
     S_test_map_str = plot_S_test_map(
         cell_gdf,
         map_epsg=map_epsg,
         bad_bins=results[model_test_framework]["S_test"]["val"]["bad_bins"],
         model_test_framework=model_test_framework,
+        save_fig=save_plot,
     )
 
     with open(natural_earth_countries_file) as f:
@@ -345,14 +360,17 @@ def render_moment_over_under(
 ) -> None:
 
     over_under = env.get_template("moment_over_under.html")
-    # test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
+    test_config = cfg["config"]["model_framework"]["gem"]["moment_over_under"]
 
     if "map_epsg" in cfg["report"]["basic"].keys():
         map_epsg = cfg["report"]["basic"]["map_epsg"]
     else:
         map_epsg = None
 
-    over_under_map_str = plot_over_under_map(cell_gdf, map_epsg)
+    # Get save_plot parameter from config
+    save_plot = test_config.get("save_plot", False)
+
+    over_under_map_str = plot_over_under_map(cell_gdf, map_epsg, save_fig=save_plot)
 
     results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
         res=results["gem"]["moment_over_under"]["val"]["test_data"],
@@ -369,6 +387,10 @@ def render_rupture_matching_eval(
     else:
         map_epsg = None
 
+    # Get save_plot parameter from config
+    test_config = cfg["config"]["model_framework"]["gem"]["rupture_matching_eval"]
+    save_plot = test_config.get("save_plot", False)
+
     rup_match_env = env.get_template("rupture_matching_eval.html")
 
     rup_match_results = results["gem"]["rupture_matching_eval"]["val"]
@@ -376,6 +398,7 @@ def render_rupture_matching_eval(
     mag_dist_plot_str = plot_rup_match_mag_dist(
         rup_match_results["matched_rups"],
         input_data["eq_gdf"],
+        save_fig=save_plot,
     )
 
     rup_match_map = plot_rup_match_map(
@@ -384,6 +407,7 @@ def render_rupture_matching_eval(
         rup_match_results["unmatched_eqs"],
         map_epsg=map_epsg,
         return_str=True,
+        save_fig=save_plot,
     )
 
     rup_match_json = prepare_rup_match_data_for_d3(
@@ -433,6 +457,9 @@ def render_mfd_eval(env: Environment, cfg: dict, results: dict):
         if t_yrs is None:
             t_yrs = cfg["input"]["seis_catalog"].get("duration", 1.0)
 
+    # Get save_plot parameter from config
+    save_plot = test_config.get("save_plot", False)
+
     results["gem"]["model_mfd"]["val"]["mfd_plot"] = plot_mfd(
         model=mfd_df["mod_mfd_cum"].to_dict(),
         observed=mfd_df["obs_mfd_cum"].to_dict(),
@@ -440,6 +467,7 @@ def render_mfd_eval(env: Environment, cfg: dict, results: dict):
         return_fig=False,
         return_string=True,
         annualize=annualize,
+        save_fig=save_plot,
     )
 
     mfd_template = env.get_template("mfd.html")
@@ -453,22 +481,24 @@ def render_cumulative_occurrence_eval(
 ):
     eval_results = results["gem"]["cumulative_occurrence_eval"]["val"]
 
+    # Get save_plot parameter from config
+    test_config = cfg["config"]["model_framework"]["gem"]["cumulative_occurrence_eval"]
+    save_plot = test_config.get("save_plot", False)
+
+    # If save_plot is requested, generate and save matplotlib version
+    if save_plot:
+        plot_eqs_by_mag_time(
+            eval_results["eqs_by_mag_time"],
+            model_mfd=eval_results["model_mfd"],
+            return_str=False,
+            save_fig=save_plot,
+        )
+
     prepped_data, start_date, stop_date = prepare_eqs_by_mag_time_for_d3(
         eval_results["eqs_by_mag_time"], model_mfd=eval_results["model_mfd"]
     )
 
     json_data = json.dumps(prepped_data).strip("'")
-
-    # fig_str = plot_eqs_by_mag_time(
-    #    eval_results["eqs_by_mag_time"],
-    #    model_mfd=eval_results["model_mfd"],
-    #    return_str=True,
-    # )
-
-    # cum_occ_template = env.get_template("cumulative_occurrence.html")
-    # results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
-    #    cum_occ_template.render(cum_occ_str=fig_str)
-    # )
 
     cum_occ_template = env.get_template("cumulative_occurrence.html")
     results["gem"]["cumulative_occurrence_eval"]["rendered_text"] = (
@@ -481,14 +511,18 @@ def render_catalog_ground_motion_eval(
 ):
     eval_results = results["gem"]["catalog_ground_motion_eval"]["val"]
 
+    # Get save_plot parameter from config
+    test_config = cfg["config"]["model_framework"]["gem"]["catalog_ground_motion_eval"]
+    save_plot = test_config.get("save_plot", False)
+
     res_plots = {}
 
     for trt, gmm_comp in eval_results["gmm_comparisons"].items():
         res_plots[trt] = []
-        plot = plot_PGA_distance(gmm_comp, trt)
+        plot = plot_PGA_distance(gmm_comp, trt, save_fig=save_plot)
         if plot:
             res_plots[trt].append(plot)
-        plot = plot_PGA_scatter(gmm_comp, trt)
+        plot = plot_PGA_scatter(gmm_comp, trt, save_fig=save_plot)
         if plot:
             res_plots[trt].append(plot)
 

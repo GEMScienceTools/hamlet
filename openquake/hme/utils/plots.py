@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import datetime
 from typing import Union, Optional, Tuple, Sequence, Any
 
@@ -95,6 +96,7 @@ def plot_N_test_results(
 
     if save_fig is not False:
         fig.savefig(save_fig)
+        logging.info(f"N-Test plot saved to: {save_fig}")
 
     if return_fig is True:
         return fig
@@ -148,6 +150,7 @@ def plot_M_test_results(
     fig = plot_histogram_heatmap(results)
     if save_fig is not False:
         fig.savefig(save_fig)
+        logging.info(f"M-Test plot saved to: {save_fig}")
 
     if return_fig is True:
         return fig
@@ -200,6 +203,7 @@ def plot_L_test_results(
 
     if save_fig is not False:
         fig.savefig(save_fig)
+        logging.info(f"L-Test plot saved to: {save_fig}")
 
     if return_fig is True:
         return fig
@@ -344,6 +348,7 @@ def plot_mfd(
 
     if save_fig is not False:
         fig.savefig(save_fig)
+        logging.info(f"Model MFD plot saved to: {save_fig}")
 
     if return_fig is True:
         return fig
@@ -362,6 +367,7 @@ def plot_likelihood_map(
     plot_eqs: bool = True,
     eq_gdf: Optional[GeoDataFrame] = None,
     map_epsg: Optional[int] = None,
+    save_fig: Union[bool, str] = False,
 ):
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
@@ -413,6 +419,10 @@ def plot_likelihood_map(
     ax.set_xlim(x_lims)
     ax.set_ylim(y_lims)
 
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"Likelihood map saved to: {save_fig}")
+
     plt.switch_backend("svg")
     fig_str = io.StringIO()
     fig.savefig(fig_str, format="svg")
@@ -425,6 +435,7 @@ def plot_S_test_map(
     map_epsg: Optional[int] = None,
     bad_bins: list = list(),
     model_test_framework: str = "gem",
+    save_fig: Union[bool, str] = False,
 ):
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
@@ -473,6 +484,10 @@ def plot_S_test_map(
     ax.set_xlim(x_lims)
     ax.set_ylim(y_lims)
 
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"S-Test map saved to: {save_fig}")
+
     plt.switch_backend("svg")
     fig_str = io.StringIO()
     fig.savefig(fig_str, format="svg")
@@ -481,7 +496,9 @@ def plot_S_test_map(
 
 
 def plot_over_under_map(
-    cell_gdf: GeoDataFrame, map_epsg: Optional[int] = None
+    cell_gdf: GeoDataFrame,
+    map_epsg: Optional[int] = None,
+    save_fig: Union[bool, str] = False,
 ):
     fig, axs = plt.subplots(2, 1, figsize=(10, 18))
 
@@ -561,6 +578,10 @@ def plot_over_under_map(
         + "to stochastic event sets"
     )
 
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"Moment over-under map saved to: {save_fig}")
+
     plt.switch_backend("svg")
     fig_str = io.StringIO()
     fig.savefig(fig_str, format="svg")
@@ -569,7 +590,12 @@ def plot_over_under_map(
 
 
 def plot_rup_match_map(
-    eqs, matched_rups, unmatched_eqs=None, map_epsg=None, return_str=False
+    eqs,
+    matched_rups,
+    unmatched_eqs=None,
+    map_epsg=None,
+    return_str=False,
+    save_fig: Union[bool, str] = False,
 ):
     fig, ax = plt.subplots(1, 1, figsize=(10, 10))
 
@@ -641,6 +667,10 @@ def plot_rup_match_map(
     cbar = plt.colorbar(sm, ax=ax)
     cbar.set_label("Likelihood")
 
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"Rupture matching map saved to: {save_fig}")
+
     if return_str:
         plt.switch_backend("svg")
         fig_str = io.StringIO()
@@ -693,7 +723,12 @@ def prepare_rup_match_data_for_d3(
 
 
 def plot_rup_match_mag_dist(
-    matched_rups, eqs, s=6, return_str: bool = True, **kwargs
+    matched_rups,
+    eqs,
+    s=6,
+    return_str: bool = True,
+    save_fig: Union[bool, str] = False,
+    **kwargs,
 ):
     eq_mags = eqs.loc[matched_rups.index, "magnitude"].values
     rup_mags = matched_rups.magnitude.values
@@ -738,6 +773,10 @@ def plot_rup_match_mag_dist(
     plt.xlabel("Magnitude")
     plt.ylabel("Distance (km)")
     plt.title("Magnitude and Distance for earthquake-rupture matches")
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"Rupture matching magnitude-distance plot saved to: {save_fig}")
 
     if return_str:
         plt.switch_backend("svg")
@@ -863,6 +902,7 @@ def plot_eqs_by_mag_time(
     plot_obs_trendlines: bool = True,
     plot_model_trendlines: bool = True,
     return_str: bool = False,
+    save_fig: Union[bool, str] = False,
 ):
     """
     Plot earthquakes occurrence over time for different magnitude bins.
@@ -940,6 +980,10 @@ def plot_eqs_by_mag_time(
     plt.legend(loc="upper left")
     plt.grid(True, linestyle="--", alpha=0.7)
     plt.title("Cumulative Earthquake Occurrences by Magnitude Bin")
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"Cumulative occurrence plot saved to: {save_fig}")
 
     if return_str:
         plt.switch_backend("svg")
@@ -1081,6 +1125,7 @@ def plot_PGA_scatter(
     axes_type="loglog",
     return_fig: bool = False,
     return_string: bool = True,
+    save_fig: Union[bool, str] = False,
 ):
     if len(gmm_results_trt.values()) == 0:
         return
@@ -1131,6 +1176,10 @@ def plot_PGA_scatter(
 
     fig.suptitle(f"PGA comparisons for available earthquakes,\n{trt}")
 
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"PGA scatter plot saved to: {save_fig}")
+
     if return_fig is True:
         return fig
 
@@ -1150,6 +1199,7 @@ def plot_PGA_distance(
     axes_type="loglog",
     return_fig: bool = False,
     return_string: bool = True,
+    save_fig: Union[bool, str] = False,
 ):
     # don't yet have uncertainteis
     fig, ax = plt.subplots(nrows=2, figsize=(12, 16), sharex=True, sharey=True)
@@ -1206,6 +1256,10 @@ def plot_PGA_distance(
     ax[1].set_title(f"PGA, obs / model with distance\n{trt}")
 
     fig.suptitle(f"PGA comparisons for available earthquakes,\n{trt}")
+
+    if save_fig is not False:
+        fig.savefig(save_fig)
+        logging.info(f"PGA distance plot saved to: {save_fig}")
 
     if return_fig is True:
         return fig
