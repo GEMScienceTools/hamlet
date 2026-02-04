@@ -139,6 +139,7 @@ def model_mfd_eval_fn(
     t_yrs=None,
     completeness_table=None,
     annualize=False,
+    stop_date=None,
 ):
 
     if annualize:
@@ -155,6 +156,7 @@ def model_mfd_eval_fn(
         cumulative=False,
         t_yrs=t_yrs_model,
         completeness_table=completeness_table_model,
+        stop_date=stop_date,
     )
     obs_mfd = get_obs_mfd(
         eq_gdf,
@@ -163,6 +165,7 @@ def model_mfd_eval_fn(
         cumulative=False,
         completeness_table=completeness_table,
         annualize=annualize,
+        stop_date=stop_date,
     )
 
     mfd_df = pd.DataFrame.from_dict(

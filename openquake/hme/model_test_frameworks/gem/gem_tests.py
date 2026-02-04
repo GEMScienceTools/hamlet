@@ -282,6 +282,7 @@ def model_mfd_eval(cfg, input_data):
     logging.info("Running GEM Model MFD Eval")
     mag_bins = get_mag_bins_from_cfg(cfg)
     completeness_table = cfg["input"]["seis_catalog"].get("completeness_table")
+    stop_date = cfg["input"]["seis_catalog"].get("stop_date")
     test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
 
     if test_config is None:
@@ -305,6 +306,7 @@ def model_mfd_eval(cfg, input_data):
         t_yrs=test_config["investigation_time"],
         completeness_table=completeness_table,
         annualize=annualize,
+        stop_date=stop_date,
     )
 
     return results
