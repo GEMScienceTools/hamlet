@@ -291,6 +291,7 @@ def model_mfd_eval(cfg, input_data):
     test_config["investigation_time"] = test_config.get(
         "investigation_time", cfg["input"]["seis_catalog"].get("duration")
     )
+    annualize = test_config.get("annualize", True)
 
     if prospective:
         eq_gdf = input_data["pro_gdf"]
@@ -303,6 +304,7 @@ def model_mfd_eval(cfg, input_data):
         mag_bins,
         t_yrs=test_config["investigation_time"],
         completeness_table=completeness_table,
+        annualize=annualize,
     )
 
     return results

@@ -179,7 +179,7 @@ def model_mfd_eval_fn(
     # print(mfd_df["obs_mfd_cum"])
     # print(mfd_df["mod_mfd_cum"])
 
-    return {"test_data": {"mfd_df": mfd_df}}
+    return {"test_data": {"mfd_df": mfd_df, "annualize": annualize}}
 
 
 def get_moment_from_mfd(mfd: dict) -> float:

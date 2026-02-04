@@ -412,7 +412,9 @@ def render_rupture_matching_eval(
 def render_mfd_eval(env: Environment, cfg: dict, results: dict):
 
     test_config = cfg["config"]["model_framework"]["gem"]["model_mfd"]
-    mfd_df = results["gem"]["model_mfd"]["val"]["test_data"]["mfd_df"]
+    test_data = results["gem"]["model_mfd"]["val"]["test_data"]
+    mfd_df = test_data["mfd_df"]
+    annualize = test_data.get("annualize", True)
 
     # t_yrs = test_config.get("investigation_time", 1.0)
     # if t_yrs is None:
@@ -424,6 +426,7 @@ def render_mfd_eval(env: Environment, cfg: dict, results: dict):
         t_yrs=1.0,
         return_fig=False,
         return_string=True,
+        annualize=annualize,
     )
 
     mfd_template = env.get_template("mfd.html")

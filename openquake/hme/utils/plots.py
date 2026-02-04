@@ -287,6 +287,7 @@ def plot_mfd(
     return_fig: bool = True,
     return_string: bool = False,
     save_fig: Union[bool, str] = False,
+    annualize: bool = True,
     **kwargs,
 ):
     """
@@ -324,7 +325,8 @@ def plot_mfd(
         )
 
     ax.legend(loc="upper right")
-    ax.set_ylabel("Annual frequency of exceedance")
+    ylabel = "Annual frequency of exceedance" if annualize else "Frequency of exceedance"
+    ax.set_ylabel(ylabel)
     ax.set_xlabel("Magnitude")
 
     if save_fig is not False:
