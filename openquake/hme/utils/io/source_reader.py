@@ -5,7 +5,6 @@ from typing import Optional, Sequence
 
 import numpy as np
 from openquake.baselib.general import AccumDict
-from openquake.calculators.base import run_calc
 
 from openquake.commonlib import datastore
 from openquake.commonlib.readinput import get_params
@@ -15,9 +14,6 @@ from openquake.engine.engine import create_jobs, run_jobs
 from openquake.hazardlib.gsim_lt import GsimLogicTree
 
 from openquake.hme.utils.utils import _get_class_name, breakpoint
-
-
-from openquake.hme.utils.utils import breakpoint
 
 
 def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
