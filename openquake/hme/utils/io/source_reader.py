@@ -9,6 +9,7 @@ from openquake.calculators.base import run_calc
 
 from openquake.commonlib import datastore
 from openquake.commonlib.readinput import get_params
+from openquake.hazardlib.source_group import read_csm
 from openquake.engine.engine import create_jobs, run_jobs
 
 from openquake.hazardlib.gsim_lt import GsimLogicTree
@@ -17,6 +18,7 @@ from openquake.hme.utils.utils import _get_class_name, breakpoint
 
 
 from openquake.hme.utils.utils import breakpoint
+
 
 def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     if not isinstance(job_ini, dict) and os.path.isfile(job_ini):
@@ -39,7 +41,7 @@ def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     logging.debug("\tran job")
     logging.debug("getting csm from dstore")
     with job, datastore.read(job.calc_id) as dstore:
-        csm = dstore["_csm"]
+        csm = read_csm(dstore)
         sources = csm.get_sources()
         logging.debug("\tgot csm from dstore")
 
@@ -51,7 +53,7 @@ def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     return csm, sources, dstore, gmm_lt_filepath
 
 
-#def get_sources_by_branch(csm):
+# def get_sources_by_branch(csm):
 #    bs = {'null': []}
 #    for src in csm.get_sources():
 #        try:
@@ -71,12 +73,14 @@ def get_smr_from_trt_smr(trt_smr):
     source_model_rlz_index = trt_smr & mask
     return source_model_rlz_index
 
+
 def get_sources_by_rlz_idx(sources):
     # would be nice to modify this to use the rlz path not id
     rlz_sources = {}
     for source in sources:
-        rlz_ids = [get_smr_from_trt_smr(trt_smr)
-                   for trt_smr in source.trt_smrs]
+        rlz_ids = [
+            get_smr_from_trt_smr(trt_smr) for trt_smr in source.trt_smrs
+        ]
         for rid in rlz_ids:
             if rid not in rlz_sources:
                 rlz_sources[rid] = [source]
@@ -85,20 +89,16 @@ def get_sources_by_rlz_idx(sources):
     return rlz_sources
 
 
-
 def get_dstore_rlzs(dstore, csm):
     csm_rlz_groups = {}
-    
+
     # shortcut for 1 rlz
-    if len(dstore['full_lt'].sm_rlzs) == 1:
-        csm_rlz_groups[0] = {
-                'weight': 1.0,
-                'sources': csm.get_sources()
-                }
+    if len(dstore["full_lt"].sm_rlzs) == 1:
+        csm_rlz_groups[0] = {"weight": 1.0, "sources": csm.get_sources()}
         return csm_rlz_groups
 
     srcs_by_rlz = get_sources_by_rlz_idx(csm.get_sources())
-#    breakpoint()
+    #    breakpoint()
 
     for i, rlz in enumerate(dstore["full_lt"].sm_rlzs):
 
@@ -106,7 +106,6 @@ def get_dstore_rlzs(dstore, csm):
             "weight": rlz.weight,
             "sources": srcs_by_rlz[i],
         }
-
 
     return csm_rlz_groups
 
@@ -121,6 +120,7 @@ def filter_sources_by_type(sources, source_types):
             filtered_sources.append(src)
 
     return filtered_sources
+
 
 rupfields = dict(
     mag=np.float32,
@@ -166,8 +166,10 @@ def process_source_logic_tree_oq(
         job_ini, get_gsim_lt=get_gsim_lt
     )
 
-    rlz_info = {r.ordinal: {'path': r.pid, 'weight': r.weight}
-                for r in dstore["full_lt"].sm_rlzs }
+    rlz_info = {
+        r.ordinal: {"path": r.pid, "weight": r.weight}
+        for r in dstore["full_lt"].sm_rlzs
+    }
     logging.info("Realizations:")
     logging.info(rlz_info)
 
@@ -181,21 +183,22 @@ def process_source_logic_tree_oq(
         }
     branch_weights = {k: v["weight"] for k, v in rlzs.items()}
 
-    if (branch is not None) and (branch != "iterate"): # specific branch
+    if (branch is not None) and (branch != "iterate"):  # specific branch
         ssm_lt_sources = {branch: branch_sources[branch]}
         logging.info(
-            f"working on branch {branch}, " + 
-             f"original weight {branch_weights[branch]}")
+            f"working on branch {branch}, "
+            + f"original weight {branch_weights[branch]}"
+        )
         ssm_lt_weights = {branch: 1.0}
         ssm_lt_rup_counts = {
             branch: [s.num_ruptures for s in branch_sources[branch]]
         }
 
-    elif branch == "iterate": # iterate over branches
+    elif branch == "iterate":  # iterate over branches
         raise NotImplementedError()
 
-    else: # no branches specified, i.e. all branches collapsed
-        if collapse_lt: # may not work quite right
+    else:  # no branches specified, i.e. all branches collapsed
+        if collapse_lt:  # may not work quite right
             n_total_sources = sum(
                 len(br_source) for br_source in branch_sources.values()
             )
@@ -205,7 +208,9 @@ def process_source_logic_tree_oq(
             )
             ssm_lt_sources = {"composite": list(sources_w_weights.keys())}
             ssm_lt_rup_counts = {
-                "composite": [s.num_ruptures for s in ssm_lt_sources["composite"]]
+                "composite": [
+                    s.num_ruptures for s in ssm_lt_sources["composite"]
+                ]
             }
             source_weights = list(sources_w_weights.values())
             ssm_lt_weights = {"composite": []}
@@ -215,23 +220,25 @@ def process_source_logic_tree_oq(
                     np.ones(rup_count) * source_weights[i]
                 )
 
-            ssm_lt_weights["composite"] = np.hstack(ssm_lt_weights["composite"])
+            ssm_lt_weights["composite"] = np.hstack(
+                ssm_lt_weights["composite"]
+            )
             logging.info(
                 f"{len(ssm_lt_weights['composite']):_} rups in composite model"
             )
         else:
             ssm_lt_sources = branch_sources
             ssm_lt_rup_counts = {
-                    br: [s.num_ruptures for s in srcs]
-                    for br, srcs in branch_sources.items()
-                    }
-            #ssm_lt_weights = {br: [] for br in branch_sources.keys()}
-            #for br, br_weight in branch_weights.items():
+                br: [s.num_ruptures for s in srcs]
+                for br, srcs in branch_sources.items()
+            }
+            # ssm_lt_weights = {br: [] for br in branch_sources.keys()}
+            # for br, br_weight in branch_weights.items():
             #    for num_rups in ssm_lt_rup_counts[br]:
             #        ssm_lt_weights[br].append(np.ones(num_rups) * br_weight)
             ssm_lt_weights = branch_weights
 
-    #breakpoint()
+    # breakpoint()
 
     if get_gsim_lt:
         gsim_lt = read_gsim_lt(gmm_lt_filepath)
