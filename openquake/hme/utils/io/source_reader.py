@@ -37,7 +37,10 @@ def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     logging.debug("\tran job")
     logging.debug("getting csm from dstore")
     with job, datastore.read(job.calc_id) as dstore:
-        csm = read_csm(dstore)
+        try: # older OQ
+            csm = dstore['_csm']
+        except: # newer OQ
+            csm = read_csm(dstore)
         sources = csm.get_sources()
         logging.debug("\tgot csm from dstore")
 
