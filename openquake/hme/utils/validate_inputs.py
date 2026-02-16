@@ -10,6 +10,16 @@ DAYS_PER_YEAR = 365.2425
 def validate_cfg(cfg: dict) -> None:
     check_fix_seis_catalog(cfg["input"]["seis_catalog"])
     convert_deprecated_parameters(cfg)
+    check_branch_config(cfg)
+
+
+def check_branch_config(cfg: dict) -> None:
+    branch = cfg["input"]["ssm"].get("branch")
+    if branch == "iterate":
+        logging.info(
+            "Branch iteration mode enabled: "
+            "will evaluate each branch independently"
+        )
 
 
 def check_fix_seis_catalog(seis_cat_cfg) -> None:

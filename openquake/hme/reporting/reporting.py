@@ -100,6 +100,48 @@ def generate_basic_report(
         report_file.write(report)
 
 
+def generate_iterate_report(
+    cfg: dict,
+    all_branch_results: dict,
+    rlz_info: dict,
+) -> None:
+    """
+    Generates an HTML report for iterate mode, with each branch's results
+    in a clearly demarcated section.
+
+    render_result_text must have already been called for each branch's
+    results (during the iteration loop, before input_data is freed).
+
+    :param cfg:
+        Configuration from parsed yaml file.
+
+    :param all_branch_results:
+        Dict of {branch_key: results} for each branch.
+
+    :param rlz_info:
+        Dict of {branch_key: {"path": ..., "weight": ...}} with realization
+        metadata.
+    """
+    logging.info("Writing iterate report")
+
+    env = _init_env()
+    report_template = env.get_template("basic_report.html")
+
+    branches = {}
+    for branch_key, results in all_branch_results.items():
+        branches[branch_key] = {
+            "results": results,
+            "rlz_info": rlz_info.get(branch_key, {}),
+        }
+
+    report = report_template.render(
+        cfg=cfg, branches=branches, results={}
+    )
+
+    with open(cfg["report"]["basic"]["outfile"], "w") as report_file:
+        report_file.write(report)
+
+
 def render_result_text(
     env: Environment,
     cfg: dict,

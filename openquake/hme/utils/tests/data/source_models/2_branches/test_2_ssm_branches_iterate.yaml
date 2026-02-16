@@ -1,0 +1,36 @@
+meta:
+  description: "test 2 ssm branches iterate"
+config:
+    model_framework:
+        gem:
+            N_test:
+                prob_model: poisson
+                conf_interval: 0.96
+                investigation_time: 40.0
+
+    parallel: False
+    rand_seed: 69
+
+input:
+    bins:
+        h3_res: 3
+        mfd_bin_min: 6.1
+        mfd_bin_max: 8.5
+        mfd_bin_width: 0.2
+
+    ssm:
+        ssm_dir: .
+        job_ini_file : job.ini
+        branch: iterate
+
+    seis_catalog:
+        seis_catalog_file: eqs.csv
+        stop_date: 2023-01-01
+        duration: 40.0
+        columns:
+            time: [year, month, day, hour, minute, second]
+            event_id: eventID
+
+report:
+    basic:
+        outfile: /tmp/hamlet_iterate_test_report.html
