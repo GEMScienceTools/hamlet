@@ -440,13 +440,17 @@ def load_inputs(cfg: dict) -> dict:
         if flatfile_api_url:
             logger.info(f"Loading flatfile from API: {flatfile_api_url}")
             try:
-                input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile_from_api(
-                    base_url=flatfile_api_url,
-                    min_mag=min_bin_mag,
-                    max_mag=max_bin_mag,
-                    h3_res=cfg["input"]["bins"]["h3_res"],
-                    rupture_gdf=rupture_gdf,  # Use ruptures for spatial filtering
-                    buffer_degrees=cfg["input"].get("flatfile_api_buffer_deg", 2.0),
+                input_data["eq_gm_df"], input_data["gm_df"] = (
+                    load_flatfile_from_api(
+                        base_url=flatfile_api_url,
+                        min_mag=min_bin_mag,
+                        max_mag=max_bin_mag,
+                        h3_res=cfg["input"]["bins"]["h3_res"],
+                        rupture_gdf=rupture_gdf,  # Use ruptures for spatial filtering
+                        buffer_degrees=cfg["input"].get(
+                            "flatfile_api_buffer_deg", 2.0
+                        ),
+                    )
                 )
             except APIClientError as e:
                 logger.error(f"Failed to load flatfile from API: {e}")
@@ -481,98 +485,7 @@ def load_inputs(cfg: dict) -> dict:
     return input_data
 
 
-"""
-running tests
-"""
-
-
-def run_tests(cfg: dict) -> None:
-    """
-    Main Hamlet function.
-
-    This function reads the `cfg`, loads all of the inputs, runs the
-    evaluations, and then writes the ouputs.
-
-    :param cfg:
-        Configuration for the evaluations, such as that parsed from the YAML
-        config file.
-
-    """
-
-    t_start = time.time()
-
-    try:
-        np.random.seed(cfg["config"]["rand_seed"])
-    except Exception as e:
-        logger.warning("Cannot use random seed: {}".format(e.__str__()))
-    except KeyError:
-        pass
-
-    input_data = load_inputs(cfg)
-
-    t_done_load = time.time()
-    logger.info(
-        "Done loading and preparing model in {0:.2f} s".format(
-            t_done_load - t_start
-        )
-    )
-
-    test_lists = get_test_lists_from_config(cfg)
-
-    results = {}
-
-    if "model_description" in test_lists.keys():
-        mod_desc_tests = test_lists.pop("model_description")
-        results["model_description"] = {
-            test: {
-                "val": test_dict["model_description"][test](cfg, input_data)
-            }
-            for test in mod_desc_tests
-        }
-
-    logger.info("trimming rupture and earthquake data to test magnitude range")
-    trim_inputs(input_data, cfg)
-    logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
-    logger.info(
-        "Annual rupture rate over test magnitude range: "
-        + f"{input_data['rupture_gdf'].occurrence_rate.sum():0.2f}"
-    )
-
-    for framework, tests in test_lists.items():
-        results[framework] = {}
-        for test in tests:
-            results[framework][test] = {
-                "val": test_dict[framework][test](cfg, input_data)
-            }
-
-    t_done_eval = time.time()
-    logger.info(
-        "Done evaluating model in {0:.2f} s".format(t_done_eval - t_done_load)
-    )
-
-    process_results(cfg, input_data, results)
-    write_outputs(cfg, results)
-
-    if "report" in cfg.keys():
-        write_reports(cfg, results=results, input_data=input_data)
-
-    if "json" in cfg.keys():
-        write_json(cfg, results)
-
-    t_out_done = time.time()
-    logger.info(
-        "Done writing outputs in {0:.2f} s".format(t_out_done - t_done_eval)
-    )
-    logger.info(
-        "Done with everything in {0:.2f} m".format(
-            (t_out_done - t_start) / 60.0
-        )
-    )
-
-    return results
-
-
-def _build_input_data(cfg, rupture_gdf, eq_gdf, gsim_lt):
+def _load_input_data_to_iterate(cfg, rupture_gdf, eq_gdf, gsim_lt):
     """
     Build the input_data dict from pre-loaded rupture_gdf and eq_gdf.
 
@@ -675,6 +588,97 @@ def _build_input_data(cfg, rupture_gdf, eq_gdf, gsim_lt):
     return input_data
 
 
+"""
+running tests
+"""
+
+
+def run_tests(cfg: dict) -> None:
+    """
+    Main Hamlet function.
+
+    This function reads the `cfg`, loads all of the inputs, runs the
+    evaluations, and then writes the ouputs.
+
+    :param cfg:
+        Configuration for the evaluations, such as that parsed from the YAML
+        config file.
+
+    """
+
+    t_start = time.time()
+
+    try:
+        np.random.seed(cfg["config"]["rand_seed"])
+    except Exception as e:
+        logger.warning("Cannot use random seed: {}".format(e.__str__()))
+    except KeyError:
+        pass
+
+    input_data = load_inputs(cfg)
+
+    t_done_load = time.time()
+    logger.info(
+        "Done loading and preparing model in {0:.2f} s".format(
+            t_done_load - t_start
+        )
+    )
+
+    test_lists = get_test_lists_from_config(cfg)
+
+    results = {}
+
+    if "model_description" in test_lists.keys():
+        mod_desc_tests = test_lists.pop("model_description")
+        results["model_description"] = {
+            test: {
+                "val": test_dict["model_description"][test](cfg, input_data)
+            }
+            for test in mod_desc_tests
+        }
+
+    logger.info("trimming rupture and earthquake data to test magnitude range")
+    trim_inputs(input_data, cfg)
+    logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
+    logger.info(
+        "Annual rupture rate over test magnitude range: "
+        + f"{input_data['rupture_gdf'].occurrence_rate.sum():0.2f}"
+    )
+
+    for framework, tests in test_lists.items():
+        results[framework] = {}
+        for test in tests:
+            results[framework][test] = {
+                "val": test_dict[framework][test](cfg, input_data)
+            }
+
+    t_done_eval = time.time()
+    logger.info(
+        "Done evaluating model in {0:.2f} s".format(t_done_eval - t_done_load)
+    )
+
+    process_results(cfg, input_data, results)
+    write_outputs(cfg, results)
+
+    if "report" in cfg.keys():
+        write_reports(cfg, results=results, input_data=input_data)
+
+    if "json" in cfg.keys():
+        write_json(cfg, results)
+
+    t_out_done = time.time()
+    logger.info(
+        "Done writing outputs in {0:.2f} s".format(t_out_done - t_done_eval)
+    )
+    logger.info(
+        "Done with everything in {0:.2f} m".format(
+            (t_out_done - t_start) / 60.0
+        )
+    )
+
+    return results
+
+
 def run_tests_iterate(cfg: dict) -> dict:
     """
     Run evaluations independently for each logic tree branch.
@@ -729,9 +733,7 @@ def run_tests_iterate(cfg: dict) -> dict:
 
     all_branch_results = {}
     branch_keys = list(branch_sources.keys())
-    logger.info(
-        f"Iterating over {len(branch_keys)} branches: {branch_keys}"
-    )
+    logger.info(f"Iterating over {len(branch_keys)} branches: {branch_keys}")
 
     # Initialize report rendering environment
     env = _init_env()
@@ -758,16 +760,16 @@ def run_tests_iterate(cfg: dict) -> dict:
         )
 
         logger.info("  making geodataframe from ruptures")
-        rupture_gdf = rupture_dict_to_gdf(
-            rupture_dict, {branch_key: 1.0}
-        )
+        rupture_gdf = rupture_dict_to_gdf(rupture_dict, {branch_key: 1.0})
         del rupture_dict
 
         logger.info("  done preparing rupture dataframe")
         logger.info(f"  {len(rupture_gdf):_} ruptures in branch")
 
         # Build input_data
-        input_data = _build_input_data(cfg, rupture_gdf, eq_gdf, gsim_lt)
+        input_data = _load_input_data_to_iterate(
+            cfg, rupture_gdf, eq_gdf, gsim_lt
+        )
 
         # Create per-branch config
         branch_cfg = deepcopy(cfg)
@@ -792,17 +794,13 @@ def run_tests_iterate(cfg: dict) -> dict:
             "trimming rupture and earthquake data to test magnitude range"
         )
         trim_inputs(input_data, branch_cfg)
-        logger.info(
-            " {:_} ruptures".format(len(input_data["rupture_gdf"]))
-        )
+        logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
 
         for framework, tests in test_lists.items():
             results[framework] = {}
             for test in tests:
                 results[framework][test] = {
-                    "val": test_dict[framework][test](
-                        branch_cfg, input_data
-                    )
+                    "val": test_dict[framework][test](branch_cfg, input_data)
                 }
 
         process_results(branch_cfg, input_data, results)
@@ -869,9 +867,7 @@ def write_iterate_json(cfg: dict, all_branch_results: dict):
                     ) as f:
                         f.write(test_results.to_json())
                 else:
-                    branch_out[test_framework] = eval(
-                        test_results.to_json()
-                    )
+                    branch_out[test_framework] = eval(test_results.to_json())
 
         branch_out = format_output_for_json(branch_out)
         out_results[str(branch_key)] = branch_out
