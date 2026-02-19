@@ -448,7 +448,7 @@ def cumulative_occurrence_eval(cfg, input_data):
 
     if not comp_table:
         start_dates = {k: start_date for k in mag_bins.keys()}
-        t_yrs = stop_date - start_date
+        t_yrs = (stop_date - start_date).days / 365.25
     else:
         start_dates = {
             k: f"{get_mag_year_from_comp_table(comp_table, k)[1]}-01-01"
