@@ -77,6 +77,9 @@
     <p>Observed catalog fractile (compared to stochastic event sets): {{ res.fractile }}</p>
     <p>Critical fractile: {{ res.critical_frac }}</p>
     <p>Test pass: {{ res.test_res }}</p>
+    {% if res.N_norm is defined and res.N_norm != 1.0 %}
+    <p>N normalization factor (N_obs / N_pred): {{ "%.3f"|format(res.N_norm) }}</p>
+    {% endif %}
 </div>
 
 

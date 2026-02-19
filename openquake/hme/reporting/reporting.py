@@ -51,6 +51,48 @@ def _init_env() -> Environment:
     return env
 
 
+def _format_completeness_table(completeness_table: list) -> str:
+    rows = "\n".join(
+        f"<tr><td>{row[0]}</td><td>{row[1]}</td></tr>"
+        for row in completeness_table
+    )
+    return (
+        "<table>"
+        "<thead><tr><th>Start Year</th><th>Min. Magnitude</th></tr></thead>"
+        f"<tbody>{rows}</tbody>"
+        "</table>"
+    )
+
+
+def _build_eval_info(cfg: dict) -> dict:
+    bins = cfg.get("input", {}).get("bins", {})
+    seis_catalog = cfg.get("input", {}).get("seis_catalog", {})
+
+    settings = {
+        "min_magnitude": bins.get("mfd_bin_min"),
+        "max_magnitude": bins.get("mfd_bin_max"),
+        "bin_width": bins.get("mfd_bin_width"),
+        "h3_resolution": bins.get("h3_res"),
+    }
+
+    completeness_table = seis_catalog.get("completeness_table")
+    if completeness_table is not None:
+        comp_table_html = _format_completeness_table(completeness_table)
+        start_date = None
+    else:
+        comp_table_html = None
+        start_date = seis_catalog.get("start_date")
+
+    catalog = {
+        "name": seis_catalog.get("seis_catalog_file"),
+        "start_date": start_date,
+        "completeness_table": comp_table_html,
+        "stop_date": seis_catalog.get("stop_date"),
+    }
+
+    return {"settings": settings, "catalog": catalog}
+
+
 def generate_basic_report(
     cfg: dict,
     results: dict,
@@ -94,7 +136,9 @@ def generate_basic_report(
         env=env, cfg=cfg, results=results, input_data=input_data
     )
 
-    report = report_template.render(cfg=cfg, results=results)
+    eval_info = _build_eval_info(cfg)
+
+    report = report_template.render(cfg=cfg, results=results, eval_info=eval_info)
 
     with open(cfg["report"]["basic"]["outfile"], "w") as report_file:
         report_file.write(report)

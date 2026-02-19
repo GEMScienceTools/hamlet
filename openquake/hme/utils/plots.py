@@ -15,6 +15,7 @@ from geopandas import GeoDataFrame
 from matplotlib.collections import LineCollection
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize, BoundaryNorm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import io
 from .stats import sample_event_times_in_interval
@@ -342,7 +343,11 @@ def plot_mfd(
         )
 
     ax.legend(loc="upper right")
-    ylabel = "Annual frequency of exceedance" if annualize else "Frequency of exceedance"
+    ylabel = (
+        "Annual frequency of exceedance"
+        if annualize
+        else "Frequency of exceedance"
+    )
     ax.set_ylabel(ylabel)
     ax.set_xlabel("Magnitude")
 
@@ -447,27 +452,20 @@ def plot_S_test_map(
         else:
             bad_bin_gdf = GeoDataFrame(cell_gdf.loc[bad_bins])
 
+    plot_kwargs = dict(
+        column=f"{model_test_framework}_S_test_frac",
+        ax=ax,
+        vmin=0.0,
+        vmax=1.0,
+        cmap="OrRd_r",
+    )
+
     if map_epsg is None:
-        cell_gdf.plot(
-            column=f"{model_test_framework}_S_test_frac",
-            ax=ax,
-            vmin=0.0,
-            vmax=1.0,
-            cmap="OrRd_r",
-            legend=True,
-        )
+        cell_gdf.plot(**plot_kwargs)
         if len(bad_bins) > 0:
             bad_bin_gdf.plot(ax=ax, color="blue")
-
     else:
-        cell_gdf.to_crs(epsg=map_epsg).plot(
-            column=f"{model_test_framework}_S_test_frac",
-            ax=ax,
-            vmin=0.0,
-            vmax=1.0,
-            cmap="OrRd_r",
-            legend=True,
-        )
+        cell_gdf.to_crs(epsg=map_epsg).plot(**plot_kwargs)
         if len(bad_bins) > 0:
             bad_bin_gdf.plot(ax=ax, color="blue")
 
@@ -483,6 +481,16 @@ def plot_S_test_map(
         )
     ax.set_xlim(x_lims)
     ax.set_ylim(y_lims)
+
+    # Add a horizontal colorbar the same width as the axes frame
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("bottom", size="5%", pad=0.4)
+    sm = ScalarMappable(cmap="OrRd_r", norm=Normalize(vmin=0.0, vmax=1.0))
+    sm.set_array([])
+    cbar = fig.colorbar(sm, cax=cax, orientation="horizontal")
+    cbar.set_label(
+        "Cell fractile (observed likelihood compared to stochastic event sets)"
+    )
 
     if save_fig is not False:
         fig.savefig(save_fig)
@@ -776,7 +784,9 @@ def plot_rup_match_mag_dist(
 
     if save_fig is not False:
         fig.savefig(save_fig)
-        logging.info(f"Rupture matching magnitude-distance plot saved to: {save_fig}")
+        logging.info(
+            f"Rupture matching magnitude-distance plot saved to: {save_fig}"
+        )
 
     if return_str:
         plt.switch_backend("svg")
