@@ -195,6 +195,7 @@ def m_test_function(
         "fractile": fractile,
         "test_pass": test_pass,
         "test_res": test_res,
+        "N_norm": N_norm,
         "test_data": {
             "stoch_geom_mean_likes": stoch_geom_mean_likes.tolist(),
             "obs_geom_mean_like": obs_geom_mean_like,
@@ -336,6 +337,7 @@ def s_test_function(
         "fractile": fractile,
         "test_pass": bool(test_pass),
         "test_res": test_res,
+        "N_norm": N_norm,
         "bad_bins": bad_bins,
         "unmatched_eqs": unmatched_eqs,
         "test_data": {
