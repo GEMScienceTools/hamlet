@@ -6,6 +6,7 @@ from openquake.hazardlib.source import SimpleFaultSource
 
 from openquake.hme.core.core import read_yaml_config
 from openquake.hme.utils.tests import load_sm1
+from openquake.hme.utils.utils import breakpoint
 from openquake.hme.utils.io.source_reader import (
     csm_from_job_ini,
     # get_csm_rlzs,
@@ -19,8 +20,6 @@ from openquake.hme.utils.io.source_reader import (
 BASE_PATH = pathlib.Path(os.path.dirname(__file__))
 
 
-source_cfg = load_sm1.cfg["input"]["ssm"]
-
 # w/ job ini
 # get job ini
 # get csm
@@ -32,6 +31,8 @@ source_cfg = load_sm1.cfg["input"]["ssm"]
 
 
 def test_single_branch_without_job_ini():
+    source_cfg = load_sm1.cfg["input"]["ssm"]
+
     def test_make_job_ini():
         job_ini = make_job_ini(
             source_cfg["ssm_dir"],
@@ -98,6 +99,7 @@ def test_single_branch_without_job_ini():
 
 
 def test_process_source_logic_tree_oq():
+    source_cfg = load_sm1.cfg["input"]["ssm"]
     (
         ssm_lt_sources,
         ssm_lt_weights,
@@ -119,11 +121,18 @@ def test_process_source_logic_tree_oq():
 
     assert list(ssm_lt_weights.keys()) == [0]
     assert ssm_lt_weights == {0: 1.0}
-    
+
 
 def test_2_branches_compound():
-    test_dir = (BASE_PATH / '..' / '..' / 'tests' / 'data' / 'source_models' / 
-                '2_branches')
+    test_dir = (
+        BASE_PATH
+        / '..'
+        / '..'
+        / 'tests'
+        / 'data'
+        / 'source_models'
+        / '2_branches'
+    )
     cfg = read_yaml_config(test_dir / 'test_2_ssm_branches.yaml')
     source_cfg = cfg['input']['ssm']
     (
@@ -134,24 +143,55 @@ def test_2_branches_compound():
     ) = process_source_logic_tree_oq(
         source_cfg["job_ini_file"],
         test_dir / source_cfg["ssm_dir"],
-        )
+    )
 
-    assert tuple(ssm_lt_sources.keys()) == (0,1)
+    assert tuple(ssm_lt_sources.keys()) == (0, 1)
     assert len(ssm_lt_sources[0]) == 2
     assert ssm_lt_sources[0][0].__class__.__name__ == 'PointSource'
 
     assert ssm_lt_weights == {0: 0.75, 1: 0.25}
     assert ssm_lt_rup_counts == {0: [1, 1], 1: [1, 1]}
     # no need to test gsim_lt
+    # breakpoint()
 
-@unittest.skip("not implemented correctly")
+
+# @unittest.skip("not implemented correctly")
 def test_2_branches_collapse():
-    pass
+    test_dir = (
+        BASE_PATH
+        / '..'
+        / '..'
+        / 'tests'
+        / 'data'
+        / 'source_models'
+        / '2_branches'
+    )
+    cfg = read_yaml_config(test_dir / 'test_2_ssm_branches.yaml')
+    source_cfg = cfg['input']['ssm']
+    (
+        ssm_lt_sources,
+        ssm_lt_weights,
+        ssm_lt_rup_counts,
+        gsim_lt,
+    ) = process_source_logic_tree_oq(
+        source_cfg["job_ini_file"],
+        test_dir / source_cfg["ssm_dir"],
+        collapse_lt=True,
+    )
+
+    # breakpoint()
 
 
 def test_2_branches_1_branch():
-    test_dir = (BASE_PATH / '..' / '..' / 'tests' / 'data' / 'source_models' / 
-                '2_branches')
+    test_dir = (
+        BASE_PATH
+        / '..'
+        / '..'
+        / 'tests'
+        / 'data'
+        / 'source_models'
+        / '2_branches'
+    )
     cfg = read_yaml_config(test_dir / 'test_2_ssm_branches.yaml')
     source_cfg = cfg['input']['ssm']
     source_cfg['branch'] = 1
@@ -164,9 +204,9 @@ def test_2_branches_1_branch():
         source_cfg["job_ini_file"],
         test_dir / source_cfg["ssm_dir"],
         branch=source_cfg['branch'],
-        )
+    )
 
     assert tuple(ssm_lt_sources.keys()) == (1,)
     assert len(ssm_lt_sources[1]) == 2
     assert ssm_lt_weights == {1: 1.0}
-    assert ssm_lt_rup_counts == {1: [1,1]}
+    assert ssm_lt_rup_counts == {1: [1, 1]}

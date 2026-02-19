@@ -16,9 +16,11 @@ from openquake.hme.utils.utils import _get_class_name, breakpoint
 
 try:
     from openquake.hazardlib.source_group import read_csm
+
     csm_new_flag = True
 except ImportError:
     csm_new_flag = False
+
 
 def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     if not isinstance(job_ini, dict) and os.path.isfile(job_ini):
@@ -43,7 +45,7 @@ def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     with job, datastore.read(job.calc_id) as dstore:
         if csm_new_flag:
             csm = read_csm(dstore)
-        else: # older OQ
+        else:  # older OQ
             csm = dstore['_csm']
         sources = csm.get_sources()
         logging.debug("\tgot csm from dstore")
