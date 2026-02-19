@@ -100,6 +100,46 @@ def generate_basic_report(
         report_file.write(report)
 
 
+def generate_report_iterate(
+    cfg: dict,
+    all_branch_results: dict,
+    rlz_info: dict,
+) -> None:
+    """
+    Generates an HTML report for iterate mode, with each branch's results
+    in a clearly demarcated section.
+
+    render_result_text must have already been called for each branch's
+    results (during the iteration loop, before input_data is freed).
+
+    :param cfg:
+        Configuration from parsed yaml file.
+
+    :param all_branch_results:
+        Dict of {branch_key: results} for each branch.
+
+    :param rlz_info:
+        Dict of {branch_key: {"path": ..., "weight": ...}} with realization
+        metadata.
+    """
+    logging.info("Writing iterate report")
+
+    env = _init_env()
+    report_template = env.get_template("basic_report.html")
+
+    branches = {}
+    for branch_key, results in all_branch_results.items():
+        branches[branch_key] = {
+            "results": results,
+            "rlz_info": rlz_info.get(branch_key, {}),
+        }
+
+    report = report_template.render(cfg=cfg, branches=branches, results={})
+
+    with open(cfg["report"]["basic"]["outfile"], "w") as report_file:
+        report_file.write(report)
+
+
 def render_result_text(
     env: Environment,
     cfg: dict,
@@ -190,7 +230,9 @@ def render_N_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ):
     # Get save_plot parameter from config
-    test_config = cfg["config"]["model_framework"][model_test_framework]["N_test"]
+    test_config = cfg["config"]["model_framework"][model_test_framework][
+        "N_test"
+    ]
     save_plot = test_config.get("save_plot", False)
 
     n_test_plot_str = plot_N_test_results(
@@ -211,7 +253,9 @@ def render_L_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ):
     # Get save_plot parameter from config
-    test_config = cfg["config"]["model_framework"][model_test_framework]["L_test"]
+    test_config = cfg["config"]["model_framework"][model_test_framework][
+        "L_test"
+    ]
     save_plot = test_config.get("save_plot", False)
 
     l_test_plot_str = plot_L_test_results(
@@ -292,7 +336,9 @@ def render_M_test(
     env: Environment, cfg: dict, results: dict, model_test_framework="gem"
 ) -> None:
     # Get save_plot parameter from config
-    test_config = cfg["config"]["model_framework"][model_test_framework]["M_test"]
+    test_config = cfg["config"]["model_framework"][model_test_framework][
+        "M_test"
+    ]
     save_plot = test_config.get("save_plot", False)
 
     m_test_results_data = results[model_test_framework]["M_test"]["val"][
@@ -370,7 +416,9 @@ def render_moment_over_under(
     # Get save_plot parameter from config
     save_plot = test_config.get("save_plot", False)
 
-    over_under_map_str = plot_over_under_map(cell_gdf, map_epsg, save_fig=save_plot)
+    over_under_map_str = plot_over_under_map(
+        cell_gdf, map_epsg, save_fig=save_plot
+    )
 
     results["gem"]["moment_over_under"]["rendered_text"] = over_under.render(
         res=results["gem"]["moment_over_under"]["val"]["test_data"],
@@ -388,7 +436,9 @@ def render_rupture_matching_eval(
         map_epsg = None
 
     # Get save_plot parameter from config
-    test_config = cfg["config"]["model_framework"]["gem"]["rupture_matching_eval"]
+    test_config = cfg["config"]["model_framework"]["gem"][
+        "rupture_matching_eval"
+    ]
     save_plot = test_config.get("save_plot", False)
 
     rup_match_env = env.get_template("rupture_matching_eval.html")
@@ -482,7 +532,9 @@ def render_cumulative_occurrence_eval(
     eval_results = results["gem"]["cumulative_occurrence_eval"]["val"]
 
     # Get save_plot parameter from config
-    test_config = cfg["config"]["model_framework"]["gem"]["cumulative_occurrence_eval"]
+    test_config = cfg["config"]["model_framework"]["gem"][
+        "cumulative_occurrence_eval"
+    ]
     save_plot = test_config.get("save_plot", False)
 
     # If save_plot is requested, generate and save matplotlib version
@@ -512,7 +564,9 @@ def render_catalog_ground_motion_eval(
     eval_results = results["gem"]["catalog_ground_motion_eval"]["val"]
 
     # Get save_plot parameter from config
-    test_config = cfg["config"]["model_framework"]["gem"]["catalog_ground_motion_eval"]
+    test_config = cfg["config"]["model_framework"]["gem"][
+        "catalog_ground_motion_eval"
+    ]
     save_plot = test_config.get("save_plot", False)
 
     res_plots = {}

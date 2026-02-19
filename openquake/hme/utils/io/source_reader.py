@@ -197,8 +197,11 @@ def process_source_logic_tree_oq(
             branch: [s.num_ruptures for s in branch_sources[branch]]
         }
 
-    elif branch == "iterate":  # iterate over branches
-        raise NotImplementedError()
+    elif branch == "iterate":
+        raise ValueError(
+            "branch='iterate' should be handled by run_tests_iterate, "
+            "not called directly through process_source_logic_tree_oq"
+        )
 
     else:  # no branches specified, i.e. all branches collapsed
         if collapse_lt:  # may not work quite right
@@ -249,6 +252,73 @@ def process_source_logic_tree_oq(
         gsim_lt = None
 
     return ssm_lt_sources, ssm_lt_weights, ssm_lt_rup_counts, gsim_lt
+
+
+def prepare_iterate_branches(
+    job_ini_file,
+    base_dir: str,
+    lt_file: str = "ssmLT.xml",
+    gmm_lt_file: str = "gmmLT.xml",
+    sites_file: Optional[str] = None,
+    source_types: Optional[Sequence] = None,
+    tectonic_region_types: Optional[Sequence] = None,
+    description: Optional[str] = None,
+    get_gsim_lt: bool = False,
+):
+    """
+    Read the CSM once and return per-branch source info for iterate mode.
+
+    This avoids re-running the expensive preclassical OQ calculation for
+    each branch when iterating over logic tree branches.
+
+    Returns a tuple of (branch_sources, branch_rup_counts, rlz_info, gsim_lt)
+    where branch_sources and branch_rup_counts are dicts keyed by branch
+    ordinal, and rlz_info contains the original weights and paths.
+    """
+    logging.info("Preparing iterate branches (reading CSM once)")
+
+    if job_ini_file is not None:
+        job_ini = os.path.join(base_dir, job_ini_file)
+    else:
+        job_ini = make_job_ini(
+            base_dir,
+            lt_file=lt_file,
+            gmm_lt_file=gmm_lt_file,
+            description=description,
+            sites_file=sites_file,
+        )
+
+    csm, _sources, dstore, gmm_lt_filepath = csm_from_job_ini(
+        job_ini, get_gsim_lt=get_gsim_lt
+    )
+
+    rlz_info = {
+        r.ordinal: {"path": r.pid, "weight": r.weight}
+        for r in dstore["full_lt"].sm_rlzs
+    }
+    logging.info(f"Found {len(rlz_info)} realizations: {rlz_info}")
+
+    rlzs = get_dstore_rlzs(dstore, csm)
+    branch_sources = {k: v["sources"] for k, v in rlzs.items()}
+
+    if source_types is not None:
+        logging.info("Filtering sources by type")
+        branch_sources = {
+            k: filter_sources_by_type(v, source_types)
+            for k, v in branch_sources.items()
+        }
+
+    branch_rup_counts = {
+        br: [s.num_ruptures for s in srcs]
+        for br, srcs in branch_sources.items()
+    }
+
+    if get_gsim_lt:
+        gsim_lt = read_gsim_lt(gmm_lt_filepath)
+    else:
+        gsim_lt = None
+
+    return branch_sources, branch_rup_counts, rlz_info, gsim_lt
 
 
 def make_composite_source(branch_sources, branch_weights):

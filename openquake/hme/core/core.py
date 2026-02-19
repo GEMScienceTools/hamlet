@@ -24,6 +24,7 @@ from geopandas import GeoDataFrame
 
 from openquake.hme.utils.io import (
     process_source_logic_tree_oq,
+    prepare_iterate_branches,
     load_flatfile,
     load_flatfile_from_api,
     APIClientError,
@@ -45,7 +46,12 @@ from openquake.hme.utils import (
 
 from openquake.hme.utils.results_processing import process_results
 
-from openquake.hme.reporting import generate_basic_report
+from openquake.hme.reporting import (
+    generate_basic_report,
+    generate_report_iterate,
+    render_result_text,
+    _init_env,
+)
 
 from openquake.hme.utils.io.source_processing import (
     rupture_dict_from_logic_tree_dict,
@@ -434,13 +440,17 @@ def load_inputs(cfg: dict) -> dict:
         if flatfile_api_url:
             logger.info(f"Loading flatfile from API: {flatfile_api_url}")
             try:
-                input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile_from_api(
-                    base_url=flatfile_api_url,
-                    min_mag=min_bin_mag,
-                    max_mag=max_bin_mag,
-                    h3_res=cfg["input"]["bins"]["h3_res"],
-                    rupture_gdf=rupture_gdf,  # Use ruptures for spatial filtering
-                    buffer_degrees=cfg["input"].get("flatfile_api_buffer_deg", 2.0),
+                input_data["eq_gm_df"], input_data["gm_df"] = (
+                    load_flatfile_from_api(
+                        base_url=flatfile_api_url,
+                        min_mag=min_bin_mag,
+                        max_mag=max_bin_mag,
+                        h3_res=cfg["input"]["bins"]["h3_res"],
+                        rupture_gdf=rupture_gdf,  # Use ruptures for spatial filtering
+                        buffer_degrees=cfg["input"].get(
+                            "flatfile_api_buffer_deg", 2.0
+                        ),
+                    )
                 )
             except APIClientError as e:
                 logger.error(f"Failed to load flatfile from API: {e}")
@@ -471,6 +481,109 @@ def load_inputs(cfg: dict) -> dict:
             + f"and {len(input_data['gm_df']):_} shaking records in"
             + " ground motion database"
         )
+
+    return input_data
+
+
+def _load_input_data_to_iterate(cfg, rupture_gdf, eq_gdf, gsim_lt):
+    """
+    Build the input_data dict from pre-loaded rupture_gdf and eq_gdf.
+
+    This extracts the shared logic from load_inputs() for reuse in
+    run_tests_iterate() where ruptures are loaded one branch at a time.
+    """
+    logging.info("grouping ruptures by cell")
+    cell_groups = rupture_gdf.groupby("cell_id")
+
+    logger.info(f"{len(rupture_gdf):_} ruptures in model")
+
+    if cfg["input"]["subset"]["file"] is not None:
+        logger.info("Subsetting rupture_gdf")
+        rupture_gdf = subset_source(
+            rupture_gdf,
+            cfg["input"]["subset"]["file"],
+            buffer=cfg["input"]["subset"].get("buffer"),
+            fid=cfg["input"]["subset"].get("fid"),
+            feature_number=cfg["input"]["subset"].get("feature_number"),
+        )
+        logger.info(f"{len(rupture_gdf):_} ruptures after subset")
+
+    if len(rupture_gdf) != len(rupture_gdf.index.unique()):
+        logging.warning(
+            "RUPTURE DF HAS DUPLICATED INDICES. SOME TESTS MIGHT FAIL!"
+        )
+
+    logging.info("trimming earthquake catalog")
+    cells_in_model = rupture_gdf.cell_id.unique()
+    eq_in_model = (cell_id in cells_in_model for cell_id in eq_gdf.cell_id)
+    branch_eq_gdf = eq_gdf.loc[eq_in_model]
+    logger.info(f"{len(branch_eq_gdf):_} earthquakes in trimmed catalog")
+
+    logging.info("grouping earthquakes by cell")
+    eq_groups = branch_eq_gdf.groupby("cell_id")
+
+    input_data = {
+        "rupture_gdf": rupture_gdf,
+        "cell_groups": cell_groups,
+        "eq_gdf": branch_eq_gdf,
+        "eq_groups": eq_groups,
+        "gsim_lt": gsim_lt,
+    }
+
+    if "prospective_catalog" in cfg["input"].keys():
+        logger.info("adding prospective earthquakes to input data")
+        pro_gdf = load_pro_eq_catalog(cfg)
+        pro_eq_in_model = (
+            cell_id in cells_in_model for cell_id in pro_gdf.cell_id
+        )
+        pro_eq_gdf = pro_gdf.loc[pro_eq_in_model]
+        input_data["pro_gdf"] = pro_eq_gdf
+        input_data["pro_groups"] = pro_eq_gdf.groupby("cell_id")
+
+    if needs_gsim_lt(cfg):
+        mag_bins = get_mag_bins_from_cfg(cfg)
+        min_bin_mag = mag_bins[sorted(mag_bins.keys())[0]][0]
+        max_bin_mag = mag_bins[sorted(mag_bins.keys())[-1]][1]
+
+        flatfile_api_url = cfg["input"].get("flatfile_api_url")
+
+        if flatfile_api_url:
+            logger.info(f"Loading flatfile from API: {flatfile_api_url}")
+            try:
+                input_data["eq_gm_df"], input_data["gm_df"] = (
+                    load_flatfile_from_api(
+                        base_url=flatfile_api_url,
+                        min_mag=min_bin_mag,
+                        max_mag=max_bin_mag,
+                        h3_res=cfg["input"]["bins"]["h3_res"],
+                        rupture_gdf=rupture_gdf,
+                        buffer_degrees=cfg["input"].get(
+                            "flatfile_api_buffer_deg", 2.0
+                        ),
+                    )
+                )
+            except APIClientError as e:
+                logger.error(f"Failed to load flatfile from API: {e}")
+                raise
+        else:
+            logger.info("Loading flatfile from CSV file")
+            input_data["eq_gm_df"], input_data["gm_df"] = load_flatfile(
+                cfg["input"]["flatfile"],
+                min_mag=min_bin_mag,
+                max_mag=max_bin_mag,
+                h3_res=cfg["input"]["bins"]["h3_res"],
+            )
+
+        gm_eq_in_model = (
+            cell_id in cells_in_model
+            for cell_id in input_data["eq_gm_df"].cell_id
+        )
+        input_data["eq_gm_df"] = input_data["eq_gm_df"].loc[gm_eq_in_model]
+        input_data["gm_df"] = input_data["gm_df"].loc[
+            input_data["gm_df"].event_id.isin(
+                input_data["eq_gm_df"].event_id.tolist()
+            )
+        ]
 
     return input_data
 
@@ -564,6 +677,231 @@ def run_tests(cfg: dict) -> None:
     )
 
     return results
+
+
+def run_tests_iterate(cfg: dict) -> dict:
+    """
+    Run evaluations independently for each logic tree branch.
+
+    The CSM is read once, then for each branch:
+    - ruptures are processed (with weight=1.0)
+    - all evaluations are run
+    - results are rendered for reporting
+    - rupture data is freed to conserve memory
+
+    Results from all branches are combined into a single report.
+    """
+
+    t_start = time.time()
+
+    try:
+        np.random.seed(cfg["config"]["rand_seed"])
+    except Exception as e:
+        logger.warning("Cannot use random seed: {}".format(e.__str__()))
+    except KeyError:
+        pass
+
+    # Load earthquake catalog once (shared across branches)
+    eq_gdf = load_obs_eq_catalog(cfg)
+    logger.info(f"{len(eq_gdf):_} earthquakes in catalog")
+
+    # Read CSM once, get all branch info
+    source_cfg = cfg["input"]["ssm"]
+    needs_gsim = needs_gsim_lt(cfg)
+    return_trt = cfg["input"].get("return_trt", False)
+    simple_ruptures = cfg["input"]["simple_ruptures"]
+    if needs_gsim:
+        return_trt = True
+        simple_ruptures = False
+
+    branch_sources, branch_rup_counts, rlz_info, gsim_lt = (
+        prepare_iterate_branches(
+            source_cfg["job_ini_file"],
+            source_cfg["ssm_dir"],
+            lt_file=source_cfg["ssm_lt_file"],
+            source_types=source_cfg["source_types"],
+            tectonic_region_types=source_cfg["tectonic_region_types"],
+            description=cfg["meta"]["description"],
+            get_gsim_lt=needs_gsim,
+        )
+    )
+
+    t_done_load_csm = time.time()
+    logger.info(
+        "Done reading CSM in {0:.2f} s".format(t_done_load_csm - t_start)
+    )
+
+    all_branch_results = {}
+    branch_keys = list(branch_sources.keys())
+    logger.info(f"Iterating over {len(branch_keys)} branches: {branch_keys}")
+
+    # Initialize report rendering environment
+    env = _init_env()
+
+    for branch_key in branch_keys:
+        t_branch_start = time.time()
+        logger.info(
+            f"=== Processing branch {branch_key} "
+            f"(rlz: {rlz_info.get(branch_key, {})}) ==="
+        )
+
+        # Process ruptures for this branch only
+        single_sources = {branch_key: branch_sources[branch_key]}
+        single_rup_counts = {branch_key: branch_rup_counts[branch_key]}
+
+        logger.info("  making dictionary of ruptures")
+        rupture_dict = rupture_dict_from_logic_tree_dict(
+            single_sources,
+            source_rup_counts=single_rup_counts,
+            parallel=cfg["config"]["parallel"],
+            h3_res=cfg["input"]["bins"]["h3_res"],
+            simple_ruptures=simple_ruptures,
+            return_trt=return_trt,
+        )
+
+        logger.info("  making geodataframe from ruptures")
+        rupture_gdf = rupture_dict_to_gdf(rupture_dict, {branch_key: 1.0})
+        del rupture_dict
+
+        logger.info("  done preparing rupture dataframe")
+        logger.info(f"  {len(rupture_gdf):_} ruptures in branch")
+
+        # Build input_data
+        input_data = _load_input_data_to_iterate(
+            cfg, rupture_gdf, eq_gdf, gsim_lt
+        )
+
+        # Create per-branch config
+        branch_cfg = deepcopy(cfg)
+        branch_cfg["input"]["ssm"]["branch"] = branch_key
+
+        # Run evaluations
+        test_lists = get_test_lists_from_config(branch_cfg)
+        results = {}
+
+        if "model_description" in test_lists.keys():
+            mod_desc_tests = test_lists.pop("model_description")
+            results["model_description"] = {
+                test: {
+                    "val": test_dict["model_description"][test](
+                        branch_cfg, input_data
+                    )
+                }
+                for test in mod_desc_tests
+            }
+
+        logger.info(
+            "trimming rupture and earthquake data to test magnitude range"
+        )
+        trim_inputs(input_data, branch_cfg)
+        logger.info(" {:_} ruptures".format(len(input_data["rupture_gdf"])))
+
+        for framework, tests in test_lists.items():
+            results[framework] = {}
+            for test in tests:
+                results[framework][test] = {
+                    "val": test_dict[framework][test](branch_cfg, input_data)
+                }
+
+        process_results(branch_cfg, input_data, results)
+        write_outputs(branch_cfg, results)
+
+        # Render results text while input_data is still available
+        if "report" in cfg:
+            render_result_text(
+                env=env,
+                cfg=branch_cfg,
+                results=results,
+                input_data=input_data,
+            )
+
+        all_branch_results[branch_key] = results
+
+        # Free memory
+        del rupture_gdf, input_data
+
+        t_branch_done = time.time()
+        logger.info(
+            f"=== Done with branch {branch_key} in "
+            f"{t_branch_done - t_branch_start:.2f} s ==="
+        )
+
+    # Write combined report
+    if "report" in cfg:
+        generate_report_iterate(cfg, all_branch_results, rlz_info)
+
+    if "json" in cfg:
+        write_json_iterate(cfg, all_branch_results)
+
+    t_out_done = time.time()
+    logger.info(
+        "Done with everything in {0:.2f} m".format(
+            (t_out_done - t_start) / 60.0
+        )
+    )
+
+    return all_branch_results
+
+
+def write_json_iterate(cfg: dict, all_branch_results: dict):
+    """Write JSON output for iterate mode with all branches."""
+    logger.info("Writing iterate results to JSON")
+    out_results = {}
+
+    for branch_key, results in all_branch_results.items():
+        branch_out = {}
+        for test_framework, test_results in results.items():
+            if test_framework in ["gem", "relm"]:
+                branch_out[test_framework] = {}
+                for test, res in test_results.items():
+                    if test == "geometry":
+                        continue
+                    branch_out[test_framework][test] = res["val"]
+            elif test_framework == "cell_gdf":
+                if "cell_gdf_file" in cfg["json"]:
+                    with open(
+                        cfg["json"]["cell_gdf_file"].replace(
+                            ".json", f"_branch_{branch_key}.json"
+                        ),
+                        "w",
+                    ) as f:
+                        f.write(test_results.to_json())
+                else:
+                    branch_out[test_framework] = eval(test_results.to_json())
+
+        branch_out = format_output_for_json(branch_out)
+        out_results[str(branch_key)] = branch_out
+
+    class CustomJSONEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, (datetime, pd.Timestamp)):
+                return obj.isoformat()
+            if isinstance(obj, GeoDataFrame):
+                return None
+            return super().default(obj)
+
+        def encode(self, obj):
+            return super().encode(self.transform_object(obj))
+
+        def transform_object(self, obj):
+            if isinstance(obj, dict):
+                return {k: self.transform_object(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [self.transform_object(v) for v in obj]
+            elif isinstance(obj, float) and math.isnan(obj):
+                return None
+            elif isinstance(obj, np.float64) and np.isnan(obj):
+                return None
+            elif isinstance(obj, pd.Timestamp):
+                return obj.isoformat()
+            elif isinstance(obj, GeoDataFrame):
+                return None
+            return obj
+
+    with open(cfg["json"]["outfile"], "w") as f:
+        json.dump(out_results, f, cls=CustomJSONEncoder)
 
 
 """
@@ -743,61 +1081,6 @@ def write_json(cfg: dict, results: dict):
 
     with open(cfg["json"]["outfile"], "w") as f:
         json.dump(out_results, f, cls=CustomJSONEncoder)
-
-
-def write_outputs_old(
-    cfg: dict,
-    bin_gdf: GeoDataFrame,
-    eq_gdf: GeoDataFrame,
-    write_index: bool = False,
-) -> None:
-    """
-    Writes output GIS files and plots (i.e., maps or MFD plots.)
-
-    All of the options for what to write are specified in the `cfg`.
-
-    :param cfg:
-        Configuration for the evaluations, such as that parsed from the YAML
-        config file.
-
-    :param bin_gdf:
-        :class:`GeoDataFrame` with the spatial bins for testing
-
-    :param eq_gdf:
-        :class:`GeoDataFrame` with the observed earthquake catalog.
-    """
-
-    logger.info("writing outputs")
-
-    if "plots" in cfg["output"].keys():
-        # write_mfd_plots_to_gdf(bin_gdf, **cfg["output"]["plots"]["kwargs"])
-        raise NotImplementedError("can't do plots rn")
-
-    if "map_epsg" in cfg["config"]:
-        out_gdf = out_gdf.to_crs(cfg["config"]["map_epsg"])
-
-    if "bin_gdf" in cfg["output"].keys():
-        outfile = cfg["output"]["bin_gdf"]["file"]
-        out_format = outfile.split(".")[-1]
-        bin_gdf["bin_index"] = bin_gdf.index
-        bin_gdf.index = np.arange(len(bin_gdf))
-
-        if out_format == "csv":
-            # write_bin_gdf_to_csv(outfile, bin_gdf)
-            raise NotImplementedError("can't do plots rn")
-
-        else:
-            try:
-                bin_gdf.drop("SpacemagBin", axis=1).to_file(
-                    outfile,
-                    driver=OUTPUT_FILE_MAP[out_format],
-                    index=write_index,
-                )
-            except KeyError:
-                raise Exception(f"No writer for {out_format} format")
-
-
-OUTPUT_FILE_MAP = {"geojson": "GeoJSON"}
 
 
 def write_reports(cfg: dict, results: dict, input_data: dict) -> None:

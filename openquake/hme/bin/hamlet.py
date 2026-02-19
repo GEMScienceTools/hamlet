@@ -8,7 +8,7 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 from openquake.hme.__version__ import __version__
 
-from openquake.hme.core.core import run_tests, read_yaml_config
+from openquake.hme.core.core import run_tests, run_tests_iterate, read_yaml_config
 from openquake.hme.utils.log import init_logging, check_for_log, add_logfile
 
 try:
@@ -58,7 +58,10 @@ def main(arg=None):
 
         # now for real
         cfg = read_yaml_config(yaml_file, validate=True)
-        run_tests(cfg)
+        if cfg["input"]["ssm"].get("branch") == "iterate":
+            run_tests_iterate(cfg)
+        else:
+            run_tests(cfg)
     except Exception:
         logger.error("An error occurred during execution")
         traceback.print_exc()
