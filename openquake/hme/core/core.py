@@ -48,7 +48,7 @@ from openquake.hme.utils.results_processing import process_results
 
 from openquake.hme.reporting import (
     generate_basic_report,
-    generate_iterate_report,
+    generate_report_iterate,
     render_result_text,
     _init_env,
 )
@@ -828,10 +828,10 @@ def run_tests_iterate(cfg: dict) -> dict:
 
     # Write combined report
     if "report" in cfg:
-        generate_iterate_report(cfg, all_branch_results, rlz_info)
+        generate_report_iterate(cfg, all_branch_results, rlz_info)
 
     if "json" in cfg:
-        write_iterate_json(cfg, all_branch_results)
+        write_json_iterate(cfg, all_branch_results)
 
     t_out_done = time.time()
     logger.info(
@@ -843,7 +843,7 @@ def run_tests_iterate(cfg: dict) -> dict:
     return all_branch_results
 
 
-def write_iterate_json(cfg: dict, all_branch_results: dict):
+def write_json_iterate(cfg: dict, all_branch_results: dict):
     """Write JSON output for iterate mode with all branches."""
     logger.info("Writing iterate results to JSON")
     out_results = {}
@@ -1081,61 +1081,6 @@ def write_json(cfg: dict, results: dict):
 
     with open(cfg["json"]["outfile"], "w") as f:
         json.dump(out_results, f, cls=CustomJSONEncoder)
-
-
-def write_outputs_old(
-    cfg: dict,
-    bin_gdf: GeoDataFrame,
-    eq_gdf: GeoDataFrame,
-    write_index: bool = False,
-) -> None:
-    """
-    Writes output GIS files and plots (i.e., maps or MFD plots.)
-
-    All of the options for what to write are specified in the `cfg`.
-
-    :param cfg:
-        Configuration for the evaluations, such as that parsed from the YAML
-        config file.
-
-    :param bin_gdf:
-        :class:`GeoDataFrame` with the spatial bins for testing
-
-    :param eq_gdf:
-        :class:`GeoDataFrame` with the observed earthquake catalog.
-    """
-
-    logger.info("writing outputs")
-
-    if "plots" in cfg["output"].keys():
-        # write_mfd_plots_to_gdf(bin_gdf, **cfg["output"]["plots"]["kwargs"])
-        raise NotImplementedError("can't do plots rn")
-
-    if "map_epsg" in cfg["config"]:
-        out_gdf = out_gdf.to_crs(cfg["config"]["map_epsg"])
-
-    if "bin_gdf" in cfg["output"].keys():
-        outfile = cfg["output"]["bin_gdf"]["file"]
-        out_format = outfile.split(".")[-1]
-        bin_gdf["bin_index"] = bin_gdf.index
-        bin_gdf.index = np.arange(len(bin_gdf))
-
-        if out_format == "csv":
-            # write_bin_gdf_to_csv(outfile, bin_gdf)
-            raise NotImplementedError("can't do plots rn")
-
-        else:
-            try:
-                bin_gdf.drop("SpacemagBin", axis=1).to_file(
-                    outfile,
-                    driver=OUTPUT_FILE_MAP[out_format],
-                    index=write_index,
-                )
-            except KeyError:
-                raise Exception(f"No writer for {out_format} format")
-
-
-OUTPUT_FILE_MAP = {"geojson": "GeoJSON"}
 
 
 def write_reports(cfg: dict, results: dict, input_data: dict) -> None:
