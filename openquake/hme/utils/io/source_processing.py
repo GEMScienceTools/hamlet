@@ -195,6 +195,7 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 
     rups = flatten_list(rups)
 
+    pbar.close()
     return rups
 
 
