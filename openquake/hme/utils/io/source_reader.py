@@ -148,7 +148,7 @@ def process_source_logic_tree_oq(
     gmm_lt_file: str = "gmmLT.xml",
     sites_file: Optional[str] = None,
     branch: Optional[str] = None,
-    collapse_lt: Optional[bool] = False,
+    collapse_lt: Optional[bool] = True,
     source_types: Optional[Sequence] = None,
     tectonic_region_types: Optional[Sequence] = None,
     description: Optional[str] = None,
