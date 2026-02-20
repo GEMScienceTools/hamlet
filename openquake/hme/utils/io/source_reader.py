@@ -11,14 +11,17 @@ from openquake.commonlib.readinput import get_params
 from openquake.engine.engine import create_jobs, run_jobs
 
 from openquake.hazardlib.gsim_lt import GsimLogicTree
+from openquake.hazardlib.source import MultiPointSource
 
 from openquake.hme.utils.utils import _get_class_name, breakpoint
 
 try:
     from openquake.hazardlib.source_group import read_csm
+
     csm_new_flag = True
 except ImportError:
     csm_new_flag = False
+
 
 def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     if not isinstance(job_ini, dict) and os.path.isfile(job_ini):
@@ -43,7 +46,7 @@ def csm_from_job_ini(job_ini, get_gsim_lt: bool = False):
     with job, datastore.read(job.calc_id) as dstore:
         if csm_new_flag:
             csm = read_csm(dstore)
-        else: # older OQ
+        else:  # older OQ
             csm = dstore['_csm']
         sources = csm.get_sources()
         logging.debug("\tgot csm from dstore")
@@ -145,7 +148,7 @@ def process_source_logic_tree_oq(
     gmm_lt_file: str = "gmmLT.xml",
     sites_file: Optional[str] = None,
     branch: Optional[str] = None,
-    collapse_lt: Optional[bool] = False,
+    collapse_lt: Optional[bool] = True,
     source_types: Optional[Sequence] = None,
     tectonic_region_types: Optional[Sequence] = None,
     description: Optional[str] = None,
@@ -218,19 +221,17 @@ def process_source_logic_tree_oq(
                     s.num_ruptures for s in ssm_lt_sources["composite"]
                 ]
             }
-            source_weights = list(sources_w_weights.values())
-            ssm_lt_weights = {"composite": []}
+            src_weight_dict = {}
+            for src, w in sources_w_weights.items():
+                if isinstance(src, MultiPointSource):
+                    for sub_src in src:
+                        src_weight_dict[sub_src.source_id] = w
+                else:
+                    src_weight_dict[src.source_id] = w
 
-            for i, rup_count in enumerate(ssm_lt_rup_counts["composite"]):
-                ssm_lt_weights["composite"].append(
-                    np.ones(rup_count) * source_weights[i]
-                )
-
-            ssm_lt_weights["composite"] = np.hstack(
-                ssm_lt_weights["composite"]
-            )
+            ssm_lt_weights = {"composite": src_weight_dict}
             logging.info(
-                f"{len(ssm_lt_weights['composite']):_} rups in composite model"
+                f"{len(ssm_lt_weights['composite']):_} sources in composite model"
             )
         else:
             ssm_lt_sources = branch_sources
