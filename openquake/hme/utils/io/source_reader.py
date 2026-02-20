@@ -11,6 +11,7 @@ from openquake.commonlib.readinput import get_params
 from openquake.engine.engine import create_jobs, run_jobs
 
 from openquake.hazardlib.gsim_lt import GsimLogicTree
+from openquake.hazardlib.source import MultiPointSource
 
 from openquake.hme.utils.utils import _get_class_name, breakpoint
 
@@ -220,19 +221,17 @@ def process_source_logic_tree_oq(
                     s.num_ruptures for s in ssm_lt_sources["composite"]
                 ]
             }
-            source_weights = list(sources_w_weights.values())
-            ssm_lt_weights = {"composite": []}
+            src_weight_dict = {}
+            for src, w in sources_w_weights.items():
+                if isinstance(src, MultiPointSource):
+                    for sub_src in src:
+                        src_weight_dict[sub_src.source_id] = w
+                else:
+                    src_weight_dict[src.source_id] = w
 
-            for i, rup_count in enumerate(ssm_lt_rup_counts["composite"]):
-                ssm_lt_weights["composite"].append(
-                    np.ones(rup_count) * source_weights[i]
-                )
-
-            ssm_lt_weights["composite"] = np.hstack(
-                ssm_lt_weights["composite"]
-            )
+            ssm_lt_weights = {"composite": src_weight_dict}
             logging.info(
-                f"{len(ssm_lt_weights['composite']):_} rups in composite model"
+                f"{len(ssm_lt_weights['composite']):_} sources in composite model"
             )
         else:
             ssm_lt_sources = branch_sources

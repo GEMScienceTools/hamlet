@@ -448,7 +448,12 @@ def rupture_dict_to_gdf(
 
     for branch, branch_df in rupture_dict.items():
         branch_df = branch_df.copy()
-        branch_df["occurrence_rate"] *= weights[branch]
+        w = weights[branch]
+        if isinstance(w, dict):
+            src_ids = branch_df.index.str.rsplit("_", n=1).str[0]
+            branch_df["occurrence_rate"] *= src_ids.map(w)
+        else:
+            branch_df["occurrence_rate"] *= w
         branch_df.index = branch_df.index.values + f"_{branch}"
         branch_df["branch"] = branch
 
