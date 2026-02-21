@@ -1,8 +1,18 @@
 import logging
+import sys
 import warnings
 from time import sleep
 from typing import Union, Optional, Tuple
-from multiprocessing import Pool
+import multiprocessing
+
+# forkserver avoids inheriting live TBB/tkinter state from the parent while
+# still sharing copy-on-write pages with the helper process (Linux only).
+# All other platforms use spawn (the only option on Windows, already the
+# default on macOS).
+if sys.platform == 'linux':
+    _mp_ctx = multiprocessing.get_context('forkserver')
+else:
+    _mp_ctx = multiprocessing.get_context('spawn')
 
 from h3 import h3
 import numpy as np
@@ -329,7 +339,7 @@ def rupture_list_from_source_list_parallel(
     logger.info("    beginning multiprocess source processing")
     pbar = tqdm([n for n in range(n_procs)])
 
-    with Pool(n_procs, maxtasksperchild=1) as pool:
+    with _mp_ctx.Pool(n_procs, maxtasksperchild=1) as pool:
         rupture_dfs = []
 
         chunks_with_args = [
