@@ -11,6 +11,8 @@ from xml.parsers.expat import model
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from geopandas import GeoDataFrame
 from jinja2 import Environment, FileSystemLoader

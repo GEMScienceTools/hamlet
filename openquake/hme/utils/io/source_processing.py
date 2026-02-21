@@ -172,6 +172,7 @@ def _process_source_chunk(source_chunk_w_args) -> list:
 
     text = f"source chunk #{pos}"
 
+    tqdm.monitor_interval = 0  # prevent monitor thread hang on Linux
     pbar = tqdm(total=sc["chunk_sum"], position=sc["position"], desc=text)
 
     # wait so that processes don't finish at same time and take too much RAM
