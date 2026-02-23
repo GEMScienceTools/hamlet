@@ -7,7 +7,10 @@ import numpy as np
 from openquake.baselib.general import AccumDict
 
 from openquake.commonlib import datastore
-from openquake.commonlib.readinput import get_params
+from openquake.commonlib.readinput import (
+        get_params,
+        get_composite_source_model,
+        )
 from openquake.engine.engine import create_jobs, run_jobs
 
 from openquake.hazardlib.gsim_lt import GsimLogicTree

@@ -119,3 +119,4 @@ src/
 dev_scripts/
 .claude/
 CLAUDE.md
+ruff.toml

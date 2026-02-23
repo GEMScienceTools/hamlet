@@ -61,8 +61,8 @@ def test_subset_source_no_buffer():
 
     rups_inside = subset_source(rups, subset_gj_file, feature_number=0)
 
-    assert "88.3_20_0" in rups_inside.index
-    assert "88.0_313_0" not in rups_inside.index
+    assert "88.3_20_composite" in rups_inside.index
+    assert "88.0_313_composite" not in rups_inside.index
 
     assert len(rups_inside) == 4814
 
@@ -77,7 +77,7 @@ def test_subset_source_buffer():
         rups, subset_gj_file, feature_number=0, buffer=0.001
     )  # small but checks if fns work
 
-    assert "88.3_20_0" in rups_inside.index
-    assert "88.0_313_0" not in rups_inside.index
+    assert "88.3_20_composite" in rups_inside.index
+    assert "88.0_313_composite" not in rups_inside.index
 
     assert len(rups_inside) == 4814
