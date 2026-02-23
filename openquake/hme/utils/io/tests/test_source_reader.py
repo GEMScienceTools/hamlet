@@ -2,7 +2,8 @@ import os
 import pathlib
 import unittest
 
-from openquake.hazardlib.source import SimpleFaultSource
+import numpy as np
+from openquake.hazardlib.source import SimpleFaultSource, PointSource
 
 from openquake.hme.core.core import read_yaml_config
 from openquake.hme.utils.tests import load_sm1
@@ -113,28 +114,51 @@ def test_process_source_logic_tree_oq():
         tectonic_region_types=source_cfg["tectonic_region_types"],
         branch=source_cfg["branch"],
         description=load_sm1.cfg["meta"]["description"],
+        # collapse_lt=True, # test without to make sure default args tested
     )
 
-    assert list(ssm_lt_sources.keys()) == [0]
-    assert len(ssm_lt_sources[0]) == 18
-    assert isinstance(ssm_lt_sources[0][0], SimpleFaultSource)
+    assert len(ssm_lt_sources) == 1
+    assert "composite" in ssm_lt_sources
+    assert len(ssm_lt_sources["composite"]) == 18
+    assert isinstance(ssm_lt_sources["composite"][0], SimpleFaultSource)
 
-    assert list(ssm_lt_weights.keys()) == [0]
-    assert ssm_lt_weights == {0: 1.0}
+    assert list(ssm_lt_weights.keys()) == ["composite"]
+    assert ssm_lt_weights == {
+        "composite": {
+            "88.0": 1.0,
+            "88.1": 1.0,
+            "88.10": 1.0,
+            "88.11": 1.0,
+            "88.12": 1.0,
+            "88.13": 1.0,
+            "88.14": 1.0,
+            "88.15": 1.0,
+            "88.16": 1.0,
+            "88.17": 1.0,
+            "88.2": 1.0,
+            "88.3": 1.0,
+            "88.4": 1.0,
+            "88.5": 1.0,
+            "88.6": 1.0,
+            "88.7": 1.0,
+            "88.8": 1.0,
+            "88.9": 1.0,
+        }
+    }
 
 
 def test_2_branches_compound():
     test_dir = (
         BASE_PATH
-        / '..'
-        / '..'
-        / 'tests'
-        / 'data'
-        / 'source_models'
-        / '2_branches'
+        / ".."
+        / ".."
+        / "tests"
+        / "data"
+        / "source_models"
+        / "2_branches"
     )
-    cfg = read_yaml_config(test_dir / 'test_2_ssm_branches.yaml')
-    source_cfg = cfg['input']['ssm']
+    cfg = read_yaml_config(test_dir / "test_2_ssm_branches.yaml")
+    source_cfg = cfg["input"]["ssm"]
     (
         ssm_lt_sources,
         ssm_lt_weights,
@@ -143,31 +167,31 @@ def test_2_branches_compound():
     ) = process_source_logic_tree_oq(
         source_cfg["job_ini_file"],
         test_dir / source_cfg["ssm_dir"],
+        collapse_lt=False,
     )
 
     assert tuple(ssm_lt_sources.keys()) == (0, 1)
     assert len(ssm_lt_sources[0]) == 2
-    assert ssm_lt_sources[0][0].__class__.__name__ == 'PointSource'
+    assert ssm_lt_sources[0][0].__class__.__name__ == "PointSource"
 
     assert ssm_lt_weights == {0: 0.75, 1: 0.25}
     assert ssm_lt_rup_counts == {0: [1, 1], 1: [1, 1]}
     # no need to test gsim_lt
-    # breakpoint()
 
 
 # @unittest.skip("not implemented correctly")
 def test_2_branches_collapse():
     test_dir = (
         BASE_PATH
-        / '..'
-        / '..'
-        / 'tests'
-        / 'data'
-        / 'source_models'
-        / '2_branches'
+        / ".."
+        / ".."
+        / "tests"
+        / "data"
+        / "source_models"
+        / "2_branches"
     )
-    cfg = read_yaml_config(test_dir / 'test_2_ssm_branches.yaml')
-    source_cfg = cfg['input']['ssm']
+    cfg = read_yaml_config(test_dir / "test_2_ssm_branches.yaml")
+    source_cfg = cfg["input"]["ssm"]
     (
         ssm_lt_sources,
         ssm_lt_weights,
@@ -179,22 +203,34 @@ def test_2_branches_collapse():
         collapse_lt=True,
     )
 
-    # breakpoint()
+    assert len(ssm_lt_sources) == 1
+    assert "composite" in ssm_lt_sources
+    assert len(ssm_lt_sources["composite"]) == 3
+    assert isinstance(ssm_lt_sources["composite"][0], PointSource)
+
+    assert list(ssm_lt_weights.keys()) == ["composite"]
+    assert ssm_lt_weights == {
+        "composite": {
+            "1": np.float32(1.0),
+            "2": np.float32(0.75),
+            "3": np.float32(0.25),
+        }
+    }
 
 
 def test_2_branches_1_branch():
     test_dir = (
         BASE_PATH
-        / '..'
-        / '..'
-        / 'tests'
-        / 'data'
-        / 'source_models'
-        / '2_branches'
+        / ".."
+        / ".."
+        / "tests"
+        / "data"
+        / "source_models"
+        / "2_branches"
     )
-    cfg = read_yaml_config(test_dir / 'test_2_ssm_branches.yaml')
-    source_cfg = cfg['input']['ssm']
-    source_cfg['branch'] = 1
+    cfg = read_yaml_config(test_dir / "test_2_ssm_branches.yaml")
+    source_cfg = cfg["input"]["ssm"]
+    source_cfg["branch"] = 1
     (
         ssm_lt_sources,
         ssm_lt_weights,
@@ -203,7 +239,7 @@ def test_2_branches_1_branch():
     ) = process_source_logic_tree_oq(
         source_cfg["job_ini_file"],
         test_dir / source_cfg["ssm_dir"],
-        branch=source_cfg['branch'],
+        branch=source_cfg["branch"],
     )
 
     assert tuple(ssm_lt_sources.keys()) == (1,)

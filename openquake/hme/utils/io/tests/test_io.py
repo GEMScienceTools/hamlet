@@ -95,4 +95,5 @@ def test_2_branches():
         c_ssm_lt_weights,
     )
 
-    breakpoint()
+    assert (branch_rdf.occurrence_rate.sum() ==
+            collapse_rdf.occurrence_rate.sum())
