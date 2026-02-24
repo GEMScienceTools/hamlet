@@ -25,6 +25,7 @@
   <h3>Settings</h3>
   <table>
     <tbody>
+      {% if hamlet_version is defined %}<tr><td>Hamlet version:</td><td>{{ hamlet_version }}</td></tr>{% endif %}
       {% if eval_info.settings.min_magnitude is not none %}<tr><td>Minimum magnitude:</td><td>{{ eval_info.settings.min_magnitude }}</td></tr>{% endif %}
       {% if eval_info.settings.max_magnitude is not none %}<tr><td>Maximum magnitude:</td><td>{{ eval_info.settings.max_magnitude }}</td></tr>{% endif %}
       {% if eval_info.settings.bin_width is not none %}<tr><td>Bin width:</td><td>{{ eval_info.settings.bin_width }}</td></tr>{% endif %}

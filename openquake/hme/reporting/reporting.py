@@ -35,6 +35,7 @@ from openquake.hme.utils.plots import (
 )
 
 from openquake.hme.utils.utils import breakpoint
+from openquake.hme.__version__ import __version__ as hamlet_version
 
 BASE_DATA_PATH = os.path.dirname(__file__)
 template_dir = os.path.join(BASE_DATA_PATH, "templates")
@@ -140,7 +141,12 @@ def generate_basic_report(
 
     eval_info = _build_eval_info(cfg)
 
-    report = report_template.render(cfg=cfg, results=results, eval_info=eval_info)
+    report = report_template.render(
+        cfg=cfg,
+        results=results,
+        eval_info=eval_info,
+        hamlet_version=hamlet_version,
+    )
 
     with open(cfg["report"]["basic"]["outfile"], "w") as report_file:
         report_file.write(report)
