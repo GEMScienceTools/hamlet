@@ -316,14 +316,14 @@ def load_flatfile_from_api(
 
             # Add H3 cells to earthquakes
             eq_gm_df["cell_id"] = [
-                h3.geo_to_h3(row.latitude, row.longitude, h3_res)
+                h3.latlng_to_cell(row.latitude, row.longitude, h3_res)
                 for _, row in eq_gm_df.iterrows()
             ]
 
             # Add H3 cells to ground motions
             if len(gm_df) > 0:
                 gm_df["cell_id"] = [
-                    h3.geo_to_h3(row.st_latitude, row.st_longitude, h3_res)
+                    h3.latlng_to_cell(row.st_latitude, row.st_longitude, h3_res)
                     for _, row in gm_df.iterrows()
                 ]
         except ImportError:

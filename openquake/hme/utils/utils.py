@@ -18,7 +18,7 @@ import pandas as pd
 import geopandas as gpd
 from scipy.stats import poisson
 
-from h3 import h3
+import h3
 
 from tqdm.autonotebook import tqdm
 
@@ -377,7 +377,7 @@ def make_earthquake_gdf_from_csv(
             eq_gdf["rake"] = rakes
 
     eq_gdf["cell_id"] = [
-        h3.geo_to_h3(row.latitude, row.longitude, h3_res)
+        h3.latlng_to_cell(row.latitude, row.longitude, h3_res)
         for i, row in eq_gdf.iterrows()
     ]
 
@@ -1067,9 +1067,9 @@ def subset_source(
         logging.info(f"  Buffering subset polygon at {buffer} degrees.")
         subset_geojson = buffer_geojson_polygon(subset_geojson, buffer)
 
-    h3_res = h3.h3_get_resolution(rupture_gdf.iloc[0]["cell_id"])
+    h3_res = h3.get_resolution(rupture_gdf.iloc[0]["cell_id"])
 
-    subset_h3_cells = h3.polyfill_geojson(
+    subset_h3_cells = h3.geo_to_cells(
         subset_geojson["geometry"],
         res=h3_res,
     )
