@@ -5,7 +5,7 @@ Utility functions for running tests in the GEM model test framework.
 import logging
 from multiprocessing import Pool
 
-from h3 import h3
+import h3
 import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
@@ -238,7 +238,7 @@ def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
 
 def get_nearby_rups(eq, rup_df):
     # first find adjacent cells to pare down search space
-    closest_cells = h3.k_ring(eq.cell_id, 1)
+    closest_cells = h3.grid_disk(eq.cell_id, 1)
 
     rups_nearby = rup_df.loc[rup_df.cell_id.isin(closest_cells)]
 

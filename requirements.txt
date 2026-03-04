@@ -5,7 +5,7 @@ descartes
 -e git+https://github.com/cossatot/culpable.git#egg=culpable
 pytest
 sphinx
-h3
+h3==4.4.1
 tqdm
 tables
 pyarrow

@@ -439,7 +439,7 @@ def s_test_cell(rup_gdf, eq_gdf, test_cfg):
     for like in likes:
         if like == not_modeled_log_like:
             bad_bins.append(cell_id)
-            bin_ctr = h3.h3_to_geo(cell_id)
+            bin_ctr = h3.cell_to_latlng(cell_id)
             bin_ctr = (round(bin_ctr[0], 3), round(bin_ctr[1], 3))
             logging.warning(f"{cell_id} {bin_ctr} has zero likelihood")
             for mag, rate in rate_mfd.items():

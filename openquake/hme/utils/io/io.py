@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Union, Optional, Sequence
 
-from h3 import h3
+import h3
 import pandas as pd
 from tqdm import tqdm
 from geopandas import GeoDataFrame
@@ -286,12 +286,12 @@ def process_flatfile_df(
 
     if h3_res is not None:
         eq_gm_df["cell_id"] = [
-            h3.geo_to_h3(row.latitude, row.longitude, h3_res)
+            h3.latlng_to_cell(row.latitude, row.longitude, h3_res)
             for i, row in eq_gm_df.iterrows()
         ]
 
         gm_df["cell_id"] = [
-            h3.geo_to_h3(row.st_latitude, row.st_longitude, h3_res)
+            h3.latlng_to_cell(row.st_latitude, row.st_longitude, h3_res)
             for i, row in gm_df.iterrows()
         ]
 

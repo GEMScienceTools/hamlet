@@ -1,6 +1,5 @@
 import logging
 import sys
-import warnings
 from time import sleep
 from typing import Union, Optional, Tuple
 import multiprocessing
@@ -14,19 +13,12 @@ if sys.platform == 'linux':
 else:
     _mp_ctx = multiprocessing.get_context('spawn')
 
-from h3 import h3
+import h3
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from tqdm.autonotebook import tqdm
-
-warnings.filterwarnings(
-    "ignore",
-    message="Modules under `h3.unstable` are experimental, and may change at any time.",
-)
-
-from h3.unstable import vect as h3_vect  # name in 3.x
 
 from openquake.hazardlib.source.rupture import (
     NonParametricProbabilisticRupture,
@@ -243,7 +235,7 @@ def _process_source(
 
     for i, rup in enumerate(source.iter_ruptures()):
         _add_rup_data(i, rup, rup_data)
-        cell_ids.append(h3.geo_to_h3(rup_data[i, 1], rup_data[i, 0], h3_res))
+        cell_ids.append(h3.latlng_to_cell(rup_data[i, 1], rup_data[i, 0], h3_res))
         if return_surface:
             surfaces.append(rup.surface)
         if return_trt:
@@ -501,23 +493,21 @@ def rupture_dict_to_gdf(
 
 
 def _get_h3_cell(args):
-    return h3.geo_to_h3(*args)
+    return h3.latlng_to_cell(*args)
 
 
 def _get_h3_cell_for_rupture_df(rupture_df, h3_res):
     lats = rupture_df["latitude"].to_numpy()
     lons = rupture_df["longitude"].to_numpy()
 
-    cell_ints = h3_vect.geo_to_h3(lats, lons, h3_res)
-    h3_to_string = np.frompyfunc(h3.h3_to_string, 1, 1)
-    cell_ids = h3_to_string(cell_ints)
+    cell_ids = [h3.latlng_to_cell(lat, lon, h3_res) for lat, lon in zip(lats, lons)]
     rupture_df["cell_id"] = cell_ids
 
 
 def make_cell_gdf_from_ruptures(rupture_gdf):
     cell_ids = sorted(rupture_gdf.cell_id.unique())
     polies = [
-        Polygon(h3.h3_to_geo_boundary(cell_id, geo_json=True))
+        Polygon([(lng, lat) for lat, lng in h3.cell_to_boundary(cell_id)])
         for cell_id in cell_ids
     ]
 
