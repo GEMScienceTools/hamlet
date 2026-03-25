@@ -5,9 +5,10 @@ steps to do this are:
 
 ## Prepare the hazard model
 
-The hazard model must be in the OpenQuake format. There must be a single XML
-file that describes the seismic source model logic tree, including the locations
-of the source XML files and other logic tree parameters.
+The hazard model must be in the OpenQuake format. There must be either a single
+XML file that describes the seismic source model logic tree (including the
+locations of the source XML files and other logic tree parameters), or an
+OpenQuake `job.ini` file.
 
 ### Decide how the model should be evaluated
 
@@ -16,18 +17,21 @@ different components of the model (different logic tree branches, different
 seismic source types, etc.). This will control how the data preparation and
 testing are done.
 
+A single branch can be evaluated by specifying the `branch` parameter, or all
+branches can be evaluated independently in one run by setting `branch: iterate`.
+
 ### (Optional) Organize the hazard model with a `hamlet` directory
 
 It is recommended to add a new `hamlet` directory with `data` and `output`
 sub-directories.
 
 The `data` directory can hold the seismic catalogs and, if
-necessary, GIS files specifying the model domain and grid cells.
+necessary, GIS files specifying subdomains of the model.
 
 The `output` directory will hold the HTML reports and any other outputs that are
 written during the testing procedure.
 
-The YAML configuration files can be placed in the main `hamlet` directory:
+The [YAML configuration files](yaml_config_file.html) can be placed in the main `hamlet` directory:
 
 ```
 model/
@@ -39,10 +43,11 @@ model/
         data/
             crustal_catalog.csv
             slab_catalog.csv
-            full_catalog.csv (unused in testing)
+            full_catalog.csv
         output/
         test_ssm_crustal.yml
         test_ssm_slab.yml
+        test_ssm_all.yml
 ```
 
 However, the user is free to organize the Hamlet files in any way; there is no
@@ -56,7 +61,7 @@ This may be a good way of organizing the results and running Hamlet in a
 continuous integration system.
 
 For example, a `git` branch called `hamlet` can have a separate `hamlet`
-directory, as specified above.  This directory does not exist in the `master`
+directory, as specified above. This directory does not exist in the `master`
 branch or other branches, and when changes are made to those branches, they can
 be pulled into the `hamlet` branch and be evaluated.
 
@@ -67,15 +72,37 @@ necessarily when commits to `master` or development branches are made.
 
 ## Prepare the earthquake catalog(s)
 
-The earthquake catalog should be declustered and, ideally, classified according
-to the source types of the earthquakes (i.e., subduction thrust, in-slab,
-crustal, etc.). The catalog should also be truncated to some acceptable
-completeness date that corresponds to the `investigation_time` parameter used
-during the Hamlet evaluations (in the future, completeness tables may be able to
-be used instead of a single date, but this is not currently implemented).
+The earthquake catalog should be declustered and, if desired, classified 
+according to the source types of the earthquakes (i.e., subduction thrust, 
+in-slab, crustal, etc.).
 
 The catalog(s) must be CSV files, with columns describing the fields and one row
 for each earthquake.
+
+### Temporal completeness
+
+The temporal completeness of the catalog is very important for testing. In 
+general, a longer catalog will have a better sampling of events and therefore 
+be less noisy (i.e. a more consistent b-value). However before the 1970s, 
+catalogs in many areas do not have all earthquakes below, say, magnitude 7. 
+Therefore, it is desirable to understand the temporal completeness of the 
+catalog, so that you can only test against what is considered complete.
+
+The catalog's temporal completeness can be specified in one of two ways:
+
+1. **Simple date range**: Provide any two of `start_date`, `stop_date`, and
+   `duration` in the YAML configuration. The third will be calculated. This
+   assumes the catalog is complete above the minimum magnitude for the entire
+   time period.
+
+2. **Completeness table**: Provide a `completeness_table` as a list of
+   `[year, magnitude]` pairs. Each pair specifies that the catalog is complete
+   above that magnitude from that year onward. This allows Hamlet to account
+   for varying completeness across the magnitude range, giving more accurate
+   evaluations particularly for lower magnitudes with shorter complete periods.
+
+
+### Separate catalogs for separate evaluations
 
 If you are interested in running Hamlet separately for different seismic source
 types, then make separate catalogs for the different earthquake categories,
@@ -89,14 +116,22 @@ should be split into separate files for each subset.
 
 ## Make the YAML configuration file(s)
 
-See [YAML configuration file](./yaml_config_file.html) for more information.
+See the [YAML configuration file documentation](yaml_config_file.html) for more information.
 
 ## Run Hamlet
 
-Once the model, seismic catalog(s) and YAML configuration file(s) (and Hamlet
-has been installed), Hamlet can be run like this:
+Once the model, seismic catalog(s) and YAML configuration file(s) are prepared
+(and Hamlet has been installed), Hamlet can be run like this:
 
 ```
 hamlet test_ssm_crustal.yml
 ```
 
+The progress of the model processing and the evaluation results will be printed 
+to the terminal. However, the most useful and informative product is an html 
+file that has graphics for all the tests and some model information as well.
+
+Additional command-line options:
+
+- `hamlet --version` or `hamlet -v`: Print the version and exit.
+- `hamlet config.yml --pdb`: Drop into the Python debugger on exception.
