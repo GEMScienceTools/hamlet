@@ -1,0 +1,21 @@
+openquake.hme.utils.io.source\_reader
+=====================================
+
+.. automodule:: openquake.hme.utils.io.source_reader
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      csm_from_job_ini
+      filter_sources_by_type
+      get_dstore_rlzs
+      get_smr_from_trt_smr
+      get_sources_by_rlz_idx
+      make_composite_source
+      make_job_ini
+      prepare_iterate_branches
+      process_source_logic_tree_oq
+      read_gsim_lt
+   

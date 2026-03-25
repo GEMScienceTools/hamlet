@@ -1,0 +1,13 @@
+openquake.hme.model\_test\_frameworks.model\_description
+========================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.model_description
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   model_description

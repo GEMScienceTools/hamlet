@@ -1,0 +1,15 @@
+openquake.hme.model\_test\_frameworks.sanity.sanity\_test\_functions
+====================================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.sanity.sanity_test_functions
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_cell_max_mag_inner
+      check_cell_max_mag_inner_par
+      get_cell_info_and_check_max_mag
+      max_check_function
+   

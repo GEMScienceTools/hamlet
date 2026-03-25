@@ -1,0 +1,13 @@
+openquake.hme.model\_test\_frameworks.model\_description.model\_description
+===========================================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.model_description.model_description
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      describe_mfds
+      describe_model
+   

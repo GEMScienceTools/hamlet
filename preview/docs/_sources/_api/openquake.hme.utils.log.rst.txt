@@ -1,0 +1,14 @@
+openquake.hme.utils.log
+=======================
+
+.. automodule:: openquake.hme.utils.log
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      add_logfile
+      check_for_log
+      init_logging
+   

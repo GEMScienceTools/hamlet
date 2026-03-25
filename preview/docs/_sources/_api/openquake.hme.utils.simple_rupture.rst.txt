@@ -1,0 +1,19 @@
+openquake.hme.utils.simple\_rupture
+===================================
+
+.. automodule:: openquake.hme.utils.simple_rupture
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      add_slots
+      rup_to_dict
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      SimpleRupture
+   

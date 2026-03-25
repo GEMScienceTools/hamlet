@@ -1,0 +1,19 @@
+openquake.hme.utils.validate\_inputs
+====================================
+
+.. automodule:: openquake.hme.utils.validate_inputs
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      check_branch_config
+      check_duration
+      check_fix_date
+      check_fix_seis_catalog
+      check_seis_catalog_path
+      convert_deprecated_parameters
+      get_date_parameters
+      validate_cfg
+   

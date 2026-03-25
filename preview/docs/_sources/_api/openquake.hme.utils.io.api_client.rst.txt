@@ -1,0 +1,20 @@
+openquake.hme.utils.io.api\_client
+==================================
+
+.. automodule:: openquake.hme.utils.io.api_client
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      compute_rupture_bbox
+      load_flatfile_from_api
+      load_flatfile_from_api_with_cells
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      APIClientError
+   

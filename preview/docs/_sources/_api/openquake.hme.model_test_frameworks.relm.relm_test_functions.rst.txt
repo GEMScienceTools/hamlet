@@ -1,0 +1,30 @@
+openquake.hme.model\_test\_frameworks.relm.relm\_test\_functions
+================================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.relm.relm_test_functions
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      S_TEST_FN
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      N_test_empirical
+      N_test_neg_binom
+      N_test_poisson
+      conf_interval_poisson
+      get_poisson_counts_from_mfd
+      l_test_function
+      m_test_function
+      mfd_log_likelihood
+      n_test_function
+      s_test_cell
+      s_test_cells
+      s_test_function
+      total_event_likelihood
+   

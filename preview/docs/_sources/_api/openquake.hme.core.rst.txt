@@ -1,0 +1,13 @@
+﻿openquake.hme.core
+==================
+
+.. automodule:: openquake.hme.core
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   core

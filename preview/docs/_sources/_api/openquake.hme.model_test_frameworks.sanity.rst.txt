@@ -1,0 +1,14 @@
+openquake.hme.model\_test\_frameworks.sanity
+============================================
+
+.. automodule:: openquake.hme.model_test_frameworks.sanity
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   sanity_checks
+   sanity_test_functions

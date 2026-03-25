@@ -1,0 +1,15 @@
+openquake.hme.utils.numba\_stat\_funcs
+======================================
+
+.. automodule:: openquake.hme.utils.numba_stat_funcs
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      poisson_sample_scalar_u
+      poisson_sample_vec
+      precompile
+      precompile_poisson_sampling
+   

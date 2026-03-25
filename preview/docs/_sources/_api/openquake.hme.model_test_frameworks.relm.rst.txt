@@ -1,0 +1,15 @@
+openquake.hme.model\_test\_frameworks.relm
+==========================================
+
+.. automodule:: openquake.hme.model_test_frameworks.relm
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   relm_stats
+   relm_test_functions
+   relm_tests

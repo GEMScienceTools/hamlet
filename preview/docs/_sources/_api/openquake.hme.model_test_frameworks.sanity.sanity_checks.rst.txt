@@ -1,0 +1,13 @@
+openquake.hme.model\_test\_frameworks.sanity.sanity\_checks
+===========================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.sanity.sanity_checks
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      max_check
+      min_max_check
+   

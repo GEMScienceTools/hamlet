@@ -1,0 +1,61 @@
+openquake.hme.utils.utils
+=========================
+
+.. automodule:: openquake.hme.utils.utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      angle_between_planes
+      angle_between_rakes
+      angles_between_plane_and_planes
+      angles_between_rake_and_rakes
+      buffer_geojson_polygon
+      datetime_to_decimal_year
+      datetime_to_string
+      deep_update
+      flatten_list
+      get_bin_edges_from_mag_bins
+      get_cell_eqs
+      get_cell_rups
+      get_eq_df_mag_bins
+      get_mag_bins
+      get_mag_bins_from_cfg
+      get_mag_duration_from_comp_table
+      get_mag_year_from_comp_table
+      get_model_mfd
+      get_n_eqs_from_mfd
+      get_nonparametric_rupture_occurrence_rate
+      get_obs_mfd
+      get_poisson_counts_from_mfd_iter
+      get_rup_df_mfd
+      mag_to_mo
+      make_earthquake_gdf_from_csv
+      mo_to_mag
+      parallelize
+      pick_andersonian_nodal_plane
+      random_dates
+      rupture_list_to_gdf
+      sample_rups
+      scale_rup_rate
+      strike_dip_to_norm_vec
+      subset_source
+      timestamp_to_decimal_year
+      trim_eq_catalog
+      trim_eq_catalog_with_completeness_table
+      trim_inputs
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      TqdmLoggingHandler
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      MagTooSmallError
+   

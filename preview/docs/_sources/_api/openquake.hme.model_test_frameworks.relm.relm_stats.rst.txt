@@ -1,0 +1,15 @@
+openquake.hme.model\_test\_frameworks.relm.relm\_stats
+======================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.relm.relm_stats
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      bin_observance_likelihood
+      bin_observance_log_likelihood
+      bin_observance_log_likelihood_zero_rate
+      model_log_likelihood
+   

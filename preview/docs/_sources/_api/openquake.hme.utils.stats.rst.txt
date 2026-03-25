@@ -1,0 +1,27 @@
+openquake.hme.utils.stats
+=========================
+
+.. automodule:: openquake.hme.utils.stats
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      estimate_negative_binom_parameters
+      geom_mean
+      jensen_shannon_distance
+      jensen_shannon_divergence
+      kullback_leibler_divergence
+      negative_binomial_distribution
+      poisson_likelihood
+      poisson_likelihood_vect
+      poisson_likelihood_zero_rate
+      poisson_log_likelihood
+      poisson_log_likelihood_vect
+      sample_event_times_in_interval
+      sample_event_times_in_interval_array
+      sample_num_events_in_interval
+      sample_num_events_in_interval_array
+      weighted_geom_mean
+   

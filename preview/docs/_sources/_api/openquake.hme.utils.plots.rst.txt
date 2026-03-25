@@ -1,0 +1,29 @@
+openquake.hme.utils.plots
+=========================
+
+.. automodule:: openquake.hme.utils.plots
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      gmm_plots
+      plot_L_test_results
+      plot_M_test_results
+      plot_N_test_empirical
+      plot_N_test_results
+      plot_PGA_distance
+      plot_PGA_scatter
+      plot_S_test_map
+      plot_eqs_by_mag_time
+      plot_histogram_heatmap
+      plot_likelihood_map
+      plot_mfd
+      plot_over_under_map
+      plot_poisson_distribution
+      plot_rup_match_mag_dist
+      plot_rup_match_map
+      prepare_eqs_by_mag_time_for_d3
+      prepare_rup_match_data_for_d3
+   

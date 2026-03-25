@@ -1,0 +1,16 @@
+openquake.hme.utils.io.source\_processing
+=========================================
+
+.. automodule:: openquake.hme.utils.io.source_processing
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_cell_gdf_from_ruptures
+      rupture_df_from_source_list
+      rupture_dict_from_logic_tree_dict
+      rupture_dict_to_gdf
+      rupture_list_from_source_list_parallel
+   

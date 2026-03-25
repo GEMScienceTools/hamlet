@@ -1,0 +1,15 @@
+openquake.hme.model\_test\_frameworks.gem
+=========================================
+
+.. automodule:: openquake.hme.model_test_frameworks.gem
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   gem_stats
+   gem_test_functions
+   gem_tests

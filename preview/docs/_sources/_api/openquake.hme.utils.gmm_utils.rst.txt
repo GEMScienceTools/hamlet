@@ -1,0 +1,18 @@
+openquake.hme.utils.gmm\_utils
+==============================
+
+.. automodule:: openquake.hme.utils.gmm_utils
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      build_oq_rupture
+      get_imls_from_flatfile_row
+      get_pga_from_flatfile_row
+      get_proper_distance
+      gmf_from_rupture
+      make_rup_from_flatfile
+      make_sitecol
+   

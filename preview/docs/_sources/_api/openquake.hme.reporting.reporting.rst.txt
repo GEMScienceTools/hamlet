@@ -1,0 +1,25 @@
+openquake.hme.reporting.reporting
+=================================
+
+.. automodule:: openquake.hme.reporting.reporting
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      generate_basic_report
+      generate_report_iterate
+      render_L_test
+      render_M_test
+      render_N_test
+      render_S_test
+      render_catalog_ground_motion_eval
+      render_cumulative_occurrence_eval
+      render_likelihood
+      render_max_mag
+      render_mfd_eval
+      render_moment_over_under
+      render_result_text
+      render_rupture_matching_eval
+   

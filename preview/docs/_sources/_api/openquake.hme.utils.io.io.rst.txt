@@ -1,0 +1,25 @@
+openquake.hme.utils.io.io
+=========================
+
+.. automodule:: openquake.hme.utils.io.io
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      convert_flatfile_eq_cols
+      load_flatfile
+      oq_rupture_to_json
+      process_flatfile
+      process_flatfile_df
+      read_flatfile_df
+      read_flatfile_gpkg
+      read_rupture_file
+      read_rupture_file_old
+      read_ruptures_from_dataframe
+      write_oq_ruptures_to_file
+      write_ruptures_to_file
+      write_simple_ruptures_to_file
+      write_simple_ruptures_to_file_old
+   

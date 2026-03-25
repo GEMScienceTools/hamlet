@@ -1,0 +1,13 @@
+﻿openquake.hme.reporting
+=======================
+
+.. automodule:: openquake.hme.reporting
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   reporting

@@ -1,0 +1,16 @@
+﻿openquake.hme.model\_test\_frameworks
+=====================================
+
+.. automodule:: openquake.hme.model_test_frameworks
+
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   gem
+   model_description
+   relm
+   sanity

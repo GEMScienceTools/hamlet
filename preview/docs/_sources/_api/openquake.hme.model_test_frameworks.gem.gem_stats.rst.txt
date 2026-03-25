@@ -1,0 +1,15 @@
+openquake.hme.model\_test\_frameworks.gem.gem\_stats
+====================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.gem.gem_stats
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      calc_mag_bin_empirical_likelihood
+      calc_mag_bin_likelihood
+      calc_mag_bin_poisson_likelihood
+      calc_mfd_log_likelihood_independent
+   

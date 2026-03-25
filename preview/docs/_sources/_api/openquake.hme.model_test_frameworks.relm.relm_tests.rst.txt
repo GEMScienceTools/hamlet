@@ -1,0 +1,15 @@
+openquake.hme.model\_test\_frameworks.relm.relm\_tests
+======================================================
+
+.. automodule:: openquake.hme.model_test_frameworks.relm.relm_tests
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      L_test
+      M_test
+      N_test
+      S_test
+   

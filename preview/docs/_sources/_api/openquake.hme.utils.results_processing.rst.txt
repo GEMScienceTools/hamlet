@@ -1,0 +1,16 @@
+openquake.hme.utils.results\_processing
+=======================================
+
+.. automodule:: openquake.hme.utils.results_processing
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      add_l_test_fracs_to_cell_gdf
+      add_moment_over_under_results_to_cell_gdf
+      add_s_test_fracs_to_cell_gdf
+      add_s_test_rates_to_cell_gdf
+      process_results
+   
