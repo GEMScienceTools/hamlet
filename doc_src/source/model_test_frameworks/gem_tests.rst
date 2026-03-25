@@ -282,8 +282,14 @@ configuration.
 Parameters:
 
 ``match_rups``
-    Optional. If ``True``, match ruptures to earthquakes before computing
-    ground motion comparisons. Default: ``False``.
+    Optional. If ``True``, match earthquakes to model ruptures before computing
+    ground motion comparisons; if ``False``, then new ruptures are generated 
+    based on the earthquake information in the flatfile. If ruptures are 
+    matched, it provides a better understanding of whether the model is 
+    reproducing the ground motions from specific earthquakes, and the 
+    confidence with which an earthquake is assigned to a tectonic region type 
+    is much higher (as the best-matching rupture will already have one 
+    defined). Default: ``False``.
 
 ``gmf_method``
     Optional. Method for ground motion calculation. Default:

@@ -25,6 +25,11 @@ branch of a source model logic tree can be tested independently, and each type
 of source (e.g., subduction megathrust, crustal, in-slab) can be tested
 independently as well, in the spatial framework described above.
 
+A quick note on terminology: We use the word 'test' for an analysis that has a 
+pass/fail outcome tied to a criterion, and 'evaluation' for an analysis that 
+provides some quantitative or qualitative information on model performance but 
+is not linked to a pass/fail outcome.
+
 Quickstart
 ==========
 
