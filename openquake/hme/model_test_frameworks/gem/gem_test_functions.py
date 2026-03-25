@@ -30,6 +30,15 @@ from openquake.hme.utils.stats import geom_mean, weighted_geom_mean
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
+    """Computes the expected seismic moment per spatial cell and total, given
+    rupture occurrence rates scaled by duration.
+
+    :param rupture_gdf: GeoDataFrame of ruptures with ``magnitude``,
+        ``occurrence_rate``, and ``cell_id`` columns.
+    :param t_yrs: Duration in years to scale occurrence rates.
+    :param rup_groups: Optional pre-computed groupby on ``cell_id``.
+    :returns: Tuple of (per-cell moment Series, total moment float).
+    """
     if rup_groups == None:
         rup_groups = rupture_gdf.groupby("cell_id")
 
@@ -50,6 +59,14 @@ def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
 
 
 def get_catalog_moment(eq_df, eq_groups=None):
+    """Computes the total seismic moment per spatial cell and overall from an
+    earthquake catalog.
+
+    :param eq_df: GeoDataFrame of earthquakes with ``magnitude`` and
+        ``cell_id`` columns.
+    :param eq_groups: Optional pre-computed groupby on ``cell_id``.
+    :returns: Tuple of (per-cell moment dict, total moment float).
+    """
     if eq_groups == None:
         eq_groups = eq_df.groupby("cell_id")
 
@@ -65,6 +82,23 @@ def get_catalog_moment(eq_df, eq_groups=None):
 def moment_over_under_eval_fn(
     rup_df, eq_gdf, cell_groups, t_yrs, min_mag=1.0, max_mag=10.0, n_iters=1000
 ):
+    """Compares observed seismic moment release to stochastic moment release
+    from the model, per cell and in total.
+
+    Generates ``n_iters`` stochastic catalogs by sampling ruptures, computes
+    moment release for each, and calculates the fractile of the observed
+    moment within the stochastic distribution.
+
+    :param rup_df: GeoDataFrame of ruptures.
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :param cell_groups: Pre-computed groupby of ruptures on ``cell_id``.
+    :param t_yrs: Duration in years.
+    :param min_mag: Minimum magnitude for moment calculation.
+    :param max_mag: Maximum magnitude for moment calculation.
+    :param n_iters: Number of stochastic catalogs to generate.
+    :returns: Dict with ``test_data`` containing per-cell and total moment
+        comparisons and fractiles.
+    """
     cell_ids = sorted(rup_df.cell_id.unique())
 
     cell_model_moments, total_model_moment = get_rupture_gdf_cell_moment(
@@ -141,7 +175,20 @@ def model_mfd_eval_fn(
     annualize=False,
     stop_date=None,
 ):
+    """Computes and compares model and observed magnitude-frequency
+    distributions.
 
+    :param rup_gdf: GeoDataFrame of ruptures.
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :param mag_bins: Dict of magnitude bin centers to (min, max) tuples.
+    :param t_yrs: Duration in years.
+    :param completeness_table: Optional completeness table as list of
+        [year, magnitude] pairs.
+    :param annualize: If True, annualize rates.
+    :param stop_date: End date of the catalog.
+    :returns: Dict with ``test_data`` containing a DataFrame of model and
+        observed MFDs (incremental and cumulative).
+    """
     if annualize:
         t_yrs_model = 1.0
         completeness_table_model = None
@@ -186,6 +233,11 @@ def model_mfd_eval_fn(
 
 
 def get_moment_from_mfd(mfd: dict) -> float:
+    """Calculates total seismic moment from an MFD dictionary.
+
+    :param mfd: Dict mapping magnitude bin centers to rates.
+    :returns: Total seismic moment (N*m).
+    """
     if isinstance(mfd, dict):
         return _get_moment_from_mfd_dict(mfd)
     else:
@@ -201,6 +253,14 @@ def _get_moment_from_mfd_dict(mfd: dict) -> float:
 
 
 def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
+    """Calculates a linear likelihood based on the magnitude difference
+    between an earthquake and candidate ruptures.
+
+    :param eq_mag: Observed earthquake magnitude.
+    :param rup_mags: Array of rupture magnitudes.
+    :param mag_window: Total width of the magnitude window for matching.
+    :returns: Array of likelihoods in [0, 1], where 1 means exact match.
+    """
     likes = 1 - np.abs(eq_mag - rup_mags) / (mag_window / 2.0)
     if np.isscalar(likes):
         if likes < 0.0:
@@ -212,6 +272,12 @@ def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
 
 
 def get_distances(eq, rup_gdf):
+    """Calculates 3D distances between an earthquake and a set of ruptures.
+
+    :param eq: Earthquake row with ``longitude``, ``latitude``, ``depth``.
+    :param rup_gdf: GeoDataFrame of ruptures with the same columns.
+    :returns: Array of distances in km.
+    """
     # this assumes we want 3d distance instead of separate treatment
     # of h, v dists
     dists = distance(
@@ -226,6 +292,13 @@ def get_distances(eq, rup_gdf):
 
 
 def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
+    """Filters ruptures to those within a magnitude window of the earthquake.
+
+    :param eq: Earthquake row with ``magnitude``.
+    :param rup_df: DataFrame of ruptures with ``magnitude`` column.
+    :param mag_window: Total width of the magnitude window.
+    :returns: Filtered DataFrame of ruptures within the window.
+    """
     rdf_lo = rup_df.loc[
         rup_df.magnitude.values <= (eq.magnitude + mag_window / 2.0)
     ]
@@ -237,6 +310,12 @@ def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
 
 
 def get_nearby_rups(eq, rup_df):
+    """Finds ruptures in the earthquake's H3 cell and its immediate neighbors.
+
+    :param eq: Earthquake row with ``cell_id``.
+    :param rup_df: DataFrame of ruptures with ``cell_id`` column.
+    :returns: Filtered DataFrame of nearby ruptures.
+    """
     # first find adjacent cells to pare down search space
     closest_cells = h3.grid_disk(eq.cell_id, 1)
 
@@ -261,6 +340,38 @@ def get_matching_rups(
     rake_rel_weight=0.25,
     mag_rel_weight=1.0,
 ):
+    """Finds and ranks modeled ruptures that match an observed earthquake.
+
+    Matching is done in two phases: selection (nearby ruptures within a
+    magnitude window) and ranking (weighted geometric mean of distance,
+    magnitude, attitude, and rake likelihoods). If focal mechanism data is
+    available (single or double-couple), attitude and rake similarity are
+    included; otherwise, default likelihoods are used.
+
+    :param eq: Earthquake row with location, magnitude, and optional focal
+        mechanism columns (``strike``, ``dip``, ``rake`` or
+        ``strike1``/``strike2`` etc.).
+    :param rup_gdf: GeoDataFrame of candidate ruptures.
+    :param distance_lambda: Distance decay parameter (scaled by magnitude
+        if ``dist_by_mag`` is True).
+    :param dist_by_mag: Scale distance decay by earthquake magnitude.
+    :param mag_window: Total width of the magnitude window for candidates.
+    :param group_return_threshold: Fraction of max likelihood below which
+        matches are discarded.
+    :param min_likelihood: Absolute minimum likelihood for a match.
+    :param no_attitude_default_like: Default attitude likelihood when no
+        focal mechanism is available.
+    :param no_rake_default_like: Default rake likelihood when no focal
+        mechanism is available.
+    :param use_occurrence_rate: Include occurrence rate in the ranking.
+    :param return_one: ``False`` to return all matches, ``"best"`` for the
+        top match, ``"sample"`` to sample weighted by likelihood.
+    :param attitude_rel_weight: Relative weight for attitude similarity.
+    :param rake_rel_weight: Relative weight for rake similarity.
+    :param mag_rel_weight: Relative weight for magnitude similarity.
+    :returns: DataFrame of matching ruptures (or Series if ``return_one``),
+        or ``None`` if no matches found.
+    """
     # selection phase
     rups = get_nearby_rups(eq, rup_df=rup_gdf)
     rups = get_rups_in_mag_range(eq, rup_df=rups, mag_window=mag_window)
@@ -485,6 +596,22 @@ def match_eqs_to_rups(
     return_one="best",
     parallel=False,
 ):
+    """Matches all earthquakes in a catalog to their best-matching modeled
+    ruptures using :func:`get_matching_rups`.
+
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :param rup_gdf: GeoDataFrame of modeled ruptures.
+    :param distance_lambda: Distance decay parameter.
+    :param dist_by_mag: Scale distance decay by earthquake magnitude.
+    :param mag_window: Magnitude window for candidate ruptures.
+    :param group_return_threshold: Fraction of max likelihood threshold.
+    :param no_attitude_default_like: Default attitude likelihood.
+    :param no_rake_default_like: Default rake likelihood.
+    :param use_occurrence_rate: Include occurrence rate in ranking.
+    :param return_one: ``"best"``, ``"sample"``, or ``False``.
+    :param parallel: Use multiprocessing (currently disabled).
+    :returns: List of match results (DataFrames or None) per earthquake.
+    """
     match_rup_args = (
         (
             eq,
@@ -531,6 +658,14 @@ def rupture_matching_eval_fn(
     return_one="best",
     parallel=False,
 ):
+    """Runs the rupture matching evaluation, matching all observed earthquakes
+    to modeled ruptures and collecting matched/unmatched results.
+
+    :param rup_gdf: GeoDataFrame of modeled ruptures.
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :returns: Dict with ``matched_rups`` DataFrame and ``unmatched_eqs``
+        DataFrame.
+    """
     match_results = match_eqs_to_rups(
         eq_gdf,
         rup_gdf,
@@ -593,10 +728,22 @@ from openquake.hme.utils.gmm_utils import (
 
 
 def get_flatfile_records_for_eq(event_id, gm_df: pd.DataFrame) -> pd.DataFrame:
+    """Returns all flatfile records for a given earthquake event ID."""
     return gm_df.loc[gm_df.event_id == event_id]
 
 
 def predict_gms_for_eq(eq, gm_df, gsim_lt, test_config, imts=(PGA(),)):
+    """Predicts ground motions at recording sites for a given earthquake using
+    the ground motion models from the logic tree, and compares with observed
+    values from the flatfile.
+
+    :param eq: Earthquake (or rupture object).
+    :param gm_df: Ground motion flatfile DataFrame.
+    :param gsim_lt: Ground motion model logic tree.
+    :param test_config: Test configuration dict with ``gmf_method``.
+    :param imts: Tuple of intensity measure types (default: PGA).
+    :returns: DataFrame with observed and predicted ground motions per site.
+    """
     site_records = get_flatfile_records_for_eq(eq.event_id, gm_df)
     sitecol = make_sitecol(
         site_records["st_longitude"].values,
@@ -653,12 +800,25 @@ def predict_gms_for_eq(eq, gm_df, gsim_lt, test_config, imts=(PGA(),)):
 
 
 def get_closest_rupture(eq, rupture_df):
+    """Returns the rupture closest to the given earthquake in 3D distance."""
     dists = get_distances(eq, rupture_df)
     return rupture_df.iloc[dists.argmin()]
 
 
 def catalog_ground_motion_eval_fn(test_config, input_data):
+    """Compares observed ground motions from a flatfile with model predictions.
 
+    For each earthquake, either matches it to a modeled rupture or constructs
+    a rupture from the flatfile data, then computes predicted ground motion
+    fields using the ground motion models from the source model logic tree.
+
+    :param test_config: Test configuration dict with matching parameters and
+        ``gmf_method``.
+    :param input_data: Dict with ``rupture_gdf``, ``eq_gm_df``, ``gm_df``,
+        and ``gsim_lt``.
+    :returns: Dict keyed by tectonic region type, with DataFrames of observed
+        vs. predicted ground motions per earthquake.
+    """
     # defining this here for now, will go in config later
     imts = (PGA(),)
 
