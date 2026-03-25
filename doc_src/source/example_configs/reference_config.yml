@@ -4,6 +4,8 @@
 # This file documents every available configuration option. It is not meant
 # to be used as-is; copy it and remove or modify the sections you need.
 # Options marked [optional] can be omitted; defaults are noted where they exist.
+# Many defaults are defined in openquake.hme.core.core.cfg_defaults and are
+# applied automatically when not specified.
 ###############################################################################
 
 # ---------------------------------------------------------------------------
@@ -22,9 +24,9 @@ config:
   # -------------------------------------------------------------------------
   # model_framework
   #
-  # A dictionary of test frameworks to run. Each framework contains its own
-  # set of tests as keys. Multiple frameworks can be run in a single
-  # evaluation. Available frameworks: gem, relm, sanity, model_description.
+  # A dictionary of frameworks to run. Each framework contains its own
+  # tests and evaluations as keys. Multiple frameworks can be run in a
+  # single Hamlet run. Available frameworks: gem, relm, sanity.
   # -------------------------------------------------------------------------
   model_framework:
 
@@ -204,15 +206,11 @@ input:
   # Spatial and magnitude binning
   # -------------------------------------------------------------------------
   bins:
-    mfd_bin_min: 6.0               # [optional] Minimum magnitude; default 6.0
-    mfd_bin_max: 9.0               # [optional] Maximum magnitude; default 9.0
-    mfd_bin_width: 0.2             # [optional] Bin width; default 0.2
+    mfd_bin_min: 6.0               # Minimum magnitude (required)
+    mfd_bin_max: 9.0               # Maximum magnitude (required)
+    mfd_bin_width: 0.2             # Bin width (required)
     h3_res: 3                      # [optional] H3 hexagonal grid resolution
                                    # (0-15, where 0 is coarsest); default 3
-    # bin_gis_file: null           # [optional] Path to a GIS file with custom
-                                   # spatial bin polygons. If not given, H3
-                                   # hexagons are generated automatically
-                                   # (recommended).
 
   # -------------------------------------------------------------------------
   # Seismic Source Model (SSM)
@@ -225,26 +223,27 @@ input:
     ssm_lt_file: ssmLT.xml         # Logic tree XML file name
     # job_ini_file: job.ini        # [optional] Alternative: specify an
                                    # OpenQuake job.ini file instead of
-                                   # ssm_dir + ssm_lt_file
+                                   # ssm_dir + ssm_lt_file. Default: null
 
     branch: b1                     # [optional] Logic tree branch to evaluate.
                                    # Set to "iterate" to evaluate each branch
-                                   # independently in a single run.
+                                   # independently in a single run. Default: null
 
     tectonic_region_types:         # [optional] Filter by tectonic region type.
-      - Active Shallow Crust      # Must match types in the SSM. Use null or
-                                   # omit to include all types.
+      - Active Shallow Crust      # Must match types in the SSM. Default: null
+                                   # (all types included).
 
-    source_types: null             # [optional] Filter by source type. Options:
+    source_types: null             # [optional] Filter by source type. Default: null. Options:
                                    # simple_fault, complex_fault, area, point,
                                    # multipoint, MultiFaultSource.
                                    # Pass as a list or null for all.
 
   # -------------------------------------------------------------------------
   # Depth filtering [optional]
+  # Sources outside this depth range are excluded from evaluation.
   # -------------------------------------------------------------------------
-  max_depth: 40                    # [optional] Maximum source depth in km.
-                                   # Sources deeper than this are excluded.
+  min_depth: 0                     # [optional] Minimum source depth in km; default: 0.0
+  max_depth: 40                    # [optional] Maximum source depth in km; default: no limit
 
   # -------------------------------------------------------------------------
   # Rupture file caching [optional]
@@ -252,9 +251,9 @@ input:
   # save processed ruptures to disk and reload them in subsequent runs.
   # -------------------------------------------------------------------------
   rupture_file:
-    read_rupture_file: false       # Read ruptures from file instead of SSM
-    save_rupture_file: false       # Save processed ruptures to file
-    rupture_file_path: ./ruptures.hdf5  # Path to the rupture file.
+    read_rupture_file: false       # Read ruptures from file instead of SSM; default: false
+    save_rupture_file: false       # Save processed ruptures to file; default: false
+    rupture_file_path: ./ruptures.hdf5  # Path to the rupture file; default: null
                                    # Supported formats: .hdf5, .feather, .csv
 
   # -------------------------------------------------------------------------
@@ -262,8 +261,8 @@ input:
   # Restrict the evaluation to a geographic subset of the model domain.
   # -------------------------------------------------------------------------
   subset:
-    file: path/to/subset.geojson   # GIS file with subset geometry
-    buffer: 0.0                    # Buffer distance around the subset geometry
+    file: path/to/subset.geojson   # GIS file with subset geometry; default: null
+    buffer: 0.0                    # Buffer distance around the subset geometry; default: 0.0
 
   # -------------------------------------------------------------------------
   # Flatfile for ground motion evaluation [optional]
@@ -274,9 +273,9 @@ input:
   # -------------------------------------------------------------------------
   # Simple ruptures [optional]
   # Use simplified rupture representations (point sources) for faster
-  # processing. Default: True.
+  # processing. Default: true (from cfg_defaults).
   # -------------------------------------------------------------------------
-  simple_ruptures: True
+  simple_ruptures: true
 
   # -------------------------------------------------------------------------
   # Observed Earthquake Catalog
@@ -337,15 +336,6 @@ report:
   basic:
     outfile: outputs/report.html
 
-
-# ---------------------------------------------------------------------------
-# Outputs [optional]
-# Additional output files beyond the report.
-# ---------------------------------------------------------------------------
-output:
-  # GeoJSON file with per-cell test results
-  bin_gdf:
-    file: outputs/bins.geojson
 
 # ---------------------------------------------------------------------------
 # JSON output [optional]

@@ -19,7 +19,7 @@ rupture matching, cumulative occurrence, and ground motion evaluation.
 
    The ``likelihood`` test is deprecated and should not be used. Use the
    ``M_test``, ``S_test``, and ``L_test`` instead, which provide more robust
-   and well-characterized likelihood evaluations.
+   and well-characterized likelihood-based consistency tests.
 
 
 Statistical Consistency Tests
@@ -150,7 +150,7 @@ Parameters:
 Magnitude-Frequency Distribution Evaluations
 ---------------------------------------------
 
-.. _gem-model-mfd-test:
+.. _gem-model-mfd-eval:
 
 Model MFD Evaluation (``model_mfd``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

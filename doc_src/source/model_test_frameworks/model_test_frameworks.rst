@@ -2,8 +2,8 @@
 Model Testing Frameworks
 ========================
 
-Hamlet provides four test frameworks that can be used independently or combined
-in a single evaluation. Each framework is specified as a key under
+Hamlet provides four frameworks that can be used independently or combined
+in a single Hamlet run. Each framework is specified as a key under
 ``config.model_framework`` in the YAML configuration file.
 
 
@@ -126,7 +126,7 @@ Parameters:
 Sanity Checks
 =============
 
-Sanity checks are basic evaluations to verify that the model is internally
+Sanity checks are basic tests to verify that the model is internally
 consistent and matches the observations at a gross level.
 
 .. _max-mag-check:

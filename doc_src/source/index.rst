@@ -13,7 +13,7 @@ GEM and some of those developed outside of GEM such as the RELM_/CSEP tests.
 The model files must be in the OpenQuake_ format (or as a suitably-formatted
 CSV of ruptures).
 
-Many of the Hamlet evaluations are spatial in nature; the model domain is
+Many of the Hamlet tests and evaluations are spatial in nature; the model domain is
 discretized into grid cells, and comparisons between observations and model
 predictions are performed in each grid cell, to highlight where in the domain
 the model matches the observations, and where it might need some refinement.
@@ -56,7 +56,7 @@ to run. Once installed, Hamlet can be run from the command line::
     hamlet test_model.yml
 
 ``test_model.yml`` is a :doc:`configuration file <yaml_config_file>` in YAML_
-format that specifies the source model, seismic catalog, tests to be run, and
+format that specifies the source model, seismic catalog, tests and evaluations to be run, and
 other variables and parameters.
 
 

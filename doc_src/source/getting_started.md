@@ -26,7 +26,7 @@ It is recommended to add a new `hamlet` directory with `data` and `output`
 sub-directories.
 
 The `data` directory can hold the seismic catalogs and, if
-necessary, GIS files specifying the model domain and grid cells.
+necessary, GIS files specifying subdomains of the model.
 
 The `output` directory will hold the HTML reports and any other outputs that are
 written during the testing procedure.
@@ -43,10 +43,11 @@ model/
         data/
             crustal_catalog.csv
             slab_catalog.csv
-            full_catalog.csv (unused in testing)
+            full_catalog.csv
         output/
         test_ssm_crustal.yml
         test_ssm_slab.yml
+        test_ssm_all.yml
 ```
 
 However, the user is free to organize the Hamlet files in any way; there is no
@@ -71,14 +72,21 @@ necessarily when commits to `master` or development branches are made.
 
 ## Prepare the earthquake catalog(s)
 
-The earthquake catalog should be declustered and, ideally, classified according
-to the source types of the earthquakes (i.e., subduction thrust, in-slab,
-crustal, etc.).
+The earthquake catalog should be declustered and, if desired, classified 
+according to the source types of the earthquakes (i.e., subduction thrust, 
+in-slab, crustal, etc.).
 
 The catalog(s) must be CSV files, with columns describing the fields and one row
 for each earthquake.
 
 ### Temporal completeness
+
+The temporal completeness of the catalog is very important for testing. In 
+general, a longer catalog will have a better sampling of events and therefore 
+be less noisy (i.e. a more consistent b-value). However before the 1970s, 
+catalogs in many areas do not have all earthquakes below, say, magnitude 7. 
+Therefore, it is desirable to understand the temporal completeness of the 
+catalog, so that you can only test against what is considered complete.
 
 The catalog's temporal completeness can be specified in one of two ways:
 
@@ -92,6 +100,7 @@ The catalog's temporal completeness can be specified in one of two ways:
    above that magnitude from that year onward. This allows Hamlet to account
    for varying completeness across the magnitude range, giving more accurate
    evaluations particularly for lower magnitudes with shorter complete periods.
+
 
 ### Separate catalogs for separate evaluations
 
@@ -117,6 +126,10 @@ Once the model, seismic catalog(s) and YAML configuration file(s) are prepared
 ```
 hamlet test_ssm_crustal.yml
 ```
+
+The progress of the model processing and the evaluation results will be printed 
+to the terminal. However, the most useful and informative product is an html 
+file that has graphics for all the tests and some model information as well.
 
 Additional command-line options:
 

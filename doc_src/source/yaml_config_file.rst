@@ -6,7 +6,7 @@ The YAML configuration file
 ===========================
 
 A Hamlet evaluation is configured using a `YAML <https://yaml.org>`_ file,
-which describes the tests that should be run and any required parameters, the
+which describes the tests and evaluations that should be run and any required parameters, the
 location of the input files, and what outputs should be written. The file is
 made into a dictionary that is used to guide the Hamlet run, so the order
 of items is not important.
@@ -38,16 +38,16 @@ writing reports.
 Test and Evaluation Configuration (``config``)
 ==============================================
 
-This section specifies which test frameworks and tests to run, along with their
-parameters.
+This section specifies which frameworks, tests, and evaluations to run, along
+with their parameters.
 
 
 ``model_framework``
 -------------------
 
-This is a dictionary of test frameworks to run. Each framework key contains
-its own tests as sub-keys. Multiple frameworks can be run in a single
-evaluation. Available frameworks are:
+This is a dictionary of frameworks to run. Each framework key contains
+its own tests and evaluations as sub-keys. Multiple frameworks can be run in a
+single Hamlet run. Available frameworks are:
 
 * ``gem`` -- GEM tests and evaluations (see :ref:`gem-tests-evaluations`). The
   most supported and/or configurable versions of all tests and evaluations are 
@@ -56,9 +56,9 @@ evaluation. Available frameworks are:
   found with specific defaults set.
 * ``sanity`` -- Basic sanity checks (see :ref:`sanity-checks`).
 
-Tests are nested directly under their framework, with their configuration
-parameters as sub-keys. Use an empty dictionary (``{}``) for tests that
-need no configuration.
+Tests and evaluations are nested directly under their framework, with their
+configuration parameters as sub-keys. Use an empty dictionary (``{}``) for
+those that need no configuration.
 
 .. code-block:: yaml
 
@@ -85,7 +85,8 @@ need no configuration.
 ``parallel``
     A Boolean (``True`` or ``False``) flag that determines whether
     parallel algorithms are used for loading the seismic source model and
-    performing the more time-intensive tests (such as Monte Carlo based tests).
+    performing the more time-intensive tests and evaluations (such as Monte
+    Carlo based consistency tests and moment analysis).
 
     This flag should be ``True`` for medium to large models, unless RAM is a
     major limitation. For small models, it may be faster to run on a single
@@ -93,8 +94,9 @@ need no configuration.
     substantial.
 
 ``rand_seed``
-    An optional integer `random seed`_ for reproducible Monte Carlo simulations
-    and other functions using random sampling.
+    An optional integer `random seed`_ for reproducible random sampling (which
+    is fundamental in Hamlet, as stochastic catalogs are generated for most
+    tests and evaluations).
 
 ``log_file``
     An optional path to a log file. If given, log output is written to this
@@ -116,7 +118,9 @@ Seismic Source Model (``ssm``)
 ------------------------------
 
 The SSM must be in the modern OpenQuake format. It can be specified either with
-a logic tree XML file or an OpenQuake job.ini file.
+a logic tree XML file or an OpenQuake job.ini file. All SSM parameters default
+to ``null`` when not specified (see ``cfg_defaults`` in
+``openquake.hme.core.core``).
 
 Sub-parameters:
 
@@ -160,17 +164,23 @@ Sub-parameters:
     and ``MultiFaultSource``. Pass as a YAML list, or ``null`` for all types.
 
 
-Depth Filtering
----------------
+Depth Filtering (Optional)
+--------------------------
+
+``min_depth``
+    Optional. Minimum source depth in km. Sources shallower than this are
+    excluded from the evaluation. Default: ``0.0``. Specified at the
+    ``input`` level (not inside ``ssm``).
 
 ``max_depth``
     Optional. Maximum source depth in km. Sources deeper than this are
-    excluded from the evaluation. Specified at the ``input`` level (not
-    inside ``ssm``).
+    excluded from the evaluation. Default: no limit. Specified at the
+    ``input`` level (not inside ``ssm``).
 
     .. code-block:: yaml
 
         input:
+          min_depth: 0
           max_depth: 40
 
 
@@ -245,29 +255,26 @@ Bins (``bins``)
 This section configures the spatial and magnitude binning used throughout
 Hamlet.
 
-All parameters are optional:
+Default values for many parameters (including ``h3_res``, ``simple_ruptures``,
+``subset``, and ``rupture_file`` options) are defined in
+``openquake.hme.core.core.cfg_defaults`` and are applied automatically when
+not specified in the YAML file.
 
 ``h3_res``
     The resolution of the `H3 <https://github.com/uber/h3-py>`_ hexagonal
     grid used for spatial binning. Values range from 0 (coarsest, ~4,000 km
-    edge length) to 15 (finest). Default is ``3`` (~69 km edge length).
+    edge length) to 15 (finest). Default: ``3`` (~69 km edge length).
     H3 hexagons are generated automatically based on the spatial extent of
     the source model.
 
 ``mfd_bin_min``
-    Minimum magnitude for the MFD. Default: ``6.0``.
+    Minimum magnitude for the MFD. Required.
 
 ``mfd_bin_max``
-    Maximum magnitude for the MFD. Default: ``9.0``.
+    Maximum magnitude for the MFD. Required.
 
 ``mfd_bin_width``
-    Width of the magnitude bins. Default: ``0.2``.
-
-``bin_gis_file``
-    Optional path to a GIS file with polygons that define custom spatial bins.
-    The file is read with `GeoPandas <https://geopandas.org>`_. It is
-    recommended to use the default H3 hexagons instead, which are faster and
-    require no extra files.
+    Width of the magnitude bins. Required.
 
 
 Rupture File Caching (``rupture_file``)
@@ -275,7 +282,8 @@ Rupture File Caching (``rupture_file``)
 
 Loading ruptures from a source model can be slow for large models. These
 optional parameters let you save processed ruptures to disk and reload them
-in subsequent runs.
+in subsequent runs, if you have not changed the model and are just changing the
+test configuration (branches, depth ranges, catalog completeness, etc.).
 
 .. code-block:: yaml
 
@@ -310,18 +318,18 @@ the model domain.
       buffer: 0.0
 
 ``file``
-    Path to a GIS file containing the subset geometry.
+    Path to a GIS file containing the subset geometry. Default: ``null``.
 
 ``buffer``
     Buffer distance around the subset geometry (in the units of the GIS file's
-    coordinate reference system).
+    coordinate reference system). Default: ``0.0``.
 
 
 Flatfile (``flatfile``)
 -----------------------
 
 Path to a ground motion flatfile (CSV). Required for the
-``catalog_ground_motion_eval`` test. Specified at the ``input`` level.
+``catalog_ground_motion_eval`` evaluation. Specified at the ``input`` level.
 
 .. code-block:: yaml
 
@@ -329,12 +337,16 @@ Path to a ground motion flatfile (CSV). Required for the
       flatfile: path/to/flatfile.csv
 
 
+Note that this requires a flatfile that is constructed with a format that is
+used internally at GEM (and currently undocumented, pending publication). Until
+the format stabilizes, there will almost certainly be problems.
+
+
 Other Input Options
 -------------------
 
 ``simple_ruptures``
-    Boolean. Use simplified rupture representations (point sources) for faster
-    processing. Default: ``True``.
+    Boolean. Use simplified rupture representations (hypocenter point sources) for faster processing. Default: ``True``.
 
 
 .. _report:
@@ -354,22 +366,6 @@ results into maps, plots, and tables.
 
 
 .. _output:
-
-Outputs (``output``)
-====================
-
-This optional section specifies additional output files beyond reports.
-
-``bin_gdf``
-    If given, a GeoJSON file is written containing per-cell test results
-    and other evaluation data.
-
-    .. code-block:: yaml
-
-        output:
-          bin_gdf:
-            file: outputs/bins.geojson
-
 
 JSON Output (``json``)
 ======================
