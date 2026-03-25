@@ -18,7 +18,7 @@ import sys
 # -- Project information -----------------------------------------------------
 
 project = "Hamlet"
-copyright = "2019-2021, Richard Styron (GEM Foundation)"
+copyright = "2019-2026, Richard Styron (GEM Foundation)"
 author = "Richard Styron (GEM Foundation)"
 
 # The full version, including alpha/beta/rc tags

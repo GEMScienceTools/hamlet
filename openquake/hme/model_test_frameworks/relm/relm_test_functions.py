@@ -45,6 +45,24 @@ def l_test_function(
     critical_frac: float = 0.25,
     not_modeled_likelihood: float = 0.0,
 ):
+    """Joint likelihood test (L-test). Computes the total log-likelihood of
+    the observed catalog across all spatial cells and magnitude bins, and
+    compares it to the distribution of log-likelihoods from stochastic
+    catalogs.
+
+    :param rup_gdf: GeoDataFrame of modeled ruptures.
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :param cell_groups: Groupby of ruptures on ``cell_id``.
+    :param eq_groups: Groupby of earthquakes on ``cell_id``.
+    :param t_yrs: Investigation time in years.
+    :param n_iters: Number of Monte Carlo iterations.
+    :param mag_bins: Magnitude bin dictionary.
+    :param completeness_table: Optional completeness table.
+    :param stop_date: End date of the catalog.
+    :param critical_frac: Fractile threshold for test failure.
+    :param not_modeled_likelihood: Likelihood for unmodeled cells/bins.
+    :returns: Dict with test result, fractile, and test data.
+    """
     cell_like_cfg = {
         "investigation_time": t_yrs,
         "completeness_table": completeness_table,
@@ -110,6 +128,24 @@ def m_test_function(
     critical_frac: float = 0.25,
     normalize_n_eqs: Optional[bool] = True,
 ):
+    """Magnitude consistency test (M-test). Evaluates the consistency of the
+    model MFD vs. the observed MFD by comparing the geometric mean
+    log-likelihood of the observed catalog against stochastic catalogs
+    generated from the model.
+
+    :param rup_gdf: GeoDataFrame of modeled ruptures.
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :param mag_bins: Magnitude bin dictionary.
+    :param t_yrs: Investigation time in years.
+    :param n_iters: Number of Monte Carlo iterations.
+    :param completeness_table: Optional completeness table.
+    :param stop_date: End date of the catalog.
+    :param not_modeled_likelihood: Likelihood for unmodeled magnitude bins.
+    :param critical_frac: Fractile threshold for test failure.
+    :param normalize_n_eqs: If True, normalize stochastic catalogs to match
+        the observed earthquake count.
+    :returns: Dict with test result, fractile, and test data.
+    """
     # normalized to duration !!
 
     mod_mfd = get_model_mfd(
@@ -227,6 +263,28 @@ def s_test_function(
     not_modeled_likelihood: float = 0.0,
     parallel: bool = False,
 ):
+    """Spatial consistency test (S-test). Evaluates the spatial distribution of
+    the model by comparing per-cell log-likelihoods of the observed catalog
+    against stochastic catalogs. Supports multiple likelihood functions.
+
+    :param rup_gdf: GeoDataFrame of modeled ruptures.
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :param cell_groups: Groupby of ruptures on ``cell_id``.
+    :param eq_groups: Groupby of earthquakes on ``cell_id``.
+    :param t_yrs: Investigation time in years.
+    :param n_iters: Number of Monte Carlo iterations.
+    :param likelihood_fn: Likelihood function name (``"mfd"``,
+        ``"n_eqs"``, or ``"conf_interval_poisson"``).
+    :param mag_bins: Magnitude bin dictionary.
+    :param normalize_n_eqs: Normalize stochastic catalogs to observed count.
+    :param completeness_table: Optional completeness table.
+    :param stop_date: End date of the catalog.
+    :param critical_frac: Fractile threshold for test failure.
+    :param not_modeled_likelihood: Likelihood for unmodeled cells.
+    :param parallel: Use multiprocessing for cell-level computation.
+    :returns: Dict with test result, fractile, per-cell fractions, and
+        test data.
+    """
     if normalize_n_eqs:
         obs_mfd = get_obs_mfd(
             eq_gdf,
@@ -357,6 +415,11 @@ def s_test_function(
 def s_test_cells(
     cell_groups, rup_gdf, eq_groups, eq_gdf, test_cfg, parallel: bool = False
 ):
+    """Runs the S-test likelihood computation for each spatial cell,
+    optionally in parallel.
+
+    :returns: Dict mapping cell IDs to per-cell likelihood results.
+    """
     s_test_cell_results = {}
 
     cell_ids = sorted(cell_groups.groups.keys())
@@ -389,7 +452,15 @@ def _s_test_cell_args(cell_args):
 
 
 def s_test_cell(rup_gdf, eq_gdf, test_cfg):
-    """"""
+    """Computes the S-test likelihood for a single spatial cell by comparing
+    the observed MFD log-likelihood to stochastic MFD log-likelihoods.
+
+    :param rup_gdf: Ruptures within this cell.
+    :param eq_gdf: Earthquakes within this cell.
+    :param test_cfg: Test configuration dict.
+    :returns: Dict with observed and stochastic log-likelihoods, bad bins,
+        and unmatched earthquakes.
+    """
     cell_id = rup_gdf.cell_id.values[0]
     t_yrs = test_cfg["investigation_time"]
     completeness_table = test_cfg.get("completeness_table")
@@ -613,6 +684,18 @@ def conf_interval_poisson(
     return_data: bool = False,
     **kwargs,
 ) -> float:
+    """Evaluates whether the observed total event count falls within a Poisson
+    confidence interval of the modeled rate. Also generates stochastic samples
+    to assess the fraction of samples that pass.
+
+    :param rate_mfd: Dict of modeled MFD rates by magnitude bin.
+    :param empirical_mfd: Dict of observed event counts by magnitude bin.
+    :param N_norm: Normalization factor for model rates.
+    :param N_iters: Number of stochastic samples.
+    :param conf_interval: Confidence interval (e.g. 0.95).
+    :returns: Dict with observed log-likelihood, stochastic likelihoods,
+        and cell pass/fail.
+    """
     if binned_events is not None:
         if empirical_mfd is None:
             num_obs_events = {
@@ -665,6 +748,17 @@ def conf_interval_poisson(
 
 
 def n_test_function(rup_gdf, eq_gdf, test_config: dict):
+    """N-test: compares the total observed earthquake count to the model
+    prediction. Supports Poisson, cumulative Poisson, and negative binomial
+    probability models.
+
+    :param rup_gdf: GeoDataFrame of modeled ruptures.
+    :param eq_gdf: GeoDataFrame of observed earthquakes.
+    :param test_config: Test configuration dict with ``prob_model``,
+        ``conf_interval``, and other parameters.
+    :returns: Dict with test result, confidence interval, observed and
+        predicted counts.
+    """
     prospective = test_config.get("prospective", False)
 
     conf_interval = test_config.get("conf_interval", 0.95)
@@ -739,12 +833,21 @@ def n_test_function(rup_gdf, eq_gdf, test_config: dict):
 
 
 def get_poisson_counts_from_mfd(mfd: dict):
+    """Samples random Poisson counts from each magnitude bin rate."""
     return {mag: np.random.poisson(rate) for mag, rate in mfd.items()}
 
 
 def N_test_empirical(
     num_obs_events: int, num_pred_events: Sequence[int], conf_interval: float
 ) -> dict:
+    """N-test using empirical (cumulative Poisson) distribution from sampled
+    MFD counts.
+
+    :param num_obs_events: Observed earthquake count.
+    :param num_pred_events: Sequence of stochastic event counts.
+    :param conf_interval: Confidence interval fraction.
+    :returns: Dict with test result, confidence interval, and counts.
+    """
     rupture_rate = np.mean(num_pred_events)
     conf_half_interval = conf_interval / 2
     conf_min = np.percentile(num_pred_events, 100 * (0.5 - conf_half_interval))
@@ -770,6 +873,13 @@ def N_test_empirical(
 def N_test_poisson(
     num_obs_events: int, rupture_rate: float, conf_interval: float
 ) -> dict:
+    """N-test using a Poisson distribution.
+
+    :param num_obs_events: Observed earthquake count.
+    :param rupture_rate: Total predicted rate (events per investigation time).
+    :param conf_interval: Confidence interval fraction.
+    :returns: Dict with test result, confidence interval, and counts.
+    """
     conf_min, conf_max = poisson(rupture_rate).interval(conf_interval)
 
     test_pass = conf_min <= num_obs_events <= conf_max
@@ -796,6 +906,17 @@ def N_test_neg_binom(
     r_dispersion: float,
     conf_interval: float,
 ) -> dict:
+    """N-test using a negative binomial distribution (for temporally
+    overdispersed earthquake production). Falls back to Poisson if
+    underdispersed.
+
+    :param num_obs_events: Observed earthquake count.
+    :param rupture_rate: Predicted rate.
+    :param prob_success: Negative binomial success probability.
+    :param r_dispersion: Negative binomial dispersion parameter.
+    :param conf_interval: Confidence interval fraction.
+    :returns: Dict with test result, confidence interval, and counts.
+    """
     if r_dispersion < 1:
         logging.warn(
             "Earthquake production temporally underdispersed, \n"

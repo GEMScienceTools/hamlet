@@ -15,6 +15,12 @@ RELM/CSEP versions but with configurable handling of unmodeled cells/bins), as
 well as several additional evaluations: MFD comparison, moment rate analysis,
 rupture matching, cumulative occurrence, and ground motion evaluation.
 
+.. note::
+
+   The ``likelihood`` test is deprecated and should not be used. Use the
+   ``M_test``, ``S_test``, and ``L_test`` instead, which provide more robust
+   and well-characterized likelihood evaluations.
+
 
 Statistical Consistency Tests
 -----------------------------
