@@ -36,10 +36,13 @@ release = about["__version__"]
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     #'sphinx.ext.intersphinx',
     "recommonmark",
     "sphinx.ext.mathjax",
 ]
+
+autosummary_generate = True
 
 # intersphinx_mapping = {''}
 
@@ -64,3 +67,4 @@ html_theme = "furo"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
