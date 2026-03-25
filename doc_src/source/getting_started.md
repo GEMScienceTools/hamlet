@@ -31,7 +31,7 @@ necessary, GIS files specifying the model domain and grid cells.
 The `output` directory will hold the HTML reports and any other outputs that are
 written during the testing procedure.
 
-The YAML configuration files can be placed in the main `hamlet` directory:
+The [YAML configuration files](yaml_config_file.html) can be placed in the main `hamlet` directory:
 
 ```
 model/
@@ -107,7 +107,7 @@ should be split into separate files for each subset.
 
 ## Make the YAML configuration file(s)
 
-See the YAML configuration file documentation for more information.
+See the [YAML configuration file documentation](yaml_config_file.html) for more information.
 
 ## Run Hamlet
 

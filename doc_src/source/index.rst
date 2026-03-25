@@ -8,11 +8,12 @@ intention of providing feedback to modelers during the model construction
 process, to aid model development. Hamlet is developed by the `GEM
 Foundation`_, and uses the OpenQuake_ software extensively.
 
-Hamlet incorporates several model test frameworks, including those developed by
+Hamlet incorporates several test frameworks, including those developed by
 GEM and some of those developed outside of GEM such as the RELM_/CSEP tests.
-The model files must be in the OpenQuake_ format.
+The model files must be in the OpenQuake_ format (or as a suitably-formatted
+CSV of ruptures).
 
-Most of the Hamlet evaluations are spatial in nature; the model domain is
+Many of the Hamlet evaluations are spatial in nature; the model domain is
 discretized into grid cells, and comparisons between observations and model
 predictions are performed in each grid cell, to highlight where in the domain
 the model matches the observations, and where it might need some refinement.
