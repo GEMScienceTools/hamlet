@@ -181,16 +181,6 @@ config:
         warn: True                 # [optional] Log warnings; default True
 
 
-    # -----------------------------------------------------------------------
-    # Model Description Framework
-    # Characterization and description of the model (not pass/fail tests).
-    # -----------------------------------------------------------------------
-    model_description:
-      # Describe and compare model vs. observed MFDs
-      describe_mfds: {}
-      # General model description (includes MFD description)
-      describe_model: {}
-
 
   # -------------------------------------------------------------------------
   # Global config options

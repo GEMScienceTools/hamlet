@@ -146,27 +146,4 @@ Parameters:
     the check. Default: ``True``.
 
 
-.. _model-description:
-
-Model Description
-=================
-
-The model description framework provides characterization and descriptive
-analysis of the model. These are not pass/fail tests, but rather produce
-summaries and comparisons useful for understanding the model.
-
-``describe_mfds``
------------------
-
-Computes and compares the model and observed magnitude-frequency distributions,
-extending the magnitude range to fully encompass the data. Takes no
-configuration parameters (use ``{}``).
-
-``describe_model``
-------------------
-
-General model characterization, which currently includes the MFD description.
-Takes no configuration parameters (use ``{}``).
-
-
 .. _RELM: http://cseptesting.org/documents/relm.php

@@ -49,10 +49,12 @@ This is a dictionary of test frameworks to run. Each framework key contains
 its own tests as sub-keys. Multiple frameworks can be run in a single
 evaluation. Available frameworks are:
 
-* ``gem`` -- GEM tests and evaluations (see :ref:`gem-tests-evaluations`)
-* ``relm`` -- RELM/CSEP tests (see :ref:`relm-tests`)
-* ``sanity`` -- Basic sanity checks (see :ref:`sanity-checks`)
-* ``model_description`` -- Model characterization (see :ref:`model-description`)
+* ``gem`` -- GEM tests and evaluations (see :ref:`gem-tests-evaluations`). The
+  most supported and/or configurable versions of all tests and evaluations are 
+  available here. It is recommended to use these.
+* ``relm`` -- RELM/CSEP tests (see :ref:`relm-tests`). These 'letter tests' are 
+  found with specific defaults set.
+* ``sanity`` -- Basic sanity checks (see :ref:`sanity-checks`).
 
 Tests are nested directly under their framework, with their configuration
 parameters as sub-keys. Use an empty dictionary (``{}``) for tests that
