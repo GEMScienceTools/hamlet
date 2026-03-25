@@ -2,19 +2,16 @@
 Hamlet Architecture and Testing Workflow
 ########################################
 
-Currently, Hamlet performs spatial-temporal hazard model checks and
-statistical evaluation of model consistency and performance against an observed
-earthquake catalog.
+Hamlet performs spatial-temporal hazard model checks and statistical evaluation
+of model consistency and performance against an observed earthquake catalog.
 
-Hamlet follows this work process:
+Hamlet follows this workflow:
 
 1. Read in :doc:`YAML configuration file <./yaml_config_file>`, that specifies:
 
-   - Which tests to be run
+   - Which tests to be run, and their parameters
 
-     - What parameters for each test
-
-   - What input files:
+   - Input files:
 
      - Seismic Source Model files
 
@@ -28,38 +25,64 @@ Hamlet follows this work process:
 
      - GIS files
 
-2. Reads and process SSM:
+     - JSON results
 
-   1. Loads sources from a single logic tree branch
+2. Read and process SSM:
 
-   2. Sorts sources based on their type, with a list for each
+   1. Load sources from a single logic tree branch (or iterate over all
+      branches if ``branch: iterate`` is set)
 
-3. Sorts the ruptures from all sources by magnitude and into spatial bins:
+   2. Sort sources based on their type
 
-   - Makes :class:`~openquake.hme.utils.bins.SpacemagBin` class that holds
-     ruptures, observed earthquakes, and both model and empirical
-     Magnitude-Frequency distributions for each bin.
+3. Sort the ruptures from all sources by magnitude and into spatial bins:
 
-4. Runs the tests:
+   - Uses `H3 <https://github.com/uber/h3-py>`_ hexagonal cells (by default)
+     to spatially bin ruptures and observed earthquakes
+
+   - Computes both model and empirical Magnitude-Frequency Distributions (MFDs)
+     for each spatial bin
+
+4. Run the tests:
 
    - Basic sanity checks (e.g., whether the observed earthquake maximum
      magnitude exceeds the model maximum magnitude in each spatial bin)
 
-   - Statistical evaluation (i.e., model likelihoods based on the calculated
-     probabilities of observing the earthquakes in a catalog given the SSM)
+   - Statistical evaluation (N-test, M-test, S-test, L-test, and others,
+     evaluating count, magnitude, spatial, and likelihood consistency)
 
-   - Multiple tests can be run sequentially, without reloading the SSM.
+   - Model characterization (MFD comparisons, moment rate analysis, rupture
+     matching, ground motion evaluation)
 
-5. Print/write output.
+   - Multiple tests can be run sequentially, and multiple frameworks can be
+     used in a single run
 
-  - HTML reports summarizing the results
+5. Write output:
 
-  - GIS files with the test results for each bin
+   - HTML reports summarizing the results with maps, plots, and tables
 
-  - CSV files of the total model and catalog (within the source bins) MFDs
+   - GIS files (GeoJSON) with the test results for each spatial bin
+
+   - JSON files with structured test results
 
 
-At this pre-release stage, most of the development has focused on writing the
-test framework, rather than creating a broad suite of tests. However, the
-framework is functional at this point, and the development of a test suite is
-the next priority.
+Branch Iteration
+================
+
+When ``branch: iterate`` is set in the configuration, Hamlet evaluates each
+logic tree branch independently in a single run:
+
+1. The earthquake catalog is loaded once (shared across all branches)
+
+2. The complete source model is loaded, and all branches are extracted
+
+3. For each branch:
+
+   a. Ruptures are processed for that branch only
+
+   b. Input data is grouped into spatial bins
+
+   c. All configured tests are run
+
+   d. Results are collected and memory is freed
+
+4. Results from all branches are combined into a single report

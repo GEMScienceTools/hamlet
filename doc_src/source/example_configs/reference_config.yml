@@ -1,0 +1,365 @@
+###############################################################################
+# Hamlet Reference Configuration
+#
+# This file documents every available configuration option. It is not meant
+# to be used as-is; copy it and remove or modify the sections you need.
+# Options marked [optional] can be omitted; defaults are noted where they exist.
+###############################################################################
+
+# ---------------------------------------------------------------------------
+# Metadata [optional]
+# Used in report titles and descriptions.
+# ---------------------------------------------------------------------------
+meta:
+  model_name: My Hazard Model
+  description: "Description of the model being evaluated"
+
+# ---------------------------------------------------------------------------
+# Test and Evaluation Configuration
+# ---------------------------------------------------------------------------
+config:
+
+  # -------------------------------------------------------------------------
+  # model_framework
+  #
+  # A dictionary of test frameworks to run. Each framework contains its own
+  # set of tests as keys. Multiple frameworks can be run in a single
+  # evaluation. Available frameworks: gem, relm, sanity, model_description.
+  # -------------------------------------------------------------------------
+  model_framework:
+
+    # -----------------------------------------------------------------------
+    # GEM Framework
+    # Tests developed by GEM, some based on the literature, some original.
+    # -----------------------------------------------------------------------
+    gem:
+
+      # Model MFD Evaluation
+      # Compares the total model magnitude-frequency distribution to the
+      # observed MFD from the earthquake catalog. Produces a figure in
+      # the report. Use {} for default parameters.
+      model_mfd:
+        investigation_time: 40.    # [optional] Duration in years; defaults
+                                   # to seis_catalog duration
+        annualize: True            # [optional] Annualize rates; default True
+
+      # Maximum Magnitude Check (sanity check)
+      # Checks whether the model can produce earthquakes as large as the
+      # largest observed earthquake in each spatial cell.
+      max_mag_check:
+        append_check: True         # [optional] Append pass/fail to bin data
+        warn: True                 # [optional] Log warnings for failures
+
+      # N-Test: Number of Earthquakes Test
+      # Compares the total observed earthquake count to the model prediction.
+      N_test:
+        conf_interval: 0.95        # Confidence interval for the test
+        prob_model: poisson        # Probability model: "poisson" or "poisson_cum"
+        prospective: False         # [optional] Use prospective catalog; default False
+        # investigation_time: 40.  # [optional] Overridden by catalog duration
+                                   # when not prospective
+
+      # M-Test: Magnitude-Frequency Distribution Consistency Test
+      # Evaluates consistency of the model MFD vs. observations using
+      # log-likelihood comparisons with stochastic catalogs.
+      M_test:
+        critical_frac: 0.025       # Fraction of simulations below which the
+                                   # test fails (e.g. 0.025 = 2.5th percentile)
+        prospective: False         # [optional] Use prospective catalog
+        n_iters: 1000              # Number of Monte Carlo iterations
+        normalize_n_eqs: False     # [optional] Normalize by number of
+                                   # earthquakes; default True
+        not_modeled_likelihood: 1.0e-5  # [optional] Likelihood for unmodeled
+                                        # bins; default 1e-5
+        # investigation_time: 40.  # [optional] Required if prospective: True
+
+      # S-Test: Spatial Consistency Test
+      # Evaluates spatial consistency of the model by comparing per-cell
+      # likelihoods of observed vs. stochastic catalogs.
+      S_test:
+        critical_frac: 0.25        # Fraction threshold for test failure
+        prospective: False         # [optional] Use prospective catalog
+        n_iters: 1000              # Number of Monte Carlo iterations
+        normalize_n_eqs: False     # [optional] Normalize by number of
+                                   # earthquakes; default False
+        not_modeled_likelihood: 1.0e-5  # [optional] Likelihood for unmodeled
+                                        # cells; default 1e-5
+        likelihood_function: mfd   # [optional] Likelihood function to use;
+                                   # options: "mfd", "conf_interval_poisson"
+        # investigation_time: 40.  # [optional] Required if prospective: True
+
+      # L-Test: Likelihood Test
+      # Joint likelihood test combining spatial and magnitude information.
+      L_test:
+        critical_frac: 0.025       # Fraction threshold for test failure
+        prospective: False         # [optional] Use prospective catalog
+        n_iters: 1000              # Number of Monte Carlo iterations
+        not_modeled_likelihood: 1.0e-5  # [optional] default 1e-5
+        # investigation_time: 40.  # [optional] Required if prospective: True
+
+      # Moment Over/Under Evaluation
+      # Compares observed vs. stochastic moment release in each spatial cell.
+      moment_over_under:
+        investigation_time: 40.    # Duration in years
+        n_iters: 100               # Number of stochastic event sets
+        # min_mag: 6.0             # [optional] Defaults to mfd_bin_min
+        # max_mag: 8.5             # [optional] Defaults to mfd_bin_max
+
+      # Rupture Matching Evaluation
+      # Matches observed earthquakes to modeled ruptures based on location,
+      # magnitude, and (optionally) geometry.
+      rupture_matching_eval:
+        use_occurrence_rate: False  # [optional] Weight by occurrence rate;
+                                   # default False
+        distance_lambda: 1.0       # [optional] Distance decay parameter
+        mag_window: 1.0            # [optional] Magnitude window for matching
+        group_return_threshold: 0.9  # [optional] Threshold for group matching
+        min_likelihood: 0.1        # [optional] Minimum match likelihood
+        no_attitude_default_like: 0.5  # [optional] Default likelihood when
+                                       # rupture has no attitude data
+        no_rake_default_like: 0.5  # [optional] Default likelihood when
+                                   # rupture has no rake data
+        return_one: best           # [optional] "best" or "all"
+        parallel: False            # [optional] Parallel matching; default False
+
+      # Cumulative Occurrence Evaluation
+      # Evaluates cumulative earthquake occurrence over time by magnitude bin.
+      # Use {} for default parameters (no configuration needed).
+      cumulative_occurrence_eval: {}
+
+      # Catalog Ground Motion Evaluation
+      # Compares observed ground motions from a flatfile with model predictions.
+      # Requires a flatfile to be specified under input.
+      catalog_ground_motion_eval:
+        match_rups: False          # [optional] Match ruptures to earthquakes
+                                   # before ground motion comparison
+        # gmf_method: ground_motion_fields  # [optional] Method for ground
+                                            # motion calculation
+
+
+    # -----------------------------------------------------------------------
+    # RELM/CSEP Framework
+    # Implementation of the RELM (Regional Earthquake Likelihood Models)
+    # tests. These are similar to the GEM tests but use different statistical
+    # assumptions (e.g. not_modeled_likelihood is hardcoded to 0.0).
+    # -----------------------------------------------------------------------
+    relm:
+
+      N_test:
+        conf_interval: 0.95
+        prob_model: poisson        # "poisson" or "poisson_cum"
+        investigation_time: 40.
+        prospective: False         # [optional]
+
+      M_test:
+        critical_frac: 0.25
+        n_iters: 1000
+        investigation_time: 40.
+        prospective: False         # [optional]
+
+      S_test:
+        critical_frac: 0.25
+        n_iters: 1000
+        investigation_time: 40.
+        prospective: False         # [optional]
+        likelihood_function: mfd   # [optional] "mfd" or "conf_interval_poisson"
+        normalize_n_eqs: False     # [optional]
+
+      L_test:
+        critical_frac: 0.25
+        n_iters: 1000
+        investigation_time: 40.
+        prospective: False         # [optional]
+
+
+    # -----------------------------------------------------------------------
+    # Sanity Checks Framework
+    # Basic checks for model internal consistency.
+    # -----------------------------------------------------------------------
+    sanity:
+      max_check:
+        warn: True                 # [optional] Log warnings; default True
+
+
+    # -----------------------------------------------------------------------
+    # Model Description Framework
+    # Characterization and description of the model (not pass/fail tests).
+    # -----------------------------------------------------------------------
+    model_description:
+      # Describe and compare model vs. observed MFDs
+      describe_mfds: {}
+      # General model description (includes MFD description)
+      describe_model: {}
+
+
+  # -------------------------------------------------------------------------
+  # Global config options
+  # -------------------------------------------------------------------------
+  parallel: False                  # Use multiprocessing for source loading
+                                   # and intensive tests. Recommended for
+                                   # medium to large models.
+
+  rand_seed: 69                    # [optional] Random seed for reproducible
+                                   # Monte Carlo simulations. Must be an integer.
+
+  log_file: hamlet_run.log         # [optional] Path to log file output
+
+
+# ---------------------------------------------------------------------------
+# Inputs
+# ---------------------------------------------------------------------------
+input:
+
+  # -------------------------------------------------------------------------
+  # Spatial and magnitude binning
+  # -------------------------------------------------------------------------
+  bins:
+    mfd_bin_min: 6.0               # [optional] Minimum magnitude; default 6.0
+    mfd_bin_max: 9.0               # [optional] Maximum magnitude; default 9.0
+    mfd_bin_width: 0.2             # [optional] Bin width; default 0.2
+    h3_res: 3                      # [optional] H3 hexagonal grid resolution
+                                   # (0-15, where 0 is coarsest); default 3
+    # bin_gis_file: null           # [optional] Path to a GIS file with custom
+                                   # spatial bin polygons. If not given, H3
+                                   # hexagons are generated automatically
+                                   # (recommended).
+
+  # -------------------------------------------------------------------------
+  # Seismic Source Model (SSM)
+  #
+  # The SSM must be in OpenQuake format. Specify either ssm_dir + ssm_lt_file,
+  # or job_ini_file.
+  # -------------------------------------------------------------------------
+  ssm:
+    ssm_dir: path/to/ssm/          # Directory containing the SSM files
+    ssm_lt_file: ssmLT.xml         # Logic tree XML file name
+    # job_ini_file: job.ini        # [optional] Alternative: specify an
+                                   # OpenQuake job.ini file instead of
+                                   # ssm_dir + ssm_lt_file
+
+    branch: b1                     # [optional] Logic tree branch to evaluate.
+                                   # Set to "iterate" to evaluate each branch
+                                   # independently in a single run.
+
+    tectonic_region_types:         # [optional] Filter by tectonic region type.
+      - Active Shallow Crust      # Must match types in the SSM. Use null or
+                                   # omit to include all types.
+
+    source_types: null             # [optional] Filter by source type. Options:
+                                   # simple_fault, complex_fault, area, point,
+                                   # multipoint, MultiFaultSource.
+                                   # Pass as a list or null for all.
+
+  # -------------------------------------------------------------------------
+  # Depth filtering [optional]
+  # -------------------------------------------------------------------------
+  max_depth: 40                    # [optional] Maximum source depth in km.
+                                   # Sources deeper than this are excluded.
+
+  # -------------------------------------------------------------------------
+  # Rupture file caching [optional]
+  # Loading ruptures from a source model can be slow. These options let you
+  # save processed ruptures to disk and reload them in subsequent runs.
+  # -------------------------------------------------------------------------
+  rupture_file:
+    read_rupture_file: false       # Read ruptures from file instead of SSM
+    save_rupture_file: false       # Save processed ruptures to file
+    rupture_file_path: ./ruptures.hdf5  # Path to the rupture file.
+                                   # Supported formats: .hdf5, .feather, .csv
+
+  # -------------------------------------------------------------------------
+  # Spatial subsetting [optional]
+  # Restrict the evaluation to a geographic subset of the model domain.
+  # -------------------------------------------------------------------------
+  subset:
+    file: path/to/subset.geojson   # GIS file with subset geometry
+    buffer: 0.0                    # Buffer distance around the subset geometry
+
+  # -------------------------------------------------------------------------
+  # Flatfile for ground motion evaluation [optional]
+  # Required for catalog_ground_motion_eval test.
+  # -------------------------------------------------------------------------
+  flatfile: path/to/flatfile.csv
+
+  # -------------------------------------------------------------------------
+  # Simple ruptures [optional]
+  # Use simplified rupture representations (point sources) for faster
+  # processing. Default: True.
+  # -------------------------------------------------------------------------
+  simple_ruptures: True
+
+  # -------------------------------------------------------------------------
+  # Observed Earthquake Catalog
+  # -------------------------------------------------------------------------
+  seis_catalog:
+    seis_catalog_file: path/to/catalog.csv
+
+    # Temporal parameters: provide any two of start_date, stop_date, duration.
+    # The third will be calculated. Alternatively, use a completeness_table.
+    # start_date: 1976             # Can be an integer (year) or date string
+    stop_date: 2018-01-01          # Date string (YYYY-MM-DD)
+    # duration: 40.                # Duration in years
+
+    # Completeness table [optional]
+    # A list of [year, magnitude] pairs defining the completeness threshold
+    # over time. Each pair means "the catalog is complete above this
+    # magnitude from this year onward." When used, the effective duration
+    # varies by magnitude bin.
+    completeness_table:
+      - [1960, 5.0]
+      - [1900, 7.2]
+
+    # Column mappings [optional]
+    # Map expected fields to actual column names in the CSV. Only specify
+    # columns whose names differ from the defaults.
+    columns:
+      # x_col: longitude           # default: longitude
+      # y_col: latitude            # default: latitude
+      # depth: depth               # default: depth
+      # magnitude: magnitude       # default: magnitude
+      # source: Agency             # no default; institutional source of the eq
+      event_id: eventID            # no default; earthquake ID column
+
+      # Time column(s): either a single column name or a list of components
+      time:
+        - year
+        - month
+        - day
+        - hour
+        - minute
+        - second
+
+  # -------------------------------------------------------------------------
+  # Prospective catalog [optional]
+  # A separate catalog for prospective (forward-looking) evaluation.
+  # Uses the same format/columns as seis_catalog.
+  # -------------------------------------------------------------------------
+  # prospective_catalog:
+  #   seis_catalog_file: path/to/prospective_catalog.csv
+  #   duration: 5.
+
+
+# ---------------------------------------------------------------------------
+# Report [optional]
+# Generate an HTML report summarizing all test results.
+# ---------------------------------------------------------------------------
+report:
+  basic:
+    outfile: outputs/report.html
+
+
+# ---------------------------------------------------------------------------
+# Outputs [optional]
+# Additional output files beyond the report.
+# ---------------------------------------------------------------------------
+output:
+  # GeoJSON file with per-cell test results
+  bin_gdf:
+    file: outputs/bins.geojson
+
+# ---------------------------------------------------------------------------
+# JSON output [optional]
+# Write test results as a JSON file.
+# ---------------------------------------------------------------------------
+json:
+  outfile: outputs/results.json

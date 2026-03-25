@@ -5,21 +5,16 @@
 The YAML configuration file
 ===========================
 
-A Hamlet evaluation is configured using a `YAML <https://yaml.org>`_  file,
+A Hamlet evaluation is configured using a `YAML <https://yaml.org>`_ file,
 which describes the tests that should be run and any required parameters, the
-location of the input files, and what outputs should be written.  The file is
-made into a dictionary that is used guide the Hamlet run. Therefore the order
+location of the input files, and what outputs should be written. The file is
+made into a dictionary that is used to guide the Hamlet run, so the order
 of items is not important.
 
-If different components of the model are to be evaluated (different logic tree
-branches, or different source model types, etc.) then a separate YAML file
-should be made for each logic tree branch and source model combination to be
-evaluated, as this will be done in separate Hamlet runs.
-
-A simple example of a yaml configuration file is given at the bottom of this
-page.
-
-Here are the components of the YAML config file:
+A simple example of a YAML configuration file is given at the bottom of this
+page, and a comprehensive reference configuration (with comments explaining
+every option) is available in the source repository at
+``doc_src/source/example_configs/reference_config.yml``.
 
 
 .. _metadata:
@@ -27,14 +22,14 @@ Here are the components of the YAML config file:
 Metadata (``meta``)
 ===================
 
-This is a basic section that describes the model. The information is used when
-writing reports; otherwise it is not necessary.
+This optional section describes the model. The information is used when
+writing reports.
 
 .. code-block:: yaml
 
     meta:
         model_name: Model Name
-        description: "words describing the model name"
+        description: "words describing the model"
 
 
 
@@ -43,69 +38,67 @@ writing reports; otherwise it is not necessary.
 Test and Evaluation Configuration (``config``)
 ==============================================
 
-This section lists the different tests or evaluations to be run, and what the
-parameters for each will be.
+This section specifies which test frameworks and tests to run, along with their
+parameters.
 
 
 ``model_framework``
-    This specifies which framework to use (see
-    :doc:`./model_test_frameworks/model_test_frameworks` for more information on
-    these). Currently, only the ``gem`` option is available, but ``sanity`` and
-    ``relm`` are close to being usable. However the ``sanity`` checks are
-    available through the ``gem`` framework as well.
+-------------------
 
-``parallel``
-    This is a Boolean (``True`` or ``False``) flag that determines whether
-    parallel algorithms are used for loading the seismic source model, and
-    performing the more time-intensive tests (such as Monte Carlo based tests).
-    The parallel algorithms produce equivalent results, using Python's
-    `multiprocessing <https://docs.python.org/3.7/library/multiprocessing.html>`_
-    facilities.
+This is a dictionary of test frameworks to run. Each framework key contains
+its own tests as sub-keys. Multiple frameworks can be run in a single
+evaluation. Available frameworks are:
 
-    This flag should be ``True`` for medium to large models, unless RAM is a
-    major limitation. For small models, it may be faster to run on a single
-    core, because the overhead in instantiating multiple processes, and
-    processing the results, can be substantial.
+* ``gem`` -- GEM tests and evaluations (see :ref:`gem-tests-evaluations`)
+* ``relm`` -- RELM/CSEP tests (see :ref:`relm-tests`)
+* ``sanity`` -- Basic sanity checks (see :ref:`sanity-checks`)
+* ``model_description`` -- Model characterization (see :ref:`model-description`)
 
-``rand_seed``
-    A `random seed`_ to be used for reproducible Monte Carlo simulations and
-    other functions using random sampling. The seed must follow Numpy's rules;
-    to keep it simple, just use an integer.  Optional.
-
-.. _random seed: https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html
-
-Tests
------
-
-``tests``
-    This specifies which tests or evaluations within the
-    ``model_test_framework`` should be run. Multiple tests can be run; these
-    should be nested below the ``tests`` item with their configuration variables
-    given. 
-
-    For the ``gem`` framework, the available tests are 
-    :ref:`likelihood <gem-like-test>`,
-    :ref:`model_mfd <gem-model-mfd-test>`, and 
-    :ref:`max_mag_check <max-mag-check>`.
-
-
-An example, illustrating the required nesting:
+Tests are nested directly under their framework, with their configuration
+parameters as sub-keys. Use an empty dictionary (``{}``) for tests that
+need no configuration.
 
 .. code-block:: yaml
 
     config:
-        model_framework: gem
-        tests:
-            likelihood:
-                likelihood_method: poisson
-                investigation_time: 40.
-            model_mfd:
-                investigation_time: 40.
-            max_mag_check:
-                append_check: True
-                warn: True
-        parallel: False
-        rand_seed: 420
+      model_framework:
+        gem:
+          model_mfd: {}
+          max_mag_check:
+            append_check: True
+            warn: True
+          N_test:
+            conf_interval: 0.95
+            prob_model: poisson
+          M_test:
+            critical_frac: 0.025
+            n_iters: 1000
+        relm:
+          S_test:
+            critical_frac: 0.25
+            n_iters: 1000
+            investigation_time: 40.
+
+
+``parallel``
+    A Boolean (``True`` or ``False``) flag that determines whether
+    parallel algorithms are used for loading the seismic source model and
+    performing the more time-intensive tests (such as Monte Carlo based tests).
+
+    This flag should be ``True`` for medium to large models, unless RAM is a
+    major limitation. For small models, it may be faster to run on a single
+    core, because the overhead in instantiating multiple processes can be
+    substantial.
+
+``rand_seed``
+    An optional integer `random seed`_ for reproducible Monte Carlo simulations
+    and other functions using random sampling.
+
+``log_file``
+    An optional path to a log file. If given, log output is written to this
+    file in addition to the console.
+
+.. _random seed: https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html
 
 
 .. _input:
@@ -114,232 +107,291 @@ Inputs (``input``)
 ==================
 
 This section describes the inputs into a Hamlet run: the seismic source model,
-the observed earthquake catalog that is used to evaluate the seismic source
-model, and the configuration of the spatial bins that will hold the SSM.
+the observed earthquake catalog, and the configuration of the spatial bins.
 
 
 Seismic Source Model (``ssm``)
 ------------------------------
 
-This section describes the location of the Seismic Souce Model (SSM), and the
-components of the model that should be evaluated with Hamlet.
-
-The SSM must be in the modern OpenQuake format, and specified with a logic tree
-XML file.
+The SSM must be in the modern OpenQuake format. It can be specified either with
+a logic tree XML file or an OpenQuake job.ini file.
 
 Sub-parameters:
 
-* ``ssm_dir``
-    This parameter describes the filepath (either absolute or relative) to the
-    directory containing the seismic source model logic tree file.
+``ssm_dir``
+    Filepath (absolute or relative) to the directory containing the seismic
+    source model logic tree file.
 
-* ``ssm_lt_file``
-    This is the name of the logic tree XML file for the SSM, i.e. ``ssmLT.xml``
+``ssm_lt_file``
+    The name of the logic tree XML file for the SSM, i.e. ``ssmLT.xml``
     for most GEM Hazard Mosaic model repositories.
 
-* ``branch``
-    This specifies what branch is to be evaluated. Because different branches
+``job_ini_file``
+    Alternative to ``ssm_dir`` + ``ssm_lt_file``: path to an OpenQuake
+    ``job.ini`` file that specifies the source model. This is useful when
+    the source model configuration is complex.
+
+``branch``
+    Specifies which logic tree branch to evaluate. Because different branches
     are often mutually-exclusive, alternative descriptions of earthquake
     occurrence, evaluating multiple branches at once may greatly increase the
-    forecasted occurrence rates of earthquakes, and result in highly innacurate
-    evaluation of the model.
+    forecasted occurrence rates and result in inaccurate evaluation.
 
-* ``tectonic_region_types``
-    This parameter is optional but specifies which Tectonic Region Type(s)
-    should be evaluated. For example, one may want to evaluate different region
-    types separately, to better understand how well the model predicts
-    seismicity in active crust vs. stable regions.  The types must correspond to
-    those in the SSM.
+    Set to ``"iterate"`` to evaluate each branch independently in a single
+    Hamlet run. This loads the earthquake catalog once and then evaluates each
+    branch separately, producing combined results.
 
-    This can be specified as a list, or by passing ``null`` to consider all
-    tectonic region types.  For example:
+``tectonic_region_types``
+    Optional filter specifying which Tectonic Region Type(s) should be
+    evaluated. The types must correspond to those in the SSM. Pass as a YAML
+    list or omit/set to ``null`` to include all types.
 
-.. code-block:: yaml
+    .. code-block:: yaml
 
-    tectonic_region_types:
-        - Active Shallow Crust
-        - Stable Continental
+        tectonic_region_types:
+            - Active Shallow Crust
+            - Stable Continental
 
-
-* ``source_types``
-    This parameter is optional but specifies which source types are evaluated.
-    Options include ``simple_fault``, ``complex_fault``, ``area``, ``point``,
-    and ``multipoint``.  As with the ``tectonic_region_types``, the values need
-    to be passed as a YAML list, or the value of ``null`` should be given.
-    A single value may be passed as
-
-.. code-block:: yaml
-
-    source_types:
-        - point
+``source_types``
+    Optional filter specifying which source types to evaluate. Options include
+    ``simple_fault``, ``complex_fault``, ``area``, ``point``, ``multipoint``,
+    and ``MultiFaultSource``. Pass as a YAML list, or ``null`` for all types.
 
 
+Depth Filtering
+---------------
 
-Observed earthquake catalog (``seis_catalog``)
+``max_depth``
+    Optional. Maximum source depth in km. Sources deeper than this are
+    excluded from the evaluation. Specified at the ``input`` level (not
+    inside ``ssm``).
+
+    .. code-block:: yaml
+
+        input:
+          max_depth: 40
+
+
+Observed Earthquake Catalog (``seis_catalog``)
 ----------------------------------------------
 
 This set of parameters determines how the seismic catalog will be found and
 parsed so that it can be compared to the source model.
 
 ``seis_catalog_file``
-    This parameter gives the relative or absolute filepath and filename of the
-    CSV file that is the earthquake catalog.
+    Relative or absolute filepath to the CSV earthquake catalog file.
 
-``columns``
-    This parameter gives a list of the expected column names with the names of
-    the columns in the CSV file. The first set of column names are optional,
-    with very common defaults, and only need to be put into the YAML file
-    if the names to do not correspond to the defaults.  If the earthquake
-    catalog is made from the ISC-GEM or the GEM toolkits, these columns
-    do not need to be given in the YAML file:
+Temporal Parameters
+~~~~~~~~~~~~~~~~~~~
 
-    * ``x_col``
-        This defaults to ``longitude``.  If this column in the CSV is not
-        called ``longitude``, please pass the column name.
+Provide any two of ``start_date``, ``stop_date``, and ``duration``; the third
+will be calculated automatically. Alternatively, use a ``completeness_table``.
 
-    * ``y_col``
-        This defaults to ``latitude``.  If this is not the column name in the
-        CSV file, please pass the column name.
+``start_date``
+    Start of the catalog time window. Can be an integer (interpreted as
+    January 1 of that year) or a date string (e.g. ``"1976-01-01"``).
 
-    * ``depth``
-        This defaults to ``depth``. If this is not the column name in the
-        CSV file, please pass the column name.
+``stop_date``
+    End of the catalog time window. Same format as ``start_date``.
 
-    * ``magnitude``
-        This defaults to ``magnitude``. If this is not the column name in the
-        CSV file, please pass the column name.
+``duration``
+    Duration of the catalog in years (float).
 
-    The following columns have no defaults; if they are to be used, they should
-    be set here:
+``completeness_table``
+    A list of ``[year, magnitude]`` pairs defining the completeness threshold
+    over time. Each pair means "the catalog is complete above this magnitude
+    from this year onward." When used, the effective duration varies by
+    magnitude bin, which enables more accurate evaluation of models across
+    the magnitude range.
 
-    * ``source``
-        This column specifies the institutional source of the earthquake, not
-        the geological source.  In the GEM catalogs, this is commonly
-        ``Agency``.
+    .. code-block:: yaml
 
-    * ``event_id``
-        This is the ID of the earthquake.  In the GEM catalogs, this is
-        commonly ``eventID``.
+        completeness_table:
+          - [1960, 5.0]
+          - [1900, 7.2]
 
-    And finally, a more complex column, which is actually a set of columns in
-    many seismic catalogs:
+Column Mappings (``columns``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    * ``time``
-        This sub-parameter is an ordered list of the columns specifying the time
-        components that are used to make a single time for the earthquake (this
-        is done by making a :class:`datetime.datetime` time object; please see
-        `dateutil <https://dateutil.readthedocs.io/en/stable/>`_ for more
-        information). For the typical GEM catalog, the time sub-parameter will
-        be specified like this:
+Maps expected fields to actual column names in the CSV file. Only specify
+columns whose names differ from the defaults.
 
-.. code-block:: yaml
+* ``x_col`` -- Defaults to ``longitude``.
+* ``y_col`` -- Defaults to ``latitude``.
+* ``depth`` -- Defaults to ``depth``.
+* ``magnitude`` -- Defaults to ``magnitude``.
+* ``source`` -- No default. The institutional source of the earthquake
+  (e.g. ``Agency``).
+* ``event_id`` -- No default. The earthquake ID column (e.g. ``eventID``).
+* ``time`` -- Either a single column name containing a parseable timestamp,
+  or an ordered list of columns to construct the time:
 
-    time:
-        - year
-        - month
-        - day
-        - hour
-        - minute
-        - second
+  .. code-block:: yaml
 
-
-
+      time:
+          - year
+          - month
+          - day
+          - hour
+          - minute
+          - second
 
 
 Bins (``bins``)
 ---------------
-This section describes configuration for the
-:class:`~openquake.hme.utils.bins.SpacemagBin` s that are used throughout Hamlet.
 
-All of the parameters are optional, and should only be listed in the YAML file
-if the defaults are not suitable.
+This section configures the spatial and magnitude binning used throughout
+Hamlet.
 
-Sub-parameters:
+All parameters are optional:
 
-* ``bin_gis_file``
-    Optional path to a GIS file with polygons that will become the bins. The GIS
-    file will be read with `GeoPandas <geopandas.org>`_ and one can find
-    information on the acceptable vector GIS filetypes at that link.
+``h3_res``
+    The resolution of the `H3 <https://github.com/uber/h3-py>`_ hexagonal
+    grid used for spatial binning. Values range from 0 (coarsest, ~4,000 km
+    edge length) to 15 (finest). Default is ``3`` (~69 km edge length).
+    H3 hexagons are generated automatically based on the spatial extent of
+    the source model.
 
-    It is not recommended to use this option. If it is not given, then polygons
-    are created using Uber's `h3-py <https://github.com/uber/h3-py>`_ library
-    automatically (based on the spatial extent of the seismic source model),
-    which results in much faster testing and is far less of a hassle than
-    creating your own GIS file. However if the polygons should correspond to
-    e.g. seismic source zones for some purpose, then this option could be used.
+``mfd_bin_min``
+    Minimum magnitude for the MFD. Default: ``6.0``.
 
-* ``mfd_bin_max``
-    Maximum size of the model MFD to be considered. Defaults to 9.0.
+``mfd_bin_max``
+    Maximum magnitude for the MFD. Default: ``9.0``.
 
-* ``mfd_bin_min``
-    Minimum size of the model MFD to be considered. Defaults to 6.0.
+``mfd_bin_width``
+    Width of the magnitude bins. Default: ``0.2``.
 
-* ``mfd_bin_width``
-    Width of the bins for the MFD. Defaults to 0.2. Narrower bins may have
-    issues with lower-resolution source models or seismic catalogs.
+``bin_gis_file``
+    Optional path to a GIS file with polygons that define custom spatial bins.
+    The file is read with `GeoPandas <https://geopandas.org>`_. It is
+    recommended to use the default H3 hexagons instead, which are faster and
+    require no extra files.
+
+
+Rupture File Caching (``rupture_file``)
+---------------------------------------
+
+Loading ruptures from a source model can be slow for large models. These
+optional parameters let you save processed ruptures to disk and reload them
+in subsequent runs.
+
+.. code-block:: yaml
+
+    rupture_file:
+      read_rupture_file: false
+      save_rupture_file: false
+      rupture_file_path: ./ruptures.hdf5
+
+``read_rupture_file``
+    If ``true``, read ruptures from the file at ``rupture_file_path`` instead
+    of processing the SSM. Default: ``false``.
+
+``save_rupture_file``
+    If ``true``, save processed ruptures to ``rupture_file_path``. Default:
+    ``false``.
+
+``rupture_file_path``
+    Path to the rupture file. Supported formats: ``.hdf5``, ``.feather``,
+    ``.csv``.
+
+
+Spatial Subsetting (``subset``)
+-------------------------------
+
+Optional parameters to restrict the evaluation to a geographic subset of
+the model domain.
+
+.. code-block:: yaml
+
+    subset:
+      file: path/to/subset.geojson
+      buffer: 0.0
+
+``file``
+    Path to a GIS file containing the subset geometry.
+
+``buffer``
+    Buffer distance around the subset geometry (in the units of the GIS file's
+    coordinate reference system).
+
+
+Flatfile (``flatfile``)
+-----------------------
+
+Path to a ground motion flatfile (CSV). Required for the
+``catalog_ground_motion_eval`` test. Specified at the ``input`` level.
+
+.. code-block:: yaml
+
+    input:
+      flatfile: path/to/flatfile.csv
+
+
+Other Input Options
+-------------------
+
+``simple_ruptures``
+    Boolean. Use simplified rupture representations (point sources) for faster
+    processing. Default: ``True``.
+
 
 .. _report:
 
-Reporting
-=========
+Reporting (``report``)
+======================
 
-This optional section describes how reports (listing the results of the
-evaluations) will be written. Currently there is only one option, the ``basic``
-HTML report. This report will aggregate all of the tests or evaluations
-performed and summarize them, either in a map, plot, or table.
-
-It is suggested to use this option instead of writing plots directly
-either through the ``model_mfd`` test configuration, or the ``output``
-configuration below, as it is a nicer summary.  However if one has specific
-goals, then those other options may be used.
-
-To write the basic HTML report, put this section in the YAML:
+This optional section configures report generation. Currently there is one
+option, the ``basic`` HTML report, which aggregates all test and evaluation
+results into maps, plots, and tables.
 
 .. code-block:: yaml
 
     report:
-        basic:
-            outfile: /path/to/file.html
-
-In the future, more types of reports may be generated, but this is sufficient
-for now.
-
+      basic:
+        outfile: outputs/report.html
 
 
 .. _output:
 
-Outputs
-=======
+Outputs (``output``)
+====================
 
-This optional section specifies writing other outputs than reports (plots or GIS
-files). This option can give more fine-grained control over the outputs than the
-``report`` option, at this time. However the results are less convenient than
-writing a report.
-
-Parameters:
+This optional section specifies additional output files beyond reports.
 
 ``bin_gdf``
-    If this parameter is passed, a GeoJSON file will be written that contains
-    much of the information in the Hamlet evaluation, including test results,
-    for each spatial bin.  The filename to be used is given with a sub-parameter
-    ``file``:
+    If given, a GeoJSON file is written containing per-cell test results
+    and other evaluation data.
+
+    .. code-block:: yaml
+
+        output:
+          bin_gdf:
+            file: outputs/bins.geojson
+
+
+JSON Output (``json``)
+======================
+
+Optional. Write test results as a JSON file.
 
 .. code-block:: yaml
 
-    bin_gdf:
-        file: /path/to/file.geojson
+    json:
+      outfile: outputs/results.json
 
 
-``plots``
-    This is a parameter (that may be soon deprecated) describing how an MFD plot
-    should be written.  It can offer more control than the other options,
-    but is not not thoroughly documented at this time.
+Minimal Example
+===============
+
+.. literalinclude:: example_configs/minimal_config.yml
+    :language: yaml
 
 
-Putting it all together
+Comprehensive Reference
 =======================
 
-A simple example is taken from the test suite below:
+The complete reference configuration with all options documented is available
+at ``doc_src/source/example_configs/reference_config.yml`` in the repository.
 
-.. literalinclude:: ../../tests/model_test_frameworks/gem/integration_tests/gem_sm1/test_sm1_poisson.yml
+.. literalinclude:: example_configs/reference_config.yml
     :language: yaml
