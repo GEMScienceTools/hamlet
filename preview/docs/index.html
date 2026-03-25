@@ -301,7 +301,7 @@ Foundation</a>, and uses the <a class="reference external" href="https://github.
 GEM and some of those developed outside of GEM such as the <a class="reference external" href="http://cseptesting.org/documents/relm.php">RELM</a>/CSEP tests.
 The model files must be in the <a class="reference external" href="https://github.com/GEM/oq-engine">OpenQuake</a> format (or as a suitably-formatted
 CSV of ruptures).</p>
-<p>Many of the Hamlet evaluations are spatial in nature; the model domain is
+<p>Many of the Hamlet tests and evaluations are spatial in nature; the model domain is
 discretized into grid cells, and comparisons between observations and model
 predictions are performed in each grid cell, to highlight where in the domain
 the model matches the observations, and where it might need some refinement.</p>
@@ -311,6 +311,10 @@ component can be evaluated against its corresponding data. For example, each
 branch of a source model logic tree can be tested independently, and each type
 of source (e.g., subduction megathrust, crustal, in-slab) can be tested
 independently as well, in the spatial framework described above.</p>
+<p>A quick note on terminology: We use the word ‘test’ for an analysis that has a
+pass/fail outcome tied to a criterion, and ‘evaluation’ for an analysis that
+provides some quantitative or qualitative information on model performance but
+is not linked to a pass/fail outcome.</p>
 <section id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h2>
 <section id="installation">
@@ -337,7 +341,7 @@ to run. Once installed, Hamlet can be run from the command line:</p>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">test_model.yml</span></code> is a <a class="reference internal" href="yaml_config_file.html"><span class="doc">configuration file</span></a> in <a class="reference external" href="https://yaml.org">YAML</a>
-format that specifies the source model, seismic catalog, tests to be run, and
+format that specifies the source model, seismic catalog, tests and evaluations to be run, and
 other variables and parameters.</p>
 </section>
 </section>
@@ -358,7 +362,6 @@ other variables and parameters.</p>
 <li class="toctree-l2"><a class="reference internal" href="yaml_config_file.html#test-and-evaluation-configuration-config">Test and Evaluation Configuration (<code class="docutils literal notranslate"><span class="pre">config</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="yaml_config_file.html#inputs-input">Inputs (<code class="docutils literal notranslate"><span class="pre">input</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="yaml_config_file.html#reporting-report">Reporting (<code class="docutils literal notranslate"><span class="pre">report</span></code>)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="yaml_config_file.html#outputs-output">Outputs (<code class="docutils literal notranslate"><span class="pre">output</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="yaml_config_file.html#json-output-json">JSON Output (<code class="docutils literal notranslate"><span class="pre">json</span></code>)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="yaml_config_file.html#minimal-example">Minimal Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="yaml_config_file.html#comprehensive-reference">Comprehensive Reference</a></li>

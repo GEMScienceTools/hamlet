@@ -314,7 +314,7 @@ branches can be evaluated independently in one run by setting <code class="docut
 <p>It is recommended to add a new <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> directory with <code class="docutils literal notranslate"><span class="pre">data</span></code> and <code class="docutils literal notranslate"><span class="pre">output</span></code>
 sub-directories.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">data</span></code> directory can hold the seismic catalogs and, if
-necessary, GIS files specifying the model domain and grid cells.</p>
+necessary, GIS files specifying subdomains of the model.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">output</span></code> directory will hold the HTML reports and any other outputs that are
 written during the testing procedure.</p>
 <p>The <a class="reference external" href="yaml_config_file.html">YAML configuration files</a> can be placed in the main <code class="docutils literal notranslate"><span class="pre">hamlet</span></code> directory:</p>
@@ -327,10 +327,11 @@ written during the testing procedure.</p>
         <span class="n">data</span><span class="o">/</span>
             <span class="n">crustal_catalog</span><span class="o">.</span><span class="n">csv</span>
             <span class="n">slab_catalog</span><span class="o">.</span><span class="n">csv</span>
-            <span class="n">full_catalog</span><span class="o">.</span><span class="n">csv</span> <span class="p">(</span><span class="n">unused</span> <span class="ow">in</span> <span class="n">testing</span><span class="p">)</span>
+            <span class="n">full_catalog</span><span class="o">.</span><span class="n">csv</span>
         <span class="n">output</span><span class="o">/</span>
         <span class="n">test_ssm_crustal</span><span class="o">.</span><span class="n">yml</span>
         <span class="n">test_ssm_slab</span><span class="o">.</span><span class="n">yml</span>
+        <span class="n">test_ssm_all</span><span class="o">.</span><span class="n">yml</span>
 </pre></div>
 </div>
 <p>However, the user is free to organize the Hamlet files in any way; there is no
@@ -353,13 +354,19 @@ necessarily when commits to <code class="docutils literal notranslate"><span cla
 </section>
 <section id="prepare-the-earthquake-catalog-s">
 <h2>Prepare the earthquake catalog(s)<a class="headerlink" href="#prepare-the-earthquake-catalog-s" title="Link to this heading">¶</a></h2>
-<p>The earthquake catalog should be declustered and, ideally, classified according
-to the source types of the earthquakes (i.e., subduction thrust, in-slab,
-crustal, etc.).</p>
+<p>The earthquake catalog should be declustered and, if desired, classified
+according to the source types of the earthquakes (i.e., subduction thrust,
+in-slab, crustal, etc.).</p>
 <p>The catalog(s) must be CSV files, with columns describing the fields and one row
 for each earthquake.</p>
 <section id="temporal-completeness">
 <h3>Temporal completeness<a class="headerlink" href="#temporal-completeness" title="Link to this heading">¶</a></h3>
+<p>The temporal completeness of the catalog is very important for testing. In
+general, a longer catalog will have a better sampling of events and therefore
+be less noisy (i.e. a more consistent b-value). However before the 1970s,
+catalogs in many areas do not have all earthquakes below, say, magnitude 7.
+Therefore, it is desirable to understand the temporal completeness of the
+catalog, so that you can only test against what is considered complete.</p>
 <p>The catalog’s temporal completeness can be specified in one of two ways:</p>
 <ol class="simple">
 <li><p><strong>Simple date range</strong>: Provide any two of <code class="docutils literal notranslate"><span class="pre">start_date</span></code>, <code class="docutils literal notranslate"><span class="pre">stop_date</span></code>, and
@@ -395,6 +402,9 @@ should be split into separate files for each subset.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">hamlet</span> <span class="n">test_ssm_crustal</span><span class="o">.</span><span class="n">yml</span>
 </pre></div>
 </div>
+<p>The progress of the model processing and the evaluation results will be printed
+to the terminal. However, the most useful and informative product is an html
+file that has graphics for all the tests and some model information as well.</p>
 <p>Additional command-line options:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">hamlet</span> <span class="pre">--version</span></code> or <code class="docutils literal notranslate"><span class="pre">hamlet</span> <span class="pre">-v</span></code>: Print the version and exit.</p></li>

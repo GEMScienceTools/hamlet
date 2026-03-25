@@ -293,7 +293,7 @@
           <section id="the-yaml-configuration-file">
 <span id="yaml-config"></span><h1>The YAML configuration file<a class="headerlink" href="#the-yaml-configuration-file" title="Link to this heading">¶</a></h1>
 <p>A Hamlet evaluation is configured using a <a class="reference external" href="https://yaml.org">YAML</a> file,
-which describes the tests that should be run and any required parameters, the
+which describes the tests and evaluations that should be run and any required parameters, the
 location of the input files, and what outputs should be written. The file is
 made into a dictionary that is used to guide the Hamlet run, so the order
 of items is not important.</p>
@@ -313,13 +313,13 @@ writing reports.</p>
 </section>
 <section id="test-and-evaluation-configuration-config">
 <span id="eval-config"></span><h2>Test and Evaluation Configuration (<code class="docutils literal notranslate"><span class="pre">config</span></code>)<a class="headerlink" href="#test-and-evaluation-configuration-config" title="Link to this heading">¶</a></h2>
-<p>This section specifies which test frameworks and tests to run, along with their
-parameters.</p>
+<p>This section specifies which frameworks, tests, and evaluations to run, along
+with their parameters.</p>
 <section id="model-framework">
 <h3><code class="docutils literal notranslate"><span class="pre">model_framework</span></code><a class="headerlink" href="#model-framework" title="Link to this heading">¶</a></h3>
-<p>This is a dictionary of test frameworks to run. Each framework key contains
-its own tests as sub-keys. Multiple frameworks can be run in a single
-evaluation. Available frameworks are:</p>
+<p>This is a dictionary of frameworks to run. Each framework key contains
+its own tests and evaluations as sub-keys. Multiple frameworks can be run in a
+single Hamlet run. Available frameworks are:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">gem</span></code> – GEM tests and evaluations (see <a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#gem-tests-evaluations"><span class="std std-ref">GEM Tests and Evaluations</span></a>). The
 most supported and/or configurable versions of all tests and evaluations are
@@ -328,9 +328,9 @@ available here. It is recommended to use these.</p></li>
 found with specific defaults set.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">sanity</span></code> – Basic sanity checks (see <a class="reference internal" href="model_test_frameworks/model_test_frameworks.html#sanity-checks"><span class="std std-ref">Sanity Checks</span></a>).</p></li>
 </ul>
-<p>Tests are nested directly under their framework, with their configuration
-parameters as sub-keys. Use an empty dictionary (<code class="docutils literal notranslate"><span class="pre">{}</span></code>) for tests that
-need no configuration.</p>
+<p>Tests and evaluations are nested directly under their framework, with their
+configuration parameters as sub-keys. Use an empty dictionary (<code class="docutils literal notranslate"><span class="pre">{}</span></code>) for
+those that need no configuration.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">config</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">model_framework</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">gem</span><span class="p">:</span>
@@ -354,14 +354,16 @@ need no configuration.</p>
 <dl>
 <dt><code class="docutils literal notranslate"><span class="pre">parallel</span></code></dt><dd><p>A Boolean (<code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>) flag that determines whether
 parallel algorithms are used for loading the seismic source model and
-performing the more time-intensive tests (such as Monte Carlo based tests).</p>
+performing the more time-intensive tests and evaluations (such as Monte
+Carlo based consistency tests and moment analysis).</p>
 <p>This flag should be <code class="docutils literal notranslate"><span class="pre">True</span></code> for medium to large models, unless RAM is a
 major limitation. For small models, it may be faster to run on a single
 core, because the overhead in instantiating multiple processes can be
 substantial.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">rand_seed</span></code></dt><dd><p>An optional integer <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html">random seed</a> for reproducible Monte Carlo simulations
-and other functions using random sampling.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">rand_seed</span></code></dt><dd><p>An optional integer <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.random.seed.html">random seed</a> for reproducible random sampling (which
+is fundamental in Hamlet, as stochastic catalogs are generated for most
+tests and evaluations).</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">log_file</span></code></dt><dd><p>An optional path to a log file. If given, log output is written to this
 file in addition to the console.</p>
@@ -376,7 +378,9 @@ the observed earthquake catalog, and the configuration of the spatial bins.</p>
 <section id="seismic-source-model-ssm">
 <h3>Seismic Source Model (<code class="docutils literal notranslate"><span class="pre">ssm</span></code>)<a class="headerlink" href="#seismic-source-model-ssm" title="Link to this heading">¶</a></h3>
 <p>The SSM must be in the modern OpenQuake format. It can be specified either with
-a logic tree XML file or an OpenQuake job.ini file.</p>
+a logic tree XML file or an OpenQuake job.ini file. All SSM parameters default
+to <code class="docutils literal notranslate"><span class="pre">null</span></code> when not specified (see <code class="docutils literal notranslate"><span class="pre">cfg_defaults</span></code> in
+<code class="docutils literal notranslate"><span class="pre">openquake.hme.core.core</span></code>).</p>
 <p>Sub-parameters:</p>
 <dl>
 <dt><code class="docutils literal notranslate"><span class="pre">ssm_dir</span></code></dt><dd><p>Filepath (absolute or relative) to the directory containing the seismic
@@ -412,13 +416,18 @@ and <code class="docutils literal notranslate"><span class="pre">MultiFaultSourc
 </dd>
 </dl>
 </section>
-<section id="depth-filtering">
-<h3>Depth Filtering<a class="headerlink" href="#depth-filtering" title="Link to this heading">¶</a></h3>
+<section id="depth-filtering-optional">
+<h3>Depth Filtering (Optional)<a class="headerlink" href="#depth-filtering-optional" title="Link to this heading">¶</a></h3>
 <dl>
+<dt><code class="docutils literal notranslate"><span class="pre">min_depth</span></code></dt><dd><p>Optional. Minimum source depth in km. Sources shallower than this are
+excluded from the evaluation. Default: <code class="docutils literal notranslate"><span class="pre">0.0</span></code>. Specified at the
+<code class="docutils literal notranslate"><span class="pre">input</span></code> level (not inside <code class="docutils literal notranslate"><span class="pre">ssm</span></code>).</p>
+</dd>
 <dt><code class="docutils literal notranslate"><span class="pre">max_depth</span></code></dt><dd><p>Optional. Maximum source depth in km. Sources deeper than this are
-excluded from the evaluation. Specified at the <code class="docutils literal notranslate"><span class="pre">input</span></code> level (not
-inside <code class="docutils literal notranslate"><span class="pre">ssm</span></code>).</p>
+excluded from the evaluation. Default: no limit. Specified at the
+<code class="docutils literal notranslate"><span class="pre">input</span></code> level (not inside <code class="docutils literal notranslate"><span class="pre">ssm</span></code>).</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">input</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">min_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
 <span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40</span>
 </pre></div>
 </div>
@@ -489,24 +498,22 @@ or an ordered list of columns to construct the time:</p>
 <h3>Bins (<code class="docutils literal notranslate"><span class="pre">bins</span></code>)<a class="headerlink" href="#bins-bins" title="Link to this heading">¶</a></h3>
 <p>This section configures the spatial and magnitude binning used throughout
 Hamlet.</p>
-<p>All parameters are optional:</p>
+<p>Default values for many parameters (including <code class="docutils literal notranslate"><span class="pre">h3_res</span></code>, <code class="docutils literal notranslate"><span class="pre">simple_ruptures</span></code>,
+<code class="docutils literal notranslate"><span class="pre">subset</span></code>, and <code class="docutils literal notranslate"><span class="pre">rupture_file</span></code> options) are defined in
+<code class="docutils literal notranslate"><span class="pre">openquake.hme.core.core.cfg_defaults</span></code> and are applied automatically when
+not specified in the YAML file.</p>
 <dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">h3_res</span></code></dt><dd><p>The resolution of the <a class="reference external" href="https://github.com/uber/h3-py">H3</a> hexagonal
 grid used for spatial binning. Values range from 0 (coarsest, ~4,000 km
-edge length) to 15 (finest). Default is <code class="docutils literal notranslate"><span class="pre">3</span></code> (~69 km edge length).
+edge length) to 15 (finest). Default: <code class="docutils literal notranslate"><span class="pre">3</span></code> (~69 km edge length).
 H3 hexagons are generated automatically based on the spatial extent of
 the source model.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_min</span></code></dt><dd><p>Minimum magnitude for the MFD. Default: <code class="docutils literal notranslate"><span class="pre">6.0</span></code>.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_min</span></code></dt><dd><p>Minimum magnitude for the MFD. Required.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_max</span></code></dt><dd><p>Maximum magnitude for the MFD. Default: <code class="docutils literal notranslate"><span class="pre">9.0</span></code>.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_max</span></code></dt><dd><p>Maximum magnitude for the MFD. Required.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_width</span></code></dt><dd><p>Width of the magnitude bins. Default: <code class="docutils literal notranslate"><span class="pre">0.2</span></code>.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">bin_gis_file</span></code></dt><dd><p>Optional path to a GIS file with polygons that define custom spatial bins.
-The file is read with <a class="reference external" href="https://geopandas.org">GeoPandas</a>. It is
-recommended to use the default H3 hexagons instead, which are faster and
-require no extra files.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">mfd_bin_width</span></code></dt><dd><p>Width of the magnitude bins. Required.</p>
 </dd>
 </dl>
 </section>
@@ -514,7 +521,8 @@ require no extra files.</p>
 <h3>Rupture File Caching (<code class="docutils literal notranslate"><span class="pre">rupture_file</span></code>)<a class="headerlink" href="#rupture-file-caching-rupture-file" title="Link to this heading">¶</a></h3>
 <p>Loading ruptures from a source model can be slow for large models. These
 optional parameters let you save processed ruptures to disk and reload them
-in subsequent runs.</p>
+in subsequent runs, if you have not changed the model and are just changing the
+test configuration (branches, depth ranges, catalog completeness, etc.).</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">rupture_file</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">read_rupture_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">  </span><span class="nt">save_rupture_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
@@ -543,27 +551,29 @@ the model domain.</p>
 </pre></div>
 </div>
 <dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">file</span></code></dt><dd><p>Path to a GIS file containing the subset geometry.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">file</span></code></dt><dd><p>Path to a GIS file containing the subset geometry. Default: <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">buffer</span></code></dt><dd><p>Buffer distance around the subset geometry (in the units of the GIS file’s
-coordinate reference system).</p>
+coordinate reference system). Default: <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p>
 </dd>
 </dl>
 </section>
 <section id="flatfile-flatfile">
 <h3>Flatfile (<code class="docutils literal notranslate"><span class="pre">flatfile</span></code>)<a class="headerlink" href="#flatfile-flatfile" title="Link to this heading">¶</a></h3>
 <p>Path to a ground motion flatfile (CSV). Required for the
-<code class="docutils literal notranslate"><span class="pre">catalog_ground_motion_eval</span></code> test. Specified at the <code class="docutils literal notranslate"><span class="pre">input</span></code> level.</p>
+<code class="docutils literal notranslate"><span class="pre">catalog_ground_motion_eval</span></code> evaluation. Specified at the <code class="docutils literal notranslate"><span class="pre">input</span></code> level.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">input</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">flatfile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/flatfile.csv</span>
 </pre></div>
 </div>
+<p>Note that this requires a flatfile that is constructed with a format that is
+used internally at GEM (and currently undocumented, pending publication). Until
+the format stabilizes, there will almost certainly be problems.</p>
 </section>
 <section id="other-input-options">
 <h3>Other Input Options<a class="headerlink" href="#other-input-options" title="Link to this heading">¶</a></h3>
 <dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">simple_ruptures</span></code></dt><dd><p>Boolean. Use simplified rupture representations (point sources) for faster
-processing. Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">simple_ruptures</span></code></dt><dd><p>Boolean. Use simplified rupture representations (hypocenter point sources) for faster processing. Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
 </dd>
 </dl>
 </section>
@@ -579,22 +589,8 @@ results into maps, plots, and tables.</p>
 </pre></div>
 </div>
 </section>
-<section id="outputs-output">
-<span id="output"></span><h2>Outputs (<code class="docutils literal notranslate"><span class="pre">output</span></code>)<a class="headerlink" href="#outputs-output" title="Link to this heading">¶</a></h2>
-<p>This optional section specifies additional output files beyond reports.</p>
-<dl>
-<dt><code class="docutils literal notranslate"><span class="pre">bin_gdf</span></code></dt><dd><p>If given, a GeoJSON file is written containing per-cell test results
-and other evaluation data.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">output</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">bin_gdf</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs/bins.geojson</span>
-</pre></div>
-</div>
-</dd>
-</dl>
-</section>
 <section id="json-output-json">
-<h2>JSON Output (<code class="docutils literal notranslate"><span class="pre">json</span></code>)<a class="headerlink" href="#json-output-json" title="Link to this heading">¶</a></h2>
+<span id="output"></span><h2>JSON Output (<code class="docutils literal notranslate"><span class="pre">json</span></code>)<a class="headerlink" href="#json-output-json" title="Link to this heading">¶</a></h2>
 <p>Optional. Write test results as a JSON file.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">json</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">outfile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs/results.json</span>
@@ -668,6 +664,8 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="c1"># This file documents every available configuration option. It is not meant</span>
 <span class="c1"># to be used as-is; copy it and remove or modify the sections you need.</span>
 <span class="c1"># Options marked [optional] can be omitted; defaults are noted where they exist.</span>
+<span class="c1"># Many defaults are defined in openquake.hme.core.core.cfg_defaults and are</span>
+<span class="c1"># applied automatically when not specified.</span>
 <span class="c1">###############################################################################</span>
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -686,9 +684,9 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="c1"># model_framework</span>
 <span class="w">  </span><span class="c1">#</span>
-<span class="w">  </span><span class="c1"># A dictionary of test frameworks to run. Each framework contains its own</span>
-<span class="w">  </span><span class="c1"># set of tests as keys. Multiple frameworks can be run in a single</span>
-<span class="w">  </span><span class="c1"># evaluation. Available frameworks: gem, relm, sanity, model_description.</span>
+<span class="w">  </span><span class="c1"># A dictionary of frameworks to run. Each framework contains its own</span>
+<span class="w">  </span><span class="c1"># tests and evaluations as keys. Multiple frameworks can be run in a</span>
+<span class="w">  </span><span class="c1"># single Hamlet run. Available frameworks: gem, relm, sanity.</span>
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="nt">model_framework</span><span class="p">:</span>
 
@@ -868,15 +866,11 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">  </span><span class="c1"># Spatial and magnitude binning</span>
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="nt">bins</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">mfd_bin_min</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6.0</span><span class="w">               </span><span class="c1"># [optional] Minimum magnitude; default 6.0</span>
-<span class="w">    </span><span class="nt">mfd_bin_max</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9.0</span><span class="w">               </span><span class="c1"># [optional] Maximum magnitude; default 9.0</span>
-<span class="w">    </span><span class="nt">mfd_bin_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span><span class="w">             </span><span class="c1"># [optional] Bin width; default 0.2</span>
+<span class="w">    </span><span class="nt">mfd_bin_min</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6.0</span><span class="w">               </span><span class="c1"># Minimum magnitude (required)</span>
+<span class="w">    </span><span class="nt">mfd_bin_max</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9.0</span><span class="w">               </span><span class="c1"># Maximum magnitude (required)</span>
+<span class="w">    </span><span class="nt">mfd_bin_width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span><span class="w">             </span><span class="c1"># Bin width (required)</span>
 <span class="w">    </span><span class="nt">h3_res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w">                      </span><span class="c1"># [optional] H3 hexagonal grid resolution</span>
 <span class="w">                                   </span><span class="c1"># (0-15, where 0 is coarsest); default 3</span>
-<span class="w">    </span><span class="c1"># bin_gis_file: null           # [optional] Path to a GIS file with custom</span>
-<span class="w">                                   </span><span class="c1"># spatial bin polygons. If not given, H3</span>
-<span class="w">                                   </span><span class="c1"># hexagons are generated automatically</span>
-<span class="w">                                   </span><span class="c1"># (recommended).</span>
 
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="c1"># Seismic Source Model (SSM)</span>
@@ -889,26 +883,27 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">    </span><span class="nt">ssm_lt_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssmLT.xml</span><span class="w">         </span><span class="c1"># Logic tree XML file name</span>
 <span class="w">    </span><span class="c1"># job_ini_file: job.ini        # [optional] Alternative: specify an</span>
 <span class="w">                                   </span><span class="c1"># OpenQuake job.ini file instead of</span>
-<span class="w">                                   </span><span class="c1"># ssm_dir + ssm_lt_file</span>
+<span class="w">                                   </span><span class="c1"># ssm_dir + ssm_lt_file. Default: null</span>
 
 <span class="w">    </span><span class="nt">branch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">b1</span><span class="w">                     </span><span class="c1"># [optional] Logic tree branch to evaluate.</span>
 <span class="w">                                   </span><span class="c1"># Set to &quot;iterate&quot; to evaluate each branch</span>
-<span class="w">                                   </span><span class="c1"># independently in a single run.</span>
+<span class="w">                                   </span><span class="c1"># independently in a single run. Default: null</span>
 
 <span class="w">    </span><span class="nt">tectonic_region_types</span><span class="p">:</span><span class="w">         </span><span class="c1"># [optional] Filter by tectonic region type.</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Active Shallow Crust</span><span class="w">      </span><span class="c1"># Must match types in the SSM. Use null or</span>
-<span class="w">                                   </span><span class="c1"># omit to include all types.</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Active Shallow Crust</span><span class="w">      </span><span class="c1"># Must match types in the SSM. Default: null</span>
+<span class="w">                                   </span><span class="c1"># (all types included).</span>
 
-<span class="w">    </span><span class="nt">source_types</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">             </span><span class="c1"># [optional] Filter by source type. Options:</span>
+<span class="w">    </span><span class="nt">source_types</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">             </span><span class="c1"># [optional] Filter by source type. Default: null. Options:</span>
 <span class="w">                                   </span><span class="c1"># simple_fault, complex_fault, area, point,</span>
 <span class="w">                                   </span><span class="c1"># multipoint, MultiFaultSource.</span>
 <span class="w">                                   </span><span class="c1"># Pass as a list or null for all.</span>
 
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="c1"># Depth filtering [optional]</span>
+<span class="w">  </span><span class="c1"># Sources outside this depth range are excluded from evaluation.</span>
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
-<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40</span><span class="w">                    </span><span class="c1"># [optional] Maximum source depth in km.</span>
-<span class="w">                                   </span><span class="c1"># Sources deeper than this are excluded.</span>
+<span class="w">  </span><span class="nt">min_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">                     </span><span class="c1"># [optional] Minimum source depth in km; default: 0.0</span>
+<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40</span><span class="w">                    </span><span class="c1"># [optional] Maximum source depth in km; default: no limit</span>
 
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="c1"># Rupture file caching [optional]</span>
@@ -916,9 +911,9 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">  </span><span class="c1"># save processed ruptures to disk and reload them in subsequent runs.</span>
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="nt">rupture_file</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">read_rupture_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># Read ruptures from file instead of SSM</span>
-<span class="w">    </span><span class="nt">save_rupture_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># Save processed ruptures to file</span>
-<span class="w">    </span><span class="nt">rupture_file_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./ruptures.hdf5</span><span class="w">  </span><span class="c1"># Path to the rupture file.</span>
+<span class="w">    </span><span class="nt">read_rupture_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># Read ruptures from file instead of SSM; default: false</span>
+<span class="w">    </span><span class="nt">save_rupture_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># Save processed ruptures to file; default: false</span>
+<span class="w">    </span><span class="nt">rupture_file_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./ruptures.hdf5</span><span class="w">  </span><span class="c1"># Path to the rupture file; default: null</span>
 <span class="w">                                   </span><span class="c1"># Supported formats: .hdf5, .feather, .csv</span>
 
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
@@ -926,8 +921,8 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">  </span><span class="c1"># Restrict the evaluation to a geographic subset of the model domain.</span>
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="nt">subset</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/subset.geojson</span><span class="w">   </span><span class="c1"># GIS file with subset geometry</span>
-<span class="w">    </span><span class="nt">buffer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span><span class="w">                    </span><span class="c1"># Buffer distance around the subset geometry</span>
+<span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/subset.geojson</span><span class="w">   </span><span class="c1"># GIS file with subset geometry; default: null</span>
+<span class="w">    </span><span class="nt">buffer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span><span class="w">                    </span><span class="c1"># Buffer distance around the subset geometry; default: 0.0</span>
 
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="c1"># Flatfile for ground motion evaluation [optional]</span>
@@ -938,9 +933,9 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="c1"># Simple ruptures [optional]</span>
 <span class="w">  </span><span class="c1"># Use simplified rupture representations (point sources) for faster</span>
-<span class="w">  </span><span class="c1"># processing. Default: True.</span>
+<span class="w">  </span><span class="c1"># processing. Default: true (from cfg_defaults).</span>
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
-<span class="w">  </span><span class="nt">simple_ruptures</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">simple_ruptures</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 
 <span class="w">  </span><span class="c1"># -------------------------------------------------------------------------</span>
 <span class="w">  </span><span class="c1"># Observed Earthquake Catalog</span>
@@ -1001,15 +996,6 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">  </span><span class="nt">basic</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">outfile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs/report.html</span>
 
-
-<span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="c1"># Outputs [optional]</span>
-<span class="c1"># Additional output files beyond the report.</span>
-<span class="c1"># ---------------------------------------------------------------------------</span>
-<span class="nt">output</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># GeoJSON file with per-cell test results</span>
-<span class="w">  </span><span class="nt">bin_gdf</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs/bins.geojson</span>
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="c1"># JSON output [optional]</span>
@@ -1085,7 +1071,7 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 </li>
 <li><a class="reference internal" href="#inputs-input">Inputs (<code class="docutils literal notranslate"><span class="pre">input</span></code>)</a><ul>
 <li><a class="reference internal" href="#seismic-source-model-ssm">Seismic Source Model (<code class="docutils literal notranslate"><span class="pre">ssm</span></code>)</a></li>
-<li><a class="reference internal" href="#depth-filtering">Depth Filtering</a></li>
+<li><a class="reference internal" href="#depth-filtering-optional">Depth Filtering (Optional)</a></li>
 <li><a class="reference internal" href="#observed-earthquake-catalog-seis-catalog">Observed Earthquake Catalog (<code class="docutils literal notranslate"><span class="pre">seis_catalog</span></code>)</a><ul>
 <li><a class="reference internal" href="#temporal-parameters">Temporal Parameters</a></li>
 <li><a class="reference internal" href="#column-mappings-columns">Column Mappings (<code class="docutils literal notranslate"><span class="pre">columns</span></code>)</a></li>
@@ -1099,7 +1085,6 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 </ul>
 </li>
 <li><a class="reference internal" href="#reporting-report">Reporting (<code class="docutils literal notranslate"><span class="pre">report</span></code>)</a></li>
-<li><a class="reference internal" href="#outputs-output">Outputs (<code class="docutils literal notranslate"><span class="pre">output</span></code>)</a></li>
 <li><a class="reference internal" href="#json-output-json">JSON Output (<code class="docutils literal notranslate"><span class="pre">json</span></code>)</a></li>
 <li><a class="reference internal" href="#minimal-example">Minimal Example</a></li>
 <li><a class="reference internal" href="#comprehensive-reference">Comprehensive Reference</a></li>

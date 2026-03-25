@@ -9,7 +9,7 @@ Hamlet follows this workflow:
 
 1. Read in :doc:`YAML configuration file <./yaml_config_file>`, that specifies:
 
-   - Which tests to be run, and their parameters
+   - Which tests and evaluations to run, and their parameters
 
    - Input files:
 
@@ -42,19 +42,19 @@ Hamlet follows this workflow:
    - Computes both model and empirical Magnitude-Frequency Distributions (MFDs)
      for each spatial bin
 
-4. Run the tests:
+4. Run the tests and evaluations:
 
    - Basic sanity checks (e.g., whether the observed earthquake maximum
      magnitude exceeds the model maximum magnitude in each spatial bin)
 
-   - Statistical evaluation (N-test, M-test, S-test, L-test, and others,
-     evaluating count, magnitude, spatial, and likelihood consistency)
+   - Statistical consistency tests (N-test, M-test, S-test, L-test,
+     comparing count, magnitude, spatial, and likelihood consistency)
 
-   - Model characterization (MFD comparisons, moment rate analysis, rupture
+   - Evaluations (MFD comparisons, moment rate analysis, rupture
      matching, ground motion evaluation)
 
-   - Multiple tests can be run sequentially, and multiple frameworks can be
-     used in a single run
+   - Multiple tests and evaluations can be run sequentially, and multiple
+     frameworks can be used in a single run
 
 5. Write output:
 
@@ -62,7 +62,7 @@ Hamlet follows this workflow:
 
    - GIS files (GeoJSON) with the test results for each spatial bin
 
-   - JSON files with structured test results
+   - JSON files with structured results
 
 
 Branch Iteration
@@ -81,7 +81,7 @@ logic tree branch independently in a single run:
 
    b. Input data is grouped into spatial bins
 
-   c. All configured tests are run
+   c. All configured tests and evaluations are run
 
    d. Results are collected and memory is freed
 

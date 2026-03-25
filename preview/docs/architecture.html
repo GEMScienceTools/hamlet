@@ -298,7 +298,7 @@ of model consistency and performance against an observed earthquake catalog.</p>
 <ol class="arabic simple">
 <li><p>Read in <a class="reference internal" href="yaml_config_file.html"><span class="doc">YAML configuration file</span></a>, that specifies:</p>
 <ul class="simple">
-<li><p>Which tests to be run, and their parameters</p></li>
+<li><p>Which tests and evaluations to run, and their parameters</p></li>
 <li><p>Input files:</p>
 <ul>
 <li><p>Seismic Source Model files</p></li>
@@ -330,23 +330,23 @@ to spatially bin ruptures and observed earthquakes</p></li>
 for each spatial bin</p></li>
 </ul>
 </li>
-<li><p>Run the tests:</p>
+<li><p>Run the tests and evaluations:</p>
 <ul class="simple">
 <li><p>Basic sanity checks (e.g., whether the observed earthquake maximum
 magnitude exceeds the model maximum magnitude in each spatial bin)</p></li>
-<li><p>Statistical evaluation (N-test, M-test, S-test, L-test, and others,
-evaluating count, magnitude, spatial, and likelihood consistency)</p></li>
-<li><p>Model characterization (MFD comparisons, moment rate analysis, rupture
+<li><p>Statistical consistency tests (N-test, M-test, S-test, L-test,
+comparing count, magnitude, spatial, and likelihood consistency)</p></li>
+<li><p>Evaluations (MFD comparisons, moment rate analysis, rupture
 matching, ground motion evaluation)</p></li>
-<li><p>Multiple tests can be run sequentially, and multiple frameworks can be
-used in a single run</p></li>
+<li><p>Multiple tests and evaluations can be run sequentially, and multiple
+frameworks can be used in a single run</p></li>
 </ul>
 </li>
 <li><p>Write output:</p>
 <ul class="simple">
 <li><p>HTML reports summarizing the results with maps, plots, and tables</p></li>
 <li><p>GIS files (GeoJSON) with the test results for each spatial bin</p></li>
-<li><p>JSON files with structured test results</p></li>
+<li><p>JSON files with structured results</p></li>
 </ul>
 </li>
 </ol>
@@ -361,7 +361,7 @@ logic tree branch independently in a single run:</p>
 <ol class="loweralpha simple">
 <li><p>Ruptures are processed for that branch only</p></li>
 <li><p>Input data is grouped into spatial bins</p></li>
-<li><p>All configured tests are run</p></li>
+<li><p>All configured tests and evaluations are run</p></li>
 <li><p>Results are collected and memory is freed</p></li>
 </ol>
 </li>
