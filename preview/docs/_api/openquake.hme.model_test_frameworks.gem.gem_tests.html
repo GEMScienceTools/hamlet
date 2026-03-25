@@ -297,37 +297,37 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">L_test</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>GEM L-Test: joint likelihood test combining spatial and magnitude information to evaluate overall model consistency.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">M_test</span></code>(cfg, input_data)</p></td>
 <td><p>The M-Test is based on Zechar et al. (2010), though not identical.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">N_test</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>GEM N-Test: compares the total observed earthquake count to the number predicted by the model using a Poisson confidence interval.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">S_test</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>GEM S-Test: evaluates the spatial consistency of the model by comparing per-cell likelihoods of the observed catalog against stochastic catalogs.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">catalog_ground_motion_eval</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>Compares observed ground motions from a flatfile with model-predicted ground motions.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">cumulative_occurrence_eval</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>Evaluates cumulative earthquake occurrence over time for each magnitude bin, comparing the observed temporal pattern to the model rate.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">max_mag_check</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>Checks whether the model can produce earthquakes as large as the largest observed earthquake in each spatial cell.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">mfd_likelihood_test</span></code>(cfg, input_data)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_mfd_eval</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>Compares the total model MFD to the observed MFD from the earthquake catalog, producing incremental and cumulative MFD data for reporting.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">moment_over_under_eval</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>Compares observed vs. stochastic seismic moment release per cell and in total, to highlight areas of over- or under-prediction.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">rupture_matching_eval</span></code>(cfg, input_data)</p></td>
-<td><p></p></td>
+<td><p>Matches observed earthquakes to modeled ruptures based on proximity, magnitude, and (optionally) focal mechanism similarity.</p></td>
 </tr>
 </tbody>
 </table>
@@ -363,7 +363,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2019-2021, Richard Styron (GEM Foundation)
+                Copyright &#169; 2019-2026, Richard Styron (GEM Foundation)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             

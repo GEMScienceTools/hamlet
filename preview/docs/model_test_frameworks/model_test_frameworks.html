@@ -306,6 +306,12 @@ framework, for convenience during the workflow.</p>
 RELM/CSEP versions but with configurable handling of unmodeled cells/bins), as
 well as several additional evaluations: MFD comparison, moment rate analysis,
 rupture matching, cumulative occurrence, and ground motion evaluation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">likelihood</span></code> test is deprecated and should not be used. Use the
+<code class="docutils literal notranslate"><span class="pre">M_test</span></code>, <code class="docutils literal notranslate"><span class="pre">S_test</span></code>, and <code class="docutils literal notranslate"><span class="pre">L_test</span></code> instead, which provide more robust
+and well-characterized likelihood evaluations.</p>
+</div>
 <section id="statistical-consistency-tests">
 <h3>Statistical Consistency Tests<a class="headerlink" href="#statistical-consistency-tests" title="Link to this heading">¶</a></h3>
 <p>These tests evaluate model consistency using Monte Carlo simulations. Each test
@@ -628,7 +634,7 @@ the check. Default: <code class="docutils literal notranslate"><span class="pre"
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2019-2021, Richard Styron (GEM Foundation)
+                Copyright &#169; 2019-2026, Richard Styron (GEM Foundation)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             

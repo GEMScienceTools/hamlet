@@ -298,52 +298,52 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">catalog_ground_motion_eval_fn</span></code>(test_config, ...)</p></td>
-<td><p></p></td>
+<td><p>Compares observed ground motions from a flatfile with model predictions.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_catalog_moment</span></code>(eq_df[, eq_groups])</p></td>
-<td><p></p></td>
+<td><p>Computes the total seismic moment per spatial cell and overall from an earthquake catalog.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_closest_rupture</span></code>(eq, rupture_df)</p></td>
-<td><p></p></td>
+<td><p>Returns the rupture closest to the given earthquake in 3D distance.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_distances</span></code>(eq, rup_gdf)</p></td>
-<td><p></p></td>
+<td><p>Calculates 3D distances between an earthquake and a set of ruptures.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_flatfile_records_for_eq</span></code>(event_id, gm_df)</p></td>
-<td><p></p></td>
+<td><p>Returns all flatfile records for a given earthquake event ID.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_matching_rups</span></code>(eq, rup_gdf[, ...])</p></td>
-<td><p></p></td>
+<td><p>Finds and ranks modeled ruptures that match an observed earthquake.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_moment_from_mfd</span></code>(mfd)</p></td>
-<td><p></p></td>
+<td><p>Calculates total seismic moment from an MFD dictionary.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_nearby_rups</span></code>(eq, rup_df)</p></td>
-<td><p></p></td>
+<td><p>Finds ruptures in the earthquake's H3 cell and its immediate neighbors.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_rups_in_mag_range</span></code>(eq, rup_df[, mag_window])</p></td>
-<td><p></p></td>
+<td><p>Filters ruptures to those within a magnitude window of the earthquake.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_rupture_gdf_cell_moment</span></code>(rupture_gdf, t_yrs)</p></td>
-<td><p></p></td>
+<td><p>Computes the expected seismic moment per spatial cell and total, given rupture occurrence rates scaled by duration.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">mag_diff_likelihood</span></code>(eq_mag, rup_mags[, ...])</p></td>
-<td><p></p></td>
+<td><p>Calculates a linear likelihood based on the magnitude difference between an earthquake and candidate ruptures.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">match_eqs_to_rups</span></code>(eq_gdf, rup_gdf[, ...])</p></td>
-<td><p></p></td>
+<td><p>Matches all earthquakes in a catalog to their best-matching modeled ruptures using <code class="xref py py-func docutils literal notranslate"><span class="pre">get_matching_rups()</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_mfd_eval_fn</span></code>(rup_gdf, eq_gdf, mag_bins)</p></td>
-<td><p></p></td>
+<td><p>Computes and compares model and observed magnitude-frequency distributions.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">moment_over_under_eval_fn</span></code>(rup_df, eq_gdf, ...)</p></td>
-<td><p></p></td>
+<td><p>Compares observed seismic moment release to stochastic moment release from the model, per cell and in total.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_gms_for_eq</span></code>(eq, gm_df, gsim_lt, ...)</p></td>
-<td><p></p></td>
+<td><p>Predicts ground motions at recording sites for a given earthquake using the ground motion models from the logic tree, and compares with observed values from the flatfile.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">rupture_matching_eval_fn</span></code>(rup_gdf, eq_gdf[, ...])</p></td>
-<td><p></p></td>
+<td><p>Runs the rupture matching evaluation, matching all observed earthquakes to modeled ruptures and collecting matched/unmatched results.</p></td>
 </tr>
 </tbody>
 </table>
@@ -379,7 +379,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2019-2021, Richard Styron (GEM Foundation)
+                Copyright &#169; 2019-2026, Richard Styron (GEM Foundation)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             

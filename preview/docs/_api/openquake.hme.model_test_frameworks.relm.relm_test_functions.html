@@ -308,40 +308,40 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">N_test_empirical</span></code>(num_obs_events, ...)</p></td>
-<td><p></p></td>
+<td><p>N-test using empirical (cumulative Poisson) distribution from sampled MFD counts.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">N_test_neg_binom</span></code>(num_obs_events, ...)</p></td>
-<td><p></p></td>
+<td><p>N-test using a negative binomial distribution (for temporally overdispersed earthquake production).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">N_test_poisson</span></code>(num_obs_events, rupture_rate, ...)</p></td>
-<td><p></p></td>
+<td><p>N-test using a Poisson distribution.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">conf_interval_poisson</span></code>(rate_mfd[, ...])</p></td>
-<td><p></p></td>
+<td><p>Evaluates whether the observed total event count falls within a Poisson confidence interval of the modeled rate.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_poisson_counts_from_mfd</span></code>(mfd)</p></td>
-<td><p></p></td>
+<td><p>Samples random Poisson counts from each magnitude bin rate.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">l_test_function</span></code>(rup_gdf, eq_gdf, ...[, ...])</p></td>
-<td><p></p></td>
+<td><p>Joint likelihood test (L-test).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">m_test_function</span></code>(rup_gdf, eq_gdf, mag_bins, ...)</p></td>
-<td><p></p></td>
+<td><p>Magnitude consistency test (M-test).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">mfd_log_likelihood</span></code>(rate_mfd[, ...])</p></td>
 <td><p>Calculates the log-likelihood of the observations (either <cite>binned_events</cite> or <cite>empirical_mfd</cite>) given the modeled rates (<cite>rate_mfd</cite>).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_test_function</span></code>(rup_gdf, eq_gdf, test_config)</p></td>
-<td><p></p></td>
+<td><p>N-test: compares the total observed earthquake count to the model prediction.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">s_test_cell</span></code>(rup_gdf, eq_gdf, test_cfg)</p></td>
-<td><p></p></td>
+<td><p>Computes the S-test likelihood for a single spatial cell by comparing the observed MFD log-likelihood to stochastic MFD log-likelihoods.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">s_test_cells</span></code>(cell_groups, rup_gdf, ...[, ...])</p></td>
-<td><p></p></td>
+<td><p>Runs the S-test likelihood computation for each spatial cell, optionally in parallel.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">s_test_function</span></code>(rup_gdf, eq_gdf, ...[, ...])</p></td>
-<td><p></p></td>
+<td><p>Spatial consistency test (S-test).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">total_event_likelihood</span></code>(rate_mfd[, ...])</p></td>
 <td><p>Calculates the log-likelihood of the observations (either <cite>binned_events</cite> or <cite>empirical_mfd</cite>) given the modeled rates (<cite>rate_mfd</cite>).</p></td>
@@ -380,7 +380,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2019-2021, Richard Styron (GEM Foundation)
+                Copyright &#169; 2019-2026, Richard Styron (GEM Foundation)
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
