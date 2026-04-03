@@ -4,7 +4,6 @@ Utility functions for GMM residual analysis.
 
 import os
 import logging
-
 import numpy as np
 import pandas as pd
 
@@ -147,10 +146,8 @@ class HamletContextDB(ContextDB):
         depths[np.isnan(depths)] = 0.0
         ctx.depths = depths
         ctx.vs30 = records["vs30_m_sec"].values.astype(float)
-        z1 = records["z1pt0 (m)"].values.astype(float)
-        ctx.z1pt0 = np.where(np.isnan(z1), np.nan, z1)
-        z2 = records["z2pt5 (km)"].values.astype(float)
-        ctx.z2pt5 = np.where(np.isnan(z2), np.nan, z2)
+        ctx.z1pt0 = records["z1pt0 (m)"].values.astype(float)
+        ctx.z2pt5 = records["z2pt5 (km)"].values.astype(float)
         ctx.vs30measured = (
             records["vs30_meas_type"].str.strip().str.lower().eq(
                 "measured").values)

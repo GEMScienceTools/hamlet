@@ -1,13 +1,11 @@
 """
 Utility functions for running tests in the GEM model test framework.
 """
-
-from multiprocessing import Pool
-
 import h3
 import numpy as np
 import pandas as pd
 from tqdm.autonotebook import tqdm
+from multiprocessing import Pool
 
 from openquake.hazardlib.geo.geodetic import distance
 
