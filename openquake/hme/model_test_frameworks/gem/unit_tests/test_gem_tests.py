@@ -561,8 +561,8 @@ class test_evaluate_gmc(unittest.TestCase):
         # Reload ruptures with return_trt=True and all TRTs
         gmc_cfg = deepcopy(cfg)
         gmc_cfg["input"]["return_trt"] = True # Need the TRTs for GMC evaluation
-        gmc_cfg["input"]["simple_ruptures"] = False 
-        gmc_cfg["input"]["ssm"]["tectonic_region_types"] = None # Must be None if you want all the TRTs
+        gmc_cfg["input"]["simple_ruptures"] = False
+        gmc_cfg["input"]["ssm"]["tectonic_region_types"] = None # 
         rupture_gdf, _ = load_ruptures_from_ssm(gmc_cfg)
 
         self.input_data = input_data.copy()
