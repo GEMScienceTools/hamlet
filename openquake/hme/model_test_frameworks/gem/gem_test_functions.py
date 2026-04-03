@@ -612,7 +612,8 @@ class HamletContextDB(ContextDB):
         :param gm_df:
             DataFrame of the GEM Global Flatfile.
         :param trt:
-            Tectonic region type string (e.g. "Active Shallow Crust").
+            Tectonic region type string (e.g. "Active Shallow Crust") of the
+            given event.
         """
         self.eq_df = eq_df
         self.gm_df = gm_df
@@ -630,16 +631,6 @@ class HamletContextDB(ContextDB):
         elif "interface" in trt_lower:
             return scalerel.strasser2010.StrasserInterface(), 5.0
         return scalerel.WC1994(), 2.0
-
-    # Abstract method stubs (unused because get_contexts is overridden)
-    def get_event_and_records(self):
-        raise NotImplementedError
-
-    def update_context(self, ctx, records, nodal_plane_index=1):
-        raise NotImplementedError
-
-    def get_observations(self, imtx, records, component="Geometric"):
-        raise NotImplementedError
 
     def get_contexts(self, nodal_plane_index=1, imts=None, component="Geometric"):
         """
@@ -668,9 +659,8 @@ class HamletContextDB(ContextDB):
             dic["Observations"] = {}
             dic["Retained"] = {}
             for imtx in imts:
-                values = self._get_imt_observations(
-                    imtx, records
-                )
+                col_name = self._imt_to_rotd50_col(imtx)
+                values = records[col_name].values.astype(float)
                 check = pd.notnull(values)
                 dic["Observations"][imtx] = np.asarray(
                     values, dtype=float
@@ -760,14 +750,17 @@ class HamletContextDB(ContextDB):
         """
         Set distance parameters on the context from flatfile records.
         """
+        # Point-source based
         ctx.repi = records["epi_dist"].values.astype(float)
         ctx.rhypo = np.sqrt(ctx.repi ** 2 + ctx.hypo_depth ** 2)
 
+        # Finite rupture based
         ctx.rjb = records["JB_dist"].values.astype(float)
         ctx.rrup = records["rup_dist"].values.astype(float)
         ctx.rx = records["Rx_dist"].values.astype(float)
         ctx.ry0 = records["Ry0_dist"].values.astype(float)
 
+        # Not used currently in SMT but needed so set as zeroed out
         ctx.rvolc = np.zeros(n_sites)
         ctx.rcdpp = np.zeros(n_sites)
 
@@ -846,15 +839,9 @@ class HamletContextDB(ContextDB):
                         val = getattr(site_ctx, attr, None)
                         if val is not None:
                             getattr(ctx, attr)[i] = float(val[0])
+
         except Exception as e:
             logging.warning(f"Could not fill missing distances: {e}")
-
-    def _get_imt_observations(self, imtx, records):
-        """
-        Get observed rotD50 ground-motion values for an IMT in cm/s^2.
-        """
-        col_name = self._imt_to_rotd50_col(imtx)
-        return records[col_name].values.astype(float)
 
     @staticmethod
     def _imt_to_rotd50_col(imtx):
