@@ -595,31 +595,21 @@ def get_closest_rupture(eq, rupture_df):
 class HamletContextDB(ContextDB):
     """
     Custom ContextDB that builds contexts from hamlet's earthquake
-    DataFrame and flatfile records, suitable for SMT residual analysis.
+    DataFrame and GEM Global Flatfile records, suitable for SMT
+    residual analysis.
     """
 
     def __init__(self, eq_df, gm_df):
         """
         :param eq_df:
-            DataFrame of unique earthquakes (post column rename via
-            convert_flatfile_eq_cols), with columns such as event_id,
+            DataFrame of unique earthquakes, with columns such as event_id,
             longitude, latitude, depth, magnitude, strike, dip, rake,
             es_z_top, es_width, etc.
         :param gm_df:
-            Full flatfile DataFrame in GEM flatfile format with original
-            (un-renamed) columns, containing all ground-motion records.
+            DataFrame of the GEM Global Flatfile.
         """
         self.eq_df = eq_df
         self.gm_df = gm_df
-        self._col_cache = {c.lower(): c for c in self.gm_df.columns}
-
-    def _get_col(self, df, candidates):
-        """Return array of values from the first matching column (case-insensitive)."""
-        col_map = {c.lower(): c for c in df.columns}
-        for c in candidates:
-            if c.lower() in col_map:
-                return df[col_map[c.lower()]].values
-        return None
 
     # Abstract method stubs (unused because get_contexts is overridden)
     def get_event_and_records(self):
@@ -632,8 +622,9 @@ class HamletContextDB(ContextDB):
         raise NotImplementedError
 
     def get_contexts(self, nodal_plane_index=1, imts=None, component="Geometric"):
-        """Build contexts directly from hamlet DataFrames."""
-        compute_obs = imts is not None and len(imts)
+        """
+        Build contexts directly from hamlet DataFrames.
+        """
         ctxs = []
 
         for idx, eq in self.eq_df.iterrows():
@@ -644,168 +635,128 @@ class HamletContextDB(ContextDB):
                 continue
 
             ctx = RuptureContext()
-
-            # ---- Rupture parameters ----
-            ctx.mag = float(eq.magnitude)
-            ctx.strike = (
-                float(eq.strike) if pd.notnull(eq.get("strike")) else 0.0
-            )
-            ctx.dip = (
-                float(eq.dip) if pd.notnull(eq.get("dip")) else 90.0
-            )
-            ctx.rake = (
-                float(eq.rake) if pd.notnull(eq.get("rake")) else 0.0
-            )
-            ctx.hypo_lon = float(eq.longitude)
-            ctx.hypo_lat = float(eq.latitude)
-            ctx.hypo_depth = float(eq.depth)
-
-            if pd.notnull(eq.get("es_z_top")):
-                ctx.ztor = float(eq.es_z_top)
-            else:
-                ctx.ztor = float(eq.depth)
-
-            if pd.notnull(eq.get("es_width")):
-                ctx.width = float(eq.es_width)
-            else:
-                ctx.width = np.sqrt(
-                    scalerel.WC1994().get_median_area(ctx.mag, ctx.rake)
-                )
-
-            ctx.hypo_loc = (0.5, 0.5)
-
-            # ---- Site parameters ----
             n_sites = len(records)
-            ctx.lons = self._get_col(
-                records, ["st_longitude"]
-            ).astype(float)
-            ctx.lats = self._get_col(
-                records, ["st_latitude"]
-            ).astype(float)
 
-            depths = self._get_col(records, ["st_elevation"])
-            if depths is not None:
-                depths = depths.astype(float) * -1.0e-3
-                depths[np.isnan(depths)] = 0.0
-                ctx.depths = depths
-            else:
-                ctx.depths = np.zeros(n_sites)
-
-            vs30 = self._get_col(
-                records, ["vs30_m_sec"]
-            )
-            ctx.vs30 = (
-                vs30.astype(float)
-                if vs30 is not None
-                else np.full(n_sites, 760.0)
-            )
-
-            vs30_type = self._get_col(
-                records, ["vs30_meas_type"]
-            )
-            if vs30_type is not None:
-                ctx.vs30measured = np.array(
-                    [
-                        str(v).strip().lower() == "measured"
-                        if pd.notnull(v)
-                        else False
-                        for v in vs30_type
-                    ],
-                    dtype=bool,
-                )
-            else:
-                ctx.vs30measured = np.zeros(n_sites, dtype=bool)
-
-            z1 = self._get_col(records, ["z1pt0 (m)"])
-            ctx.z1pt0 = (
-                np.where(np.isnan(z1.astype(float)), np.nan, z1.astype(float))
-                if z1 is not None
-                else np.full(n_sites, np.nan)
-            )
-
-            z2 = self._get_col(records, ["z2pt5 (km)"])
-            ctx.z2pt5 = (
-                np.where(np.isnan(z2.astype(float)), np.nan, z2.astype(float))
-                if z2 is not None
-                else np.full(n_sites, np.nan)
-            )
-
-            backarc = self._get_col(records, ["st_backarc"])
-            if backarc is not None:
-                ctx.backarc = np.array(
-                    [
-                        b in (1, True) or (isinstance(b, str) and
-                                           b.lower() == "true")
-                        for b in backarc
-                    ],
-                    dtype=bool,
-                )
-            else:
-                ctx.backarc = np.zeros(n_sites, dtype=bool)
-
-            # ---- Distance parameters ----
-            epi = self._get_col(records, ["epi_dist"])
-            ctx.repi = (
-                epi.astype(float) if epi is not None
-                else np.full(n_sites, np.nan)
-            )
-
-            ctx.rhypo = np.sqrt(ctx.repi ** 2 + ctx.hypo_depth ** 2)
-
-            rjb = self._get_col(records, ["JB_dist"])
-            ctx.rjb = (
-                rjb.astype(float) if rjb is not None
-                else np.full(n_sites, np.nan)
-            )
-
-            rrup = self._get_col(records, ["rup_dist"])
-            ctx.rrup = (
-                rrup.astype(float) if rrup is not None
-                else np.full(n_sites, np.nan)
-            )
-
-            rx = self._get_col(records, ["Rx_dist"])
-            ctx.rx = (
-                rx.astype(float) if rx is not None
-                else np.full(n_sites, np.nan)
-            )
-
-            ry0 = self._get_col(records, ["Ry0_dist"])
-            ctx.ry0 = (
-                ry0.astype(float) if ry0 is not None
-                else np.full(n_sites, np.nan)
-            )
-
-            ctx.rvolc = np.zeros(n_sites)
-            ctx.rcdpp = np.zeros(n_sites)
-
-            self._fill_missing_distances(ctx)
+            self._set_rupture_params(ctx, eq)
+            self._set_site_params(ctx, records, n_sites)
+            self._set_distance_params(ctx, records, n_sites)
 
             ctx.sids = np.arange(n_sites, dtype=np.uint32)
 
             # ---- Build context dict ----
             dic = {"EventID": eq.event_id, "Ctx": ctx}
-
-            if compute_obs:
-                dic["Observations"] = {}
-                dic["Retained"] = {}
-                for imtx in imts:
-                    values = self._get_imt_observations(
-                        imtx, records
-                    )
-                    check = pd.notnull(values)
-                    dic["Observations"][imtx] = np.asarray(
-                        values, dtype=float
-                    )
-                    dic["Retained"][imtx] = np.argwhere(check).flatten()
-                dic["Num. Sites"] = n_sites
+            dic["Observations"] = {}
+            dic["Retained"] = {}
+            for imtx in imts:
+                values = self._get_imt_observations(
+                    imtx, records
+                )
+                check = pd.notnull(values)
+                dic["Observations"][imtx] = np.asarray(
+                    values, dtype=float
+                )
+                dic["Retained"][imtx] = np.argwhere(check).flatten()
+            dic["Num. Sites"] = n_sites
 
             ctxs.append(dic)
 
         return ctxs
 
+    @staticmethod
+    def _set_rupture_params(ctx, eq):
+        """
+        Set rupture parameters on the context from the earthquake row.
+        """
+        ctx.mag = float(eq.magnitude)
+        ctx.strike = (
+            float(eq.strike) if pd.notnull(eq.get("strike")) else 0.0
+        )
+        ctx.dip = (
+            float(eq.dip) if pd.notnull(eq.get("dip")) else 90.0
+        )
+        ctx.rake = (
+            float(eq.rake) if pd.notnull(eq.get("rake")) else 0.0
+        )
+        ctx.hypo_lon = float(eq.longitude)
+        ctx.hypo_lat = float(eq.latitude)
+        ctx.hypo_depth = float(eq.depth)
+
+        if pd.notnull(eq.get("es_z_top")):
+            ctx.ztor = float(eq.es_z_top)
+        else:
+            ctx.ztor = float(eq.depth)
+
+        if pd.notnull(eq.get("es_width")):
+            ctx.width = float(eq.es_width)
+        else:
+            ctx.width = np.sqrt(
+                scalerel.WC1994().get_median_area(ctx.mag, ctx.rake)
+            )
+
+        ctx.hypo_loc = (0.5, 0.5)
+
+    @staticmethod
+    def _set_site_params(ctx, records, n_sites):
+        """
+        Set site parameters on the context from flatfile records.
+        """
+        ctx.lons = records["st_longitude"].values.astype(float)
+        ctx.lats = records["st_latitude"].values.astype(float)
+
+        depths = records["st_elevation"].values.astype(float) * -1.0e-3
+        depths[np.isnan(depths)] = 0.0
+        ctx.depths = depths
+
+        ctx.vs30 = records["vs30_m_sec"].values.astype(float)
+
+        vs30_type = records["vs30_meas_type"].values
+        ctx.vs30measured = np.array(
+            [
+                str(v).strip().lower() == "measured"
+                if pd.notnull(v)
+                else False
+                for v in vs30_type
+            ],
+            dtype=bool,
+        )
+
+        z1 = records["z1pt0 (m)"].values.astype(float)
+        ctx.z1pt0 = np.where(np.isnan(z1), np.nan, z1)
+
+        z2 = records["z2pt5 (km)"].values.astype(float)
+        ctx.z2pt5 = np.where(np.isnan(z2), np.nan, z2)
+
+        backarc = records["st_backarc"].values
+        ctx.backarc = np.array(
+            [
+                b in (1, True) or (isinstance(b, str) and
+                                   b.lower() == "true")
+                for b in backarc
+            ],
+            dtype=bool,
+        )
+
+    def _set_distance_params(self, ctx, records, n_sites):
+        """
+        Set distance parameters on the context from flatfile records.
+        """
+        ctx.repi = records["epi_dist"].values.astype(float)
+        ctx.rhypo = np.sqrt(ctx.repi ** 2 + ctx.hypo_depth ** 2)
+
+        ctx.rjb = records["JB_dist"].values.astype(float)
+        ctx.rrup = records["rup_dist"].values.astype(float)
+        ctx.rx = records["Rx_dist"].values.astype(float)
+        ctx.ry0 = records["Ry0_dist"].values.astype(float)
+
+        ctx.rvolc = np.zeros(n_sites)
+        ctx.rcdpp = np.zeros(n_sites)
+
+        self._fill_missing_distances(ctx)
+
     def _fill_missing_distances(self, ctx):
-        """Fill NaN distances by reconstructing a finite rupture."""
+        """
+        Fill NaN distances by reconstructing a finite rupture.
+        """
         dist_attrs = ["rrup", "rjb", "rx", "ry0", "repi", "rhypo"]
         has_missing = any(
             np.any(np.isnan(getattr(ctx, attr, np.array([]))))
@@ -815,7 +766,9 @@ class HamletContextDB(ContextDB):
         if not has_missing:
             return
 
-        try:
+        try: # I use a "try-except" because we might get a rupture that is too
+             # large for given Mw and MSR without setting a ztor depth constraint
+             # which is a bit tricky in a coarse-level residual analysis like this
             from openquake.hazardlib.geo.point import Point
             from openquake.hazardlib.geo.surface.planar import PlanarSurface
             from openquake.hazardlib.source.rupture import BaseRupture
@@ -885,16 +838,17 @@ class HamletContextDB(ContextDB):
             logging.warning(f"Could not fill missing distances: {e}")
 
     def _get_imt_observations(self, imtx, records):
-        """Get observed rotD50 ground-motion values for an IMT in cm/s^2."""
+        """
+        Get observed rotD50 ground-motion values for an IMT in cm/s^2.
+        """
         col_name = self._imt_to_rotd50_col(imtx)
-        values = self._get_col(records, [col_name])
-        if values is not None:
-            return np.abs(values.astype(float))
-        return np.full(len(records), np.nan)
+        return records[col_name].values.astype(float)
 
     @staticmethod
     def _imt_to_rotd50_col(imtx):
-        """Map IMT string to the GEM flatfile rotD50 column name."""
+        """
+        Map IMT string to the GEM flatfile rotD50 column name.
+        """
         if imtx == "PGA":
             return "rotD50_pga"
         elif "SA(" in imtx:
@@ -906,7 +860,9 @@ class HamletContextDB(ContextDB):
 
 
 def _generate_residual_plots(residuals, imts, output_dir):
-    """Generate residual plots for all GMMs and IMTs."""
+    """
+    Generate residual plots for all GMMs and IMTs.
+    """
     os.makedirs(output_dir, exist_ok=True)
 
     for gmpe in residuals.gmpe_list:
@@ -928,11 +884,10 @@ def _generate_residual_plots(residuals, imts, output_dir):
             )
 
 
-def evaluate_gmc(test_config, input_data):
-
-    imts = ["PGA", "SA(0.3)", "SA(0.6)", "SA(1.0)"]
-
-    logging.info("Matching ruptures to GM Earthquakes")
+def _assign_trt_to_earthquakes(test_config, input_data):
+    """
+    Run rupture matching and assign a TRT to each earthquake.
+    """
     match_results = rupture_matching_eval_fn(
         input_data["rupture_gdf"],
         input_data["eq_gm_df"],
@@ -946,7 +901,6 @@ def evaluate_gmc(test_config, input_data):
         parallel=test_config["parallel"],
     )
 
-    # Assign TRT to each earthquake via matched ruptures or closest rupture
     eq_trt_map = {}
     match_rups = test_config.get("match_rups", False)
 
@@ -967,10 +921,26 @@ def evaluate_gmc(test_config, input_data):
             closest = get_closest_rupture(eq, input_data["rupture_gdf"])
             eq_trt_map[idx] = closest.tectonic_region_type
 
-    # Group events by TRT and compute residuals using the SMT
+    return eq_trt_map
+
+
+def evaluate_gmc(test_config, input_data):
+    """
+    Evaluate the GMMs for each TRT in the SSC. Return some plots
+    summarising the performance of each GMM in each TRT for some
+    IMTs of general interest
+    """
+    # Hardcode the GMMs to the GRM IMTs for now
+    imts = ["PGA", "SA(0.3)", "SA(0.6)", "SA(1.0)"]
+
+    logging.info("Matching ruptures to GM Earthquakes")
+    eq_trt_map = _assign_trt_to_earthquakes(test_config, input_data)
+
+    # Make out dir
     output_dir = test_config.get("output_dir", "gm_residual_plots")
     os.makedirs(output_dir, exist_ok=True)
 
+    # Group events by TRT and compute residuals using the SMT
     results = {}
 
     for trt in set(eq_trt_map.values()):
@@ -980,12 +950,7 @@ def evaluate_gmc(test_config, input_data):
         if len(eq_subset) == 0:
             continue
 
-        gsims = input_data["gsim_lt"].values.get(trt, [])
-        if not gsims:
-            logging.warning(f"No GMMs found for TRT: {trt}")
-            continue
-
-        gmpe_list = list(gsims)
+        gmpe_list = list(input_data["gsim_lt"].values.get(trt, []))
 
         logging.info(
             f"Computing residuals for TRT: {trt} "
