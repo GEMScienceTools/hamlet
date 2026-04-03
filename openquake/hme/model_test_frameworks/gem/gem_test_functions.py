@@ -12,9 +12,13 @@ import pandas as pd
 from tqdm.autonotebook import tqdm
 
 from openquake.hazardlib import imt as imt_module
-from openquake.hazardlib import scalerel
+from openquake.hazardlib import scalerel, valid
+from openquake.hazardlib.contexts import ContextMaker, RuptureContext
 from openquake.hazardlib.geo.geodetic import distance
-from openquake.hazardlib.contexts import RuptureContext
+from openquake.hazardlib.geo.point import Point
+from openquake.hazardlib.geo.surface.planar import PlanarSurface
+from openquake.hazardlib.site import Site, SiteCollection
+from openquake.hazardlib.source.rupture import BaseRupture
 
 from openquake.smt.residuals.gmpe_residuals import Residuals
 from openquake.smt.residuals.context_db import ContextDB
@@ -599,7 +603,7 @@ class HamletContextDB(ContextDB):
     residual analysis.
     """
 
-    def __init__(self, eq_df, gm_df):
+    def __init__(self, eq_df, gm_df, trt):
         """
         :param eq_df:
             DataFrame of unique earthquakes, with columns such as event_id,
@@ -607,9 +611,25 @@ class HamletContextDB(ContextDB):
             es_z_top, es_width, etc.
         :param gm_df:
             DataFrame of the GEM Global Flatfile.
+        :param trt:
+            Tectonic region type string (e.g. "Active Shallow Crust").
         """
         self.eq_df = eq_df
         self.gm_df = gm_df
+        self.trt = trt
+        self.msr, self.aratio = self._get_rup_props_for_trt(trt)
+
+    @staticmethod
+    def _get_rup_props_for_trt(trt):
+        """
+        Return an appropriate MSR and aspect ratio for the TRT.
+        """
+        trt_lower = trt.lower()
+        if "slab" in trt_lower or "intraslab" in trt_lower:
+            return scalerel.strasser2010.StrasserIntraslab(), 5.0
+        elif "interface" in trt_lower:
+            return scalerel.strasser2010.StrasserInterface(), 5.0
+        return scalerel.WC1994(), 2.0
 
     # Abstract method stubs (unused because get_contexts is overridden)
     def get_event_and_records(self):
@@ -637,7 +657,7 @@ class HamletContextDB(ContextDB):
             ctx = RuptureContext()
             n_sites = len(records)
 
-            self._set_rupture_params(ctx, eq)
+            self._set_rupture_params(ctx, eq, self.msr)
             self._set_site_params(ctx, records, n_sites)
             self._set_distance_params(ctx, records, n_sites)
 
@@ -769,17 +789,9 @@ class HamletContextDB(ContextDB):
         try: # I use a "try-except" because we might get a rupture that is too
              # large for given Mw and MSR without setting a ztor depth constraint
              # which is a bit tricky in a coarse-level residual analysis like this
-            from openquake.hazardlib.geo.point import Point
-            from openquake.hazardlib.geo.surface.planar import PlanarSurface
-            from openquake.hazardlib.source.rupture import BaseRupture
-            from openquake.hazardlib.site import Site, SiteCollection
-            from openquake.hazardlib.contexts import ContextMaker
-            from openquake.hazardlib import valid
-
-            msr = scalerel.WC1994()
             hypoc = Point(ctx.hypo_lon, ctx.hypo_lat, ctx.hypo_depth)
             srf = PlanarSurface.from_hypocenter(
-                hypoc, msr, ctx.mag, 2.0,
+                hypoc, self.msr, ctx.mag, self.aratio,
                 ctx.strike, ctx.dip, ctx.rake, ctx.ztor
             )
             rup = BaseRupture(ctx.mag, ctx.rake, None, hypoc, srf)
@@ -795,7 +807,7 @@ class HamletContextDB(ContextDB):
             mag_str = [f"{ctx.mag:.2f}"]
             oqp = {"imtls": {"PGA": []}, "mags": mag_str}
             ctxm = ContextMaker(
-                "Active Shallow Crust", [gmpe], oqp
+                self.trt, [gmpe], oqp
             )
 
             for i in range(len(ctx.lons)):
@@ -957,7 +969,7 @@ def evaluate_gmc(test_config, input_data):
             f"({len(eq_subset)} events, {len(gmpe_list)} GMMs)"
         )
 
-        ctx_db = HamletContextDB(eq_subset, input_data["gm_df"])
+        ctx_db = HamletContextDB(eq_subset, input_data["gm_df"], trt)
 
         residuals = Residuals(gmpe_list, imts)
         residuals.compute_residuals(ctx_db, component="Geometric")
