@@ -268,7 +268,9 @@ def generate_residual_plots(residuals, imts, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     for gmpe in residuals.gmpe_list:
-        gmpe_str = re.sub(r'[^\w\-.]', '_', str(gmpe))
+        # Straight from GSIM XML so they are full toml representations
+        gmpe_str = re.sub(
+            r'[^\w\-.]', '_', str(gmpe)).split("___toml")[0]
         gmpe_dir = os.path.join(output_dir, gmpe_str)
         os.makedirs(gmpe_dir, exist_ok=True)
         for imtx in imts:

@@ -626,7 +626,7 @@ class test_evaluate_gmc(unittest.TestCase):
             self.assertGreater(
                 len(png_files), 0, f"No plot files in {trt_dir}"
             )
-
+            
     def tearDown(self):
         output_dir = os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots")
         if os.path.isdir(output_dir):
