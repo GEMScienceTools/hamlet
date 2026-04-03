@@ -280,7 +280,7 @@ ground-motion models (GMMs) in the GSIM logic tree. Each earthquake in the
 flatfile is assigned to a tectonic region type (TRT) using the matched rupture
 (i.e., one that is above a statistical threshold) or as a fallback the nearest
 rupture instead. Then, residuals are computed for each TRT using the corresponding
-GMMs.
+GMMs, the OQ rupture, and the station information and record metadata in teh flatfile.
 
 Residual plots (histograms, magnitude/distance/Vs30 trends, and a summary period
 plot) are saved as PNGs and embedded in the HTML report.

@@ -38,7 +38,7 @@ class HamletContextDB(ContextDB):
     DataFrame and GEM Global Flatfile records, suitable for SMT
     residual analysis.
     """
-    def __init__(self, eq_df, gm_df, trt):
+    def __init__(self, eq_df, gm_df, trt, oq_rup):
         """
         :param eq_df:
             DataFrame of unique earthquakes.
@@ -47,10 +47,14 @@ class HamletContextDB(ContextDB):
         :param trt:
             Tectonic region type string (e.g. "Active Shallow Crust") of the
             given event.
+        :param oq_rup:
+            Dict mapping eq index to matched model rupture Series.
+            Rupture parameters are taken from the matched rupture.
         """
         self.eq_df = eq_df
         self.gm_df = gm_df
         self.trt = trt
+        self.oq_rup = oq_rup
         self.msr, self.aratio = self._get_rup_props_for_trt(trt)
 
     def _get_rup_props_for_trt(self, trt):
@@ -62,7 +66,8 @@ class HamletContextDB(ContextDB):
             return scalerel.strasser2010.StrasserIntraslab(), 5.0
         elif "interface" in trt_lower:
             return scalerel.strasser2010.StrasserInterface(), 5.0
-        return scalerel.WC1994(), 2.0
+        else:
+            return scalerel.WC1994(), 2.0
 
     def get_contexts(self, nodal_plane_index, imts, component):
         """
@@ -80,8 +85,8 @@ class HamletContextDB(ContextDB):
             ctx = RuptureContext()
             n_sites = len(records)
 
-            # Get rup, site and distance params
-            self._set_rupture_params(ctx, eq)
+            # Use matched model rupture params
+            self._set_rupture_params(ctx, self.oq_rup[idx])
             self._set_site_params(ctx, records, n_sites)
             self._set_distance_params(ctx, records, n_sites)
 
@@ -314,6 +319,7 @@ def rup_match_and_assign_trts(test_config, input_data):
     )
 
     eq_trt_map = {}
+    eq_rup_map = {}
     match_rups = test_config.get("match_rups", False)
 
     if match_rups and len(match_results["matched_rups"]) > 0:
@@ -324,6 +330,7 @@ def rup_match_and_assign_trts(test_config, input_data):
         )
         for idx, matched_rup in match_results["matched_rups"].iterrows():
             eq_trt_map[idx] = matched_rup["tectonic_region_type"]
+            eq_rup_map[idx] = matched_rup
 
     if not match_rups:
         match_results["unmatched_eqs"] = input_data["eq_gm_df"]
@@ -332,8 +339,9 @@ def rup_match_and_assign_trts(test_config, input_data):
         if idx not in eq_trt_map:
             closest = get_closest_rupture(eq, input_data["rupture_gdf"])
             eq_trt_map[idx] = closest["tectonic_region_type"]
+            eq_rup_map[idx] = closest
 
-    return eq_trt_map
+    return eq_trt_map, eq_rup_map
 
 
 def evaluate_gmc(test_config, input_data):
@@ -349,7 +357,7 @@ def evaluate_gmc(test_config, input_data):
     gm_df = input_data["gm_df"]
 
     logging.info("Matching ruptures to GM Earthquakes")
-    eq_trt_map = rup_match_and_assign_trts(test_config, input_data)
+    eq_trt_map, eq_rup_map = rup_match_and_assign_trts(test_config, input_data)
 
     # Make out dir
     output_dir = test_config.get("output_dir", "gm_residual_plots")
@@ -393,7 +401,10 @@ def evaluate_gmc(test_config, input_data):
             f"{len(imts)} IMTs)"
         )
 
-        ctx_db = HamletContextDB(eq_subset, input_data["gm_df"], trt)
+        trt_oq_rup = {i: eq_rup_map[i] for i in eq_indices}
+        ctx_db = HamletContextDB(
+            eq_subset, input_data["gm_df"], trt, oq_rup=trt_oq_rup
+        )
 
         residuals = Residuals(gmpe_list, imts)
         residuals.compute_residuals(ctx_db, component="rotD50")
