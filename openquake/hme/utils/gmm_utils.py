@@ -6,6 +6,7 @@ import os
 import logging
 import numpy as np
 import pandas as pd
+import re
 
 from openquake.hazardlib import imt as imt_module
 from openquake.hazardlib import scalerel, valid
@@ -62,7 +63,7 @@ class HamletContextDB(ContextDB):
             return scalerel.strasser2010.StrasserInterface(), 5.0
         return scalerel.WC1994(), 2.0
 
-    def get_contexts(self, imts):
+    def get_contexts(self, nodal_plane_index, imts, component):
         """
         Build contexts directly from hamlet DataFrames.
         """
@@ -250,8 +251,9 @@ class HamletContextDB(ContextDB):
             return "rotD50_pga"
         elif "SA(" in imtx:
             period = imt_module.from_string(imtx).period
-            period_str = str(period).replace(".", "_")
-            return f"rotD50_T{period_str}"
+            int_part = int(period)
+            frac_part = round((period - int_part) * 1000)
+            return f"rotD50_T{int_part}_{frac_part:03d}"
         else:
             raise ValueError(f"Unsupported IMT: {imtx}")
 
@@ -263,7 +265,7 @@ def generate_residual_plots(residuals, imts, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     for gmpe in residuals.gmpe_list:
-        gmpe_str = str(gmpe).replace(" ", "_")
+        gmpe_str = re.sub(r'[^\w\-.]', '_', str(gmpe))
         for imtx in imts:
             prefix = os.path.join(output_dir, f"{gmpe_str}_{imtx}")
             ResidualPlot(
@@ -308,7 +310,7 @@ def _assign_trt_to_earthquakes(test_config, input_data):
             .event_id
         )
         for idx, matched_rup in match_results["matched_rups"].iterrows():
-            eq_trt_map[idx] = matched_rup.tectonic_region_type
+            eq_trt_map[idx] = matched_rup["tectonic_region_type"]
 
     if not match_rups:
         match_results["unmatched_eqs"] = input_data["eq_gm_df"]
@@ -316,7 +318,7 @@ def _assign_trt_to_earthquakes(test_config, input_data):
     for idx, eq in match_results["unmatched_eqs"].iterrows():
         if idx not in eq_trt_map:
             closest = get_closest_rupture(eq, input_data["rupture_gdf"])
-            eq_trt_map[idx] = closest.tectonic_region_type
+            eq_trt_map[idx] = closest["tectonic_region_type"]
 
     return eq_trt_map
 

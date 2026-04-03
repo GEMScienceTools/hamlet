@@ -482,7 +482,7 @@ def cumulative_occurrence_eval(cfg, input_data):
 
 def catalog_ground_motion_eval(cfg, input_data):
 
-    logging.info("Running GEM catalog ground motion evaluation")
+    logging.info("Evaluate GMCs against catalogue EQs")
 
     test_config = cfg["config"]["model_framework"]["gem"][
         "catalog_ground_motion_eval"
@@ -491,7 +491,6 @@ def catalog_ground_motion_eval(cfg, input_data):
     match_rups = test_config.get("match_rups", False)
 
     test_config = deep_update(rup_match_default_params, test_config)
-
     gmm_comparisons = evaluate_gmc(test_config, input_data)
 
     return {"gmm_comparisons": gmm_comparisons}

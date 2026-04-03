@@ -7,19 +7,30 @@
                     applyToTectonicRegionType="active shallow crust">
 
                 <logicTreeBranch branchID="b1">
-                    <uncertaintyModel>SadighEtAl1997</uncertaintyModel>
-                    <uncertaintyWeight>1.0</uncertaintyWeight>
+                    <uncertaintyModel>AbrahamsonEtAl2014</uncertaintyModel>
+                    <uncertaintyWeight>0.5</uncertaintyWeight>
+                </logicTreeBranch>
+
+                <logicTreeBranch branchID="b2">
+                    <uncertaintyModel>BooreEtAl2014</uncertaintyModel>
+                    <uncertaintyWeight>0.5</uncertaintyWeight>
                 </logicTreeBranch>
 
             </logicTreeBranchSet>
             <logicTreeBranchSet uncertaintyType="gmpeModel" branchSetID="bs2"
                     applyToTectonicRegionType="aa">
-
-                <logicTreeBranch branchID="b2">
-                    <uncertaintyModel>BooreEtAl2014</uncertaintyModel>
-                    <uncertaintyWeight>1.0</uncertaintyWeight>
+                <logicTreeBranch branchID="b3">
+                    <uncertaintyModel>
+                    [ModifiableGMPE]
+                    gmpe.YenierAtkinson2015BSSA = {}
+                    sigma_model_alatik2015 = {}
+                    </uncertaintyModel>
+                    <uncertaintyWeight>0.5</uncertaintyWeight>
                 </logicTreeBranch>
-
+                <logicTreeBranch branchID="b4">
+                    <uncertaintyModel>PezeshkEtAl2011NEHRPBC</uncertaintyModel>
+                    <uncertaintyWeight>0.5</uncertaintyWeight>
+                </logicTreeBranch>
             </logicTreeBranchSet>
     </logicTree>
 </nrml>
