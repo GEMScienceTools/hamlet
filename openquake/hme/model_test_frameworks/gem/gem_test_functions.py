@@ -694,8 +694,8 @@ class HamletContextDB(ContextDB):
         if pd.notnull(eq.get("es_width")):
             ctx.width = float(eq.es_width)
         else:
-            ctx.width = np.sqrt(
-                scalerel.WC1994().get_median_area(ctx.mag, ctx.rake))
+            ctx.width = np.sqrt( # TRT-dependent MSR is used
+                self.msr.get_median_area(ctx.mag, ctx.rake))
 
         # Arbitrary hypocentral location (it's the relative distance
         # to the sites that matters)
