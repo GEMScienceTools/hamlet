@@ -21,7 +21,7 @@ from .gem_test_functions import (
     model_mfd_eval_fn,
     moment_over_under_eval_fn,
     rupture_matching_eval_fn,
-    catalog_ground_motion_eval_fn,
+    evaluate_gmc,
 )
 
 from ..relm.relm_tests import (
@@ -488,13 +488,10 @@ def catalog_ground_motion_eval(cfg, input_data):
     ]
 
     match_rups = test_config.get("match_rups", False)
-    test_config["gmf_method"] = test_config.get(
-        "gmf_method", "ground_motion_fields"
-    )
 
     test_config = deep_update(rup_match_default_params, test_config)
 
-    gmm_comparisons = catalog_ground_motion_eval_fn(test_config, input_data)
+    gmm_comparisons = evaluate_gmc(test_config, input_data)
 
     return {"gmm_comparisons": gmm_comparisons}
 

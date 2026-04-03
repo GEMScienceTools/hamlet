@@ -9,7 +9,6 @@ from multiprocessing import Pool
 import h3
 import numpy as np
 import pandas as pd
-from geopandas import GeoDataFrame
 from tqdm.autonotebook import tqdm
 
 from openquake.hazardlib import imt as imt_module
@@ -27,7 +26,6 @@ from openquake.smt.residuals.residual_plotter import (
 )
 
 from openquake.hme.utils import (
-    parallelize,
     mag_to_mo,
     sample_rups,
     get_model_mfd,
@@ -36,8 +34,8 @@ from openquake.hme.utils import (
     angles_between_plane_and_planes,
     angles_between_rake_and_rakes,
 )
-from openquake.hme.utils.utils import _n_procs, breakpoint
-from openquake.hme.utils.stats import geom_mean, weighted_geom_mean
+from openquake.hme.utils.utils import _n_procs
+from openquake.hme.utils.stats import weighted_geom_mean
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
@@ -190,9 +188,6 @@ def model_mfd_eval_fn(
 
     mfd_df.index.name = "bin"
 
-    # print(mfd_df["obs_mfd_cum"])
-    # print(mfd_df["mod_mfd_cum"])
-
     return {"test_data": {"mfd_df": mfd_df, "annualize": annualize}}
 
 
@@ -320,7 +315,6 @@ def get_matching_rups(
         )
         rake_diffs = pd.Series(rake_diffs, index=rups.index)
         # angles > pi/2 should all have zero likelihood
-        # rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
         rake_likes = np.cos(rake_diffs)
         rake_likes[rake_likes < 1e-20] = 1e-20
         rups["rake_diff"] = rake_diffs
@@ -391,7 +385,6 @@ def get_matching_rups(
         )
 
     else:
-        # breakpoint()
         attitude_likes = np.ones(len(rups)) * no_attitude_default_like
         rups["attitude_diff"] = np.empty(len(rups))
         rups["attitude_diff"].values[:] = np.nan
@@ -638,8 +631,7 @@ class HamletContextDB(ContextDB):
     def get_observations(self, imtx, records, component="Geometric"):
         raise NotImplementedError
 
-    def get_contexts(self, nodal_plane_index=1, imts=None,
-                     component="Geometric"):
+    def get_contexts(self, nodal_plane_index=1, imts=None, component="Geometric"):
         """Build contexts directly from hamlet DataFrames."""
         compute_obs = imts is not None and len(imts)
         ctxs = []
@@ -905,8 +897,6 @@ class HamletContextDB(ContextDB):
         """Map IMT string to the GEM flatfile rotD50 column name."""
         if imtx == "PGA":
             return "rotD50_pga"
-        elif imtx == "PGV":
-            return "rotD50_pgv"
         elif "SA(" in imtx:
             period = imt_module.from_string(imtx).period
             period_str = str(period).replace(".", "_")
@@ -915,7 +905,30 @@ class HamletContextDB(ContextDB):
             raise ValueError(f"Unsupported IMT: {imtx}")
 
 
-def catalog_ground_motion_eval_fn(test_config, input_data):
+def _generate_residual_plots(residuals, imts, output_dir):
+    """Generate residual plots for all GMMs and IMTs."""
+    os.makedirs(output_dir, exist_ok=True)
+
+    for gmpe in residuals.gmpe_list:
+        gmpe_str = str(gmpe).replace(" ", "_")
+        for imtx in imts:
+            prefix = os.path.join(output_dir, f"{gmpe_str}_{imtx}")
+            ResidualPlot(
+                residuals, gmpe, imtx, f"{prefix}_hist.png"
+            )
+            ResidualWithMagnitude(
+                residuals, gmpe, imtx, f"{prefix}_vs_mag.png"
+            )
+            ResidualWithDistance(
+                residuals, gmpe, imtx, f"{prefix}_vs_dist.png",
+                distance_type="rrup",
+            )
+            ResidualWithVs30(
+                residuals, gmpe, imtx, f"{prefix}_vs_vs30.png"
+            )
+
+
+def evaluate_gmc(test_config, input_data):
 
     imts = ["PGA", "SA(0.3)", "SA(0.6)", "SA(1.0)"]
 
@@ -981,43 +994,11 @@ def catalog_ground_motion_eval_fn(test_config, input_data):
 
         ctx_db = HamletContextDB(eq_subset, input_data["gm_df"])
 
-        try:
-            residuals = Residuals(gmpe_list, imts)
-            residuals.compute_residuals(ctx_db, component="Geometric")
-        except Exception as e:
-            logging.warning(f"Could not compute residuals for TRT {trt}: {e}")
-            continue
+        residuals = Residuals(gmpe_list, imts)
+        residuals.compute_residuals(ctx_db, component="Geometric")
 
-        # Generate residual plots
         trt_dir = os.path.join(output_dir, trt.replace(" ", "_"))
-        os.makedirs(trt_dir, exist_ok=True)
-
-        for gmpe in residuals.gmpe_list:
-            gmpe_str = str(gmpe).replace(" ", "_")
-            for imtx in imts:
-                prefix = os.path.join(trt_dir, f"{gmpe_str}_{imtx}")
-                try:
-                    # Histogram of total / inter-event / intra-event residuals
-                    ResidualPlot(
-                        residuals, gmpe, imtx, f"{prefix}_hist.png"
-                    )
-                    # Residuals vs magnitude
-                    ResidualWithMagnitude(
-                        residuals, gmpe, imtx, f"{prefix}_vs_mag.png"
-                    )
-                    # Residuals vs rupture distance
-                    ResidualWithDistance(
-                        residuals, gmpe, imtx, f"{prefix}_vs_dist.png",
-                        distance_type="rrup",
-                    )
-                    # Residuals vs Vs30
-                    ResidualWithVs30(
-                        residuals, gmpe, imtx, f"{prefix}_vs_vs30.png"
-                    )
-                except Exception as e:
-                    logging.warning(
-                        f"Could not generate plot for {gmpe} {imtx}: {e}"
-                    )
+        _generate_residual_plots(residuals, imts, trt_dir)
 
         results[trt] = residuals
 
