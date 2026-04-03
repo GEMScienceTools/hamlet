@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from copy import deepcopy
 
-from openquake.hazardlib.logictree import GsimLogicTree
 from openquake.smt.residuals.gmpe_residuals import Residuals
 
 from openquake.hme.model_test_frameworks.gem.gem_tests import (
@@ -16,10 +15,9 @@ from openquake.hme.model_test_frameworks.gem.gem_tests import (
     max_mag_check,
     model_mfd_eval,
     rupture_matching_eval,
+    gmc_eval,
 )
-from openquake.hme.core.core import load_ruptures_from_ssm
-from openquake.hme.utils.gmm_utils import evaluate_gmc
-from openquake.hme.utils.io.io import load_flatfile
+from openquake.hme.core.core import load_inputs
 from openquake.hme.utils.tests.load_sm1 import cfg, input_data
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data")
@@ -565,49 +563,20 @@ class test_evaluate_gmc(unittest.TestCase):
     events considered in sm1 test ssc).
     """
     def setUp(self):
-        # Reload ruptures with return_trt=True
-        gmc_cfg = deepcopy(cfg)
-        gmc_cfg["input"]["return_trt"] = True # Need the TRTs for GMC evaluation
-        rupture_gdf, _ = load_ruptures_from_ssm(gmc_cfg)
-
-        self.input_data = input_data.copy()
-        self.input_data["rupture_gdf"] = rupture_gdf
-        self.input_data["cell_groups"] = rupture_gdf.groupby("cell_id")
-
-        # Load synthetic flatfile
-        flatfile_path = os.path.join(
+        self.cfg = deepcopy(cfg)
+        # Add the required keys for telling hamlet to perform gmc evaluation
+        self.cfg["input"]["flatfile"] = os.path.join(
             TEST_DATA_DIR, "gem_global_flatfile_fake_test_data.csv"
         )
-        eq_gm_df, gm_df = load_flatfile(
-            flatfile_path,
-            min_mag=6.0,
-            max_mag=7.5,
-            h3_res=3,
-        )
-        self.input_data["eq_gm_df"] = eq_gm_df
-        self.input_data["gm_df"] = gm_df
-
-        # Load GSIM logic tree
-        gsim_lt = GsimLogicTree(os.path.join(TEST_DATA_DIR, "gmmLT.xml"))
-        self.input_data["gsim_lt"] = gsim_lt
-
-        self.test_config = {
-            "distance_lambda": 1.0,
-            "mag_window": 1.0,
-            "group_return_threshold": 0.9,
-            "min_likelihood": 0.1,
-            "no_attitude_default_like": 0.5,
-            "no_rake_default_like": 0.5,
-            "use_occurrence_rate": False,
-            "return_one": "best",
-            "parallel": False,
-            "match_rups": False,
+        self.cfg["config"]["model_framework"]["gem"]["gmc_eval"] = {
+            "rups_from_flatfile": True,
             "output_dir": os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots"),
         }
+        self.input_data = load_inputs(self.cfg)
 
     def test_evaluate_gmc_runs(self):
         # Get residuals per TRT we have data for
-        results = evaluate_gmc(self.test_config, self.input_data)
+        results = gmc_eval(self.cfg, self.input_data)
 
         # Each value should be an SMT Residuals object
         for trt, residuals in results.items(): # Only 1 TRT in sm1 (ASCR)
@@ -615,7 +584,8 @@ class test_evaluate_gmc(unittest.TestCase):
             self.assertIsInstance(residuals, Residuals)
 
         # Check some plots exist for each TRT
-        output_dir = self.test_config["output_dir"]
+        output_dir = self.cfg[
+            "config"]["model_framework"]["gem"]["gmc_eval"]["output_dir"]
         self.assertTrue(os.path.isdir(output_dir))
         for trt in results:
             trt_dir = os.path.join(output_dir, trt.replace(" ", "_"))
@@ -626,7 +596,7 @@ class test_evaluate_gmc(unittest.TestCase):
             self.assertGreater(
                 len(png_files), 0, f"No plot files in {trt_dir}"
             )
-            
+        breakpoint()
     def tearDown(self):
         output_dir = os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots")
         if os.path.isdir(output_dir):

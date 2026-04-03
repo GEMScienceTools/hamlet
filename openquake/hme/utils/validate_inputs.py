@@ -1,3 +1,4 @@
+import os
 import pathlib
 import dateutil
 import datetime
@@ -11,6 +12,7 @@ def validate_cfg(cfg: dict) -> None:
     check_fix_seis_catalog(cfg["input"]["seis_catalog"])
     convert_deprecated_parameters(cfg)
     check_branch_config(cfg)
+    check_flatfile_requires_gmm_lt(cfg)
 
 
 def check_branch_config(cfg: dict) -> None:
@@ -19,6 +21,28 @@ def check_branch_config(cfg: dict) -> None:
         logging.info(
             "Branch iteration mode enabled: "
             "will evaluate each branch independently"
+        )
+
+
+def check_flatfile_requires_gmm_lt(cfg: dict) -> None:
+    if "flatfile" not in cfg["input"]:
+        return
+
+    # Get the ssm key of the config
+    ssm_cfg = cfg["input"]["ssm"]
+
+    # If specifying a job file instead of SSC + SSC LT
+    # then gsim_lt will be in there so return
+    if ssm_cfg.get("job_ini_file") is not None:
+        return
+
+    # Otherwise need to make sure a gmmLT is in the ssm_dir
+    gmm_lt_path = os.path.join(ssm_cfg["ssm_dir"], "gmmLT.xml")
+    if not os.path.isfile(gmm_lt_path):
+        raise FileNotFoundError(
+            f"A flatfile is specified but no GMM logic tree file found at "
+            f"'{gmm_lt_path}'. A gmmLT.xml file must be present in the "
+            f"ssm_dir when using ground motion evaluation."
         )
 
 

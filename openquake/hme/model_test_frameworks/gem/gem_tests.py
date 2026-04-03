@@ -505,21 +505,19 @@ def cumulative_occurrence_eval(cfg, input_data):
     }
 
 
-def catalog_ground_motion_eval(cfg, input_data):
+def gmc_eval(cfg, input_data):
     """
     Compares observed ground motions from a flatfile with model-predicted
-    ground motions. Requires ``input.flatfile`` in the configuration.
+    ground motions.
+    
+    Requires ``input.flatfile`` in the configuration.
     """
-    logging.info("Evaluate GMCs against catalogue EQs")
+    logging.info("Evaluate model GMCs against provided flatfile")
 
-    test_config = cfg["config"]["model_framework"]["gem"][
-        "catalog_ground_motion_eval"
-    ]
-
+    test_config = cfg["config"]["model_framework"]["gem"]["gmc_eval"]
     test_config = deep_update(rup_match_default_params, test_config)
-    gmm_comparisons = evaluate_gmc(test_config, input_data)
 
-    return {"gmm_comparisons": gmm_comparisons}
+    return evaluate_gmc(test_config, input_data)
 
 
 gem_test_dict = {
@@ -533,5 +531,5 @@ gem_test_dict = {
     "L_test": L_test,
     "rupture_matching_eval": rupture_matching_eval,
     "cumulative_occurrence_eval": cumulative_occurrence_eval,
-    "catalog_ground_motion_eval": catalog_ground_motion_eval,
+    "gmc_eval": gmc_eval,
 }

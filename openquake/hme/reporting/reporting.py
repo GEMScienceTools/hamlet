@@ -245,8 +245,8 @@ def render_result_text(
                 env=env, cfg=cfg, results=results
             )
 
-        if "catalog_ground_motion_eval" in results["gem"].keys():
-            render_catalog_ground_motion_eval(
+        if "gmc_eval" in results["gem"].keys():
+            render_gmc_eval(
                 env=env, cfg=cfg, results=results
             )
 
@@ -610,14 +610,14 @@ def render_cumulative_occurrence_eval(
     )
 
 
-def render_catalog_ground_motion_eval(
+def render_gmc_eval(
     env: Environment, cfg: dict, results: dict
 ):
-    eval_results = results["gem"]["catalog_ground_motion_eval"]["val"]
+    eval_results = results["gem"]["gmc_eval"]["val"]
 
     # Get save_plot parameter from config
     test_config = cfg["config"]["model_framework"]["gem"][
-        "catalog_ground_motion_eval"
+        "gmc_eval"
     ]
     save_plot = test_config.get("save_plot", False)
 
@@ -632,8 +632,8 @@ def render_catalog_ground_motion_eval(
         if plot:
             res_plots[trt].append(plot)
 
-    cat_gm_template = env.get_template("catalog_ground_motion_eval.html")
+    cat_gm_template = env.get_template("gmc_eval.html")
 
-    results["gem"]["catalog_ground_motion_eval"]["rendered_text"] = (
+    results["gem"]["gmc_eval"]["rendered_text"] = (
         cat_gm_template.render(res_plots=res_plots)
     )

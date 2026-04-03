@@ -132,7 +132,7 @@ config:
       # Catalog Ground Motion Evaluation
       # Compares observed ground motions from a flatfile with model predictions.
       # Requires a flatfile to be specified under input.
-      catalog_ground_motion_eval:
+      gmc_eval:
         match_rups: False          # [optional] Match ruptures to earthquakes
                                    # before ground motion comparison
         # gmf_method: ground_motion_fields  # [optional] Method for ground
@@ -266,7 +266,7 @@ input:
 
   # -------------------------------------------------------------------------
   # Flatfile for ground motion evaluation [optional]
-  # Required for catalog_ground_motion_eval test.
+  # Required for gmc_eval test.
   # -------------------------------------------------------------------------
   flatfile: path/to/flatfile.csv
 

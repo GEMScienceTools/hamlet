@@ -272,7 +272,7 @@ Takes no configuration parameters (use ``{}``).
 
 .. _gem-catalog-ground-motion-eval:
 
-Catalog Ground Motion Evaluation (``catalog_ground_motion_eval``)
+Catalog Ground Motion Evaluation (``gmc_eval``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Compares observed ground motions from a flatfile with model predictions. This

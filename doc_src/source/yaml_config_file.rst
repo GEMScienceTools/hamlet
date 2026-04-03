@@ -329,7 +329,7 @@ Flatfile (``flatfile``)
 -----------------------
 
 Path to a ground motion flatfile (CSV). Required for the
-``catalog_ground_motion_eval`` evaluation. Specified at the ``input`` level.
+``gmc_eval`` evaluation. Specified at the ``input`` level.
 
 .. code-block:: yaml
 

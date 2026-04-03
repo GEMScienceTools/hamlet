@@ -274,7 +274,7 @@ def load_ruptures_from_file(cfg: dict):
 
 
 def needs_gsim_lt(cfg: dict):
-    gsim_test_list = ["catalog_ground_motion_eval"]
+    gsim_test_list = ["gmc_eval"]
 
     needs_gsim = False
     if "gem" in cfg["config"]["model_framework"]:
