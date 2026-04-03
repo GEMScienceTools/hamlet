@@ -564,6 +564,7 @@ class test_evaluate_gmc(unittest.TestCase):
     """
     def setUp(self):
         self.cfg = deepcopy(cfg)
+
         # Add the required keys for telling hamlet to perform gmc evaluation
         self.cfg["input"]["flatfile"] = os.path.join(
             TEST_DATA_DIR, "gem_global_flatfile_fake_test_data.csv"
@@ -572,6 +573,8 @@ class test_evaluate_gmc(unittest.TestCase):
             "rups_from_flatfile": True,
             "output_dir": os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots"),
         }
+
+        # Load the config
         self.input_data = load_inputs(self.cfg)
 
     def test_evaluate_gmc_runs(self):
@@ -596,7 +599,7 @@ class test_evaluate_gmc(unittest.TestCase):
             self.assertGreater(
                 len(png_files), 0, f"No plot files in {trt_dir}"
             )
-        breakpoint()
+
     def tearDown(self):
         output_dir = os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots")
         if os.path.isdir(output_dir):
