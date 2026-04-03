@@ -23,6 +23,7 @@ from openquake.smt.residuals.residual_plotter import (
     ResidualWithMagnitude,
     ResidualWithDistance,
     ResidualWithVs30,
+    plot_residual_means_and_stds_with_period,
 )
 
 from openquake.hme.model_test_frameworks.gem.gem_test_functions import (
@@ -261,13 +262,17 @@ class HamletContextDB(ContextDB):
 def generate_residual_plots(residuals, imts, output_dir):
     """
     Generate residual plots for all GMMs and IMTs.
+    Per-IMT plots are saved in per-GMM subdirectories.
+    A summary plot of residual means and std devs vs period is also saved.
     """
     os.makedirs(output_dir, exist_ok=True)
 
     for gmpe in residuals.gmpe_list:
         gmpe_str = re.sub(r'[^\w\-.]', '_', str(gmpe))
+        gmpe_dir = os.path.join(output_dir, gmpe_str)
+        os.makedirs(gmpe_dir, exist_ok=True)
         for imtx in imts:
-            prefix = os.path.join(output_dir, f"{gmpe_str}_{imtx}")
+            prefix = os.path.join(gmpe_dir, f"{gmpe_str}_{imtx}")
             ResidualPlot(
                 residuals, gmpe, imtx, f"{prefix}_hist.png"
             )
@@ -281,6 +286,12 @@ def generate_residual_plots(residuals, imts, output_dir):
             ResidualWithVs30(
                 residuals, gmpe, imtx, f"{prefix}_vs_vs30.png"
             )
+
+    # Plot residual means and std devs vs period (all GMMs on one figure)
+    plot_residual_means_and_stds_with_period(
+        residuals,
+        os.path.join(output_dir, "residual_means_stds_vs_period.png"),
+    )
 
 
 def _assign_trt_to_earthquakes(test_config, input_data):

@@ -557,8 +557,15 @@ class test_gem_tests(unittest.TestCase):
 
 
 class test_evaluate_gmc(unittest.TestCase):
+    """
+    Test the GMC evaluation capabilities.
+    
+    NOTE: This is only testing the execution because we are using FAKE values
+    in the test flatfile (there are no readily available recordings for the ASCR
+    events considered in sm1 test ssc).
+    """
     def setUp(self):
-        # Reload ruptures with return_trt=True and all TRTs
+        # Reload ruptures with return_trt=True
         gmc_cfg = deepcopy(cfg)
         gmc_cfg["input"]["return_trt"] = True # Need the TRTs for GMC evaluation
         rupture_gdf, _ = load_ruptures_from_ssm(gmc_cfg)
@@ -619,7 +626,7 @@ class test_evaluate_gmc(unittest.TestCase):
             self.assertGreater(
                 len(png_files), 0, f"No plot files in {trt_dir}"
             )
-            
+
     def tearDown(self):
         output_dir = os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots")
         if os.path.isdir(output_dir):
