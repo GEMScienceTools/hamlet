@@ -1,0 +1,52 @@
+###############################################################################
+# Hamlet Minimal Configuration Example
+#
+# This is the simplest useful configuration: it runs the model MFD comparison,
+# the N-test, and the maximum magnitude sanity check for a single logic tree
+# branch.
+###############################################################################
+
+meta:
+  model_name: My Model
+  description: "Minimal example evaluation"
+
+config:
+  model_framework:
+    gem:
+      model_mfd: {}
+      max_mag_check:
+        append_check: True
+        warn: True
+      N_test:
+        conf_interval: 0.95
+        prob_model: poisson
+
+  parallel: False
+
+input:
+  bins:
+    mfd_bin_min: 6.0
+    mfd_bin_max: 9.0
+    mfd_bin_width: 0.2
+
+  ssm:
+    ssm_dir: path/to/ssm/
+    ssm_lt_file: ssmLT.xml
+    branch: b1
+    tectonic_region_types:
+      - Active Shallow Crust
+
+  seis_catalog:
+    seis_catalog_file: path/to/catalog.csv
+    stop_date: 2018-01-01
+    duration: 40.
+    columns:
+      event_id: eventID
+      time:
+        - year
+        - month
+        - day
+
+report:
+  basic:
+    outfile: outputs/report.html

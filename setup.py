@@ -14,10 +14,10 @@ from setuptools import find_packages, setup, Command
 # Package meta-data.
 NAME = "openquake.hme"
 DESCRIPTION = "Hamlet: Hazard model evaluation and testing"
-URL = "https://gitlab.com/cossatot/hamlet"
-EMAIL = "richard.styron@globbalquakemodel.org"
+URL = "https://github.com/GEMScienceTools/hamlet"
+EMAIL = "richard.styron@globalquakemodel.org"
 AUTHOR = "Richard Styron, GEM Foundation"
-REQUIRES_PYTHON = ">=3.6.0"
+REQUIRES_PYTHON = ">=3.11.0"
 VERSION = None
 
 # What packages are required for this module to be executed?
@@ -121,7 +121,9 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],

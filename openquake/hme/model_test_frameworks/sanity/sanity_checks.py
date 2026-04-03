@@ -13,6 +13,15 @@ def min_max_check():
 
 
 def max_check(cfg, input_data, framework="sanity"):
+    """Checks whether the model maximum magnitude exceeds the observed maximum
+    magnitude in each spatial cell.
+
+    :param cfg: Configuration dict.
+    :param input_data: Dict with rupture and earthquake data.
+    :param framework: Framework name for config lookup (``"sanity"`` or
+        ``"gem"``).
+    :returns: Dict mapping cell IDs to True (pass) or False (fail).
+    """
     bin_width = cfg["input"]["bins"]["mfd_bin_width"]
 
     test_cfg = cfg["config"]["model_framework"][framework]

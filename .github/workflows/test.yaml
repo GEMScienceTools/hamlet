@@ -1,0 +1,37 @@
+name: tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: "0 1 * * *"
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    - name: Install OQ and dependencies
+      run: |
+        sudo apt-get install libspatialindex-dev
+        git clone --depth=1 https://github.com/gem/oq-engine.git
+        cd oq-engine
+        python ./install.py devel
+        cd ..
+        source $HOME/openquake/bin/activate
+        pip install h3
+        pip install -r requirements.txt
+        pip install -e .
+        deactivate
+    - name: Run test with pytest
+      run: |
+        source $HOME/openquake/bin/activate
+        pytest openquake tests -W ignore::UserWarning

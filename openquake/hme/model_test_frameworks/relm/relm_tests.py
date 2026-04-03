@@ -14,6 +14,9 @@ from openquake.hme.model_test_frameworks.relm.relm_test_functions import (
 
 
 def M_test(cfg, input_data):
+    """RELM/CSEP M-Test: evaluates the consistency of the model MFD vs.
+    the observed MFD. Uses ``not_modeled_likelihood=0.0`` (strict).
+    """
     logging.info("Running CSEP/RELM M-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
@@ -54,7 +57,9 @@ def S_test(
     cfg: dict,
     input_data: dict,
 ) -> dict:
-    """"""
+    """RELM/CSEP S-Test: evaluates the spatial consistency of the model.
+    Uses ``not_modeled_likelihood=0.0`` (strict).
+    """
     logging.info("Running CSEP/RELM S-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
@@ -106,7 +111,9 @@ def L_test(
     cfg: dict,
     input_data: dict,
 ) -> dict:
-    """"""
+    """RELM/CSEP L-Test: joint likelihood test combining spatial and magnitude
+    information. Uses ``not_modeled_likelihood=0.0`` (strict).
+    """
     logging.info("Running CSEP/RELM L-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
@@ -149,6 +156,9 @@ def L_test(
 
 
 def N_test(cfg: dict, input_data: dict) -> dict:
+    """RELM/CSEP N-Test: compares the total observed earthquake count to the
+    model prediction.
+    """
     logging.info("Running N-Test")
 
     logging.info(

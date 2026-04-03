@@ -1,0 +1,10 @@
+/* Expand top two levels of sidebar nav by default */
+.sidebar-tree .toctree-l1 > ul,
+.sidebar-tree .toctree-l2 > ul {
+    display: block !important;
+}
+
+.sidebar-tree .toctree-l1 > label,
+.sidebar-tree .toctree-l2 > label {
+    display: none;
+}

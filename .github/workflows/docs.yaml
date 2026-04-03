@@ -1,0 +1,47 @@
+name: docs
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-and-deploy:
+    name: build and deploy docs
+    runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: 'Agg'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install OQ and dependencies
+      run: |
+        sudo apt-get install -y libspatialindex-dev
+        git clone --depth=1 https://github.com/gem/oq-engine.git
+        cd oq-engine
+        python ./install.py devel
+        cd ..
+        source $HOME/openquake/bin/activate
+        pip install h3
+        pip install -r requirements.txt
+        pip install -e .
+        pip install sphinx furo recommonmark
+
+    - name: Build HTML docs
+      run: |
+        source $HOME/openquake/bin/activate
+        sphinx-build -b html doc_src/source doc_src/build/html
+        touch doc_src/build/html/.nojekyll
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: doc_src/build/html/
+        commit_message: "deploy docs from master"
