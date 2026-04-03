@@ -48,8 +48,8 @@ class HamletContextDB(ContextDB):
             Tectonic region type string (e.g. "Active Shallow Crust") of the
             given event.
         :param oq_rup:
-            Dict mapping eq index to matched model rupture Series.
-            Rupture parameters are taken from the matched rupture.
+            Dict mapping eq index to matched model ruptures. The rupture
+            parameters in the ctxs are taken from the matched ruptures.
         """
         self.eq_df = eq_df
         self.gm_df = gm_df
