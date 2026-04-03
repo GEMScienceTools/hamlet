@@ -114,7 +114,10 @@ def S_test(
     cfg: dict,
     input_data: dict,
 ) -> dict:
-    """"""
+    """GEM S-Test: evaluates the spatial consistency of the model by comparing
+    per-cell likelihoods of the observed catalog against stochastic catalogs.
+    Highlights cells where the model over- or under-predicts seismicity.
+    """
     logging.info("Running GEM S-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
@@ -165,7 +168,9 @@ def L_test(
     cfg: dict,
     input_data: dict,
 ) -> dict:
-    """"""
+    """GEM L-Test: joint likelihood test combining spatial and magnitude
+    information to evaluate overall model consistency.
+    """
     logging.info("Running GEM L-Test")
 
     mag_bins = get_mag_bins_from_cfg(cfg)
