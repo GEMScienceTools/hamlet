@@ -1,0 +1,11 @@
+<h3> Observed vs Predicted Ground Motions</h3>
+
+{% for trt, plots in res_plots.items() %}
+<h4>{{ trt }}</h4>
+{% for plot in plots %}
+<div style="margin-bottom: 1em;">
+<img src="data:image/png;base64,{{ plot.data }}" alt="{{ plot.name }}" style="max-width: 100%;">
+<p><em>{{ plot.name }}</em></p>
+</div>
+{% endfor %}
+{% endfor %}

@@ -272,25 +272,32 @@ Takes no configuration parameters (use ``{}``).
 
 .. _gem-catalog-ground-motion-eval:
 
-Catalog Ground Motion Evaluation (``gmc_eval``)
+Ground-Motion Characterisation Evaluation (``gmc_eval``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Compares observed ground motions from a flatfile with model predictions. This
-requires a flatfile to be specified under ``input.flatfile`` in the
-configuration.
+Compares observed ground motions from a flatfile with predictions from the
+ground-motion models (GMMs) in the GSIM logic tree. Each earthquake in the
+flatfile is assigned to a tectonic region type (TRT) using the matched rupture
+(i.e., one that is above a statistical threshold) or as a fallback the nearest
+rupture instead. Then, residuals are computed for each TRT using the corresponding
+GMMs.
+
+Residual plots (histograms, magnitude/distance/Vs30 trends, and a summary period
+plot) are saved as PNGs and embedded in the HTML report.
+
+Requires a flatfile to be specified under ``input.flatfile`` and a ``gmmLT.xml``
+file to be present in the ``ssm_dir``.
 
 Parameters:
 
 ``match_rups``
-    Optional. If ``True``, match earthquakes to model ruptures before computing
-    ground motion comparisons; if ``False``, then new ruptures are generated 
-    based on the earthquake information in the flatfile. If ruptures are 
-    matched, it provides a better understanding of whether the model is 
-    reproducing the ground motions from specific earthquakes, and the 
-    confidence with which an earthquake is assigned to a tectonic region type 
-    is much higher (as the best-matching rupture will already have one 
-    defined). Default: ``False``.
+    Optional. If ``True``, match earthquakes to model ruptures before assigning
+    TRTs; matched ruptures provide higher confidence in TRT assignment.
+    If ``False`` (default), all earthquakes are treated as unmatched and each
+    is assigned the TRT of the closest model rupture. Default: ``False``.
 
-``gmf_method``
-    Optional. Method for ground motion calculation. Default:
-    ``"ground_motion_fields"``.
+``output_dir``
+    Optional. Directory where per-TRT residual plot PNGs are saved. Each TRT
+    gets a subdirectory with per-GMM subfolders. Default:
+    ``"gm_residual_plots"``.
+
