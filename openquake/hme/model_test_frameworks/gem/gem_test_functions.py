@@ -602,13 +602,10 @@ class HamletContextDB(ContextDB):
     DataFrame and GEM Global Flatfile records, suitable for SMT
     residual analysis.
     """
-
     def __init__(self, eq_df, gm_df, trt):
         """
         :param eq_df:
-            DataFrame of unique earthquakes, with columns such as event_id,
-            longitude, latitude, depth, magnitude, strike, dip, rake,
-            es_z_top, es_width, etc.
+            DataFrame of unique earthquakes.
         :param gm_df:
             DataFrame of the GEM Global Flatfile.
         :param trt:
@@ -620,8 +617,7 @@ class HamletContextDB(ContextDB):
         self.trt = trt
         self.msr, self.aratio = self._get_rup_props_for_trt(trt)
 
-    @staticmethod
-    def _get_rup_props_for_trt(trt):
+    def _get_rup_props_for_trt(self, trt):
         """
         Return an appropriate MSR and aspect ratio for the TRT.
         """
@@ -632,29 +628,30 @@ class HamletContextDB(ContextDB):
             return scalerel.strasser2010.StrasserInterface(), 5.0
         return scalerel.WC1994(), 2.0
 
-    def get_contexts(self, nodal_plane_index=1, imts=None, component="Geometric"):
+    def get_contexts(self, imts):
         """
         Build contexts directly from hamlet DataFrames.
         """
         ctxs = []
-
         for idx, eq in self.eq_df.iterrows():
-            records = self.gm_df[
-                self.gm_df["event_id"] == eq.event_id
-            ]
+            
+            # Get records
+            records = self.gm_df[self.gm_df["event_id"] == eq.event_id]
+            
             if len(records) == 0:
                 continue
-
+            
             ctx = RuptureContext()
             n_sites = len(records)
 
+            # Get rup, site and distance params
             self._set_rupture_params(ctx, eq, self.msr)
             self._set_site_params(ctx, records, n_sites)
             self._set_distance_params(ctx, records, n_sites)
 
             ctx.sids = np.arange(n_sites, dtype=np.uint32)
 
-            # ---- Build context dict ----
+            # Build an SMT-style ctx
             dic = {"EventID": eq.event_id, "Ctx": ctx}
             dic["Observations"] = {}
             dic["Retained"] = {}
@@ -672,79 +669,57 @@ class HamletContextDB(ContextDB):
 
         return ctxs
 
-    @staticmethod
-    def _set_rupture_params(ctx, eq):
+    def _set_rupture_params(self, ctx, eq):
         """
         Set rupture parameters on the context from the earthquake row.
         """
+        # Mag and hypocenter
         ctx.mag = float(eq.magnitude)
-        ctx.strike = (
-            float(eq.strike) if pd.notnull(eq.get("strike")) else 0.0
-        )
-        ctx.dip = (
-            float(eq.dip) if pd.notnull(eq.get("dip")) else 90.0
-        )
-        ctx.rake = (
-            float(eq.rake) if pd.notnull(eq.get("rake")) else 0.0
-        )
         ctx.hypo_lon = float(eq.longitude)
         ctx.hypo_lat = float(eq.latitude)
         ctx.hypo_depth = float(eq.depth)
 
+        # Nodal plane
+        ctx.strike = (float(eq.strike) if pd.notnull(eq.get("strike")) else 0.0)
+        ctx.dip = (float(eq.dip) if pd.notnull(eq.get("dip")) else 90.0)
+        ctx.rake = (float(eq.rake) if pd.notnull(eq.get("rake")) else 0.0)
+
+        # Set a ztor if we have one
         if pd.notnull(eq.get("es_z_top")):
             ctx.ztor = float(eq.es_z_top)
         else:
             ctx.ztor = float(eq.depth)
 
+        # Try set the rupture width or compute a proxy if not available
         if pd.notnull(eq.get("es_width")):
             ctx.width = float(eq.es_width)
         else:
             ctx.width = np.sqrt(
-                scalerel.WC1994().get_median_area(ctx.mag, ctx.rake)
-            )
+                scalerel.WC1994().get_median_area(ctx.mag, ctx.rake))
 
+        # Arbitrary hypocentral location (it's the relative distance
+        # to the sites that matters)
         ctx.hypo_loc = (0.5, 0.5)
 
-    @staticmethod
-    def _set_site_params(ctx, records, n_sites):
+    def _set_site_params(self, ctx, records, n_sites):
         """
         Set site parameters on the context from flatfile records.
         """
+        # Basic site params
         ctx.lons = records["st_longitude"].values.astype(float)
         ctx.lats = records["st_latitude"].values.astype(float)
-
         depths = records["st_elevation"].values.astype(float) * -1.0e-3
         depths[np.isnan(depths)] = 0.0
         ctx.depths = depths
-
         ctx.vs30 = records["vs30_m_sec"].values.astype(float)
-
-        vs30_type = records["vs30_meas_type"].values
-        ctx.vs30measured = np.array(
-            [
-                str(v).strip().lower() == "measured"
-                if pd.notnull(v)
-                else False
-                for v in vs30_type
-            ],
-            dtype=bool,
-        )
-
         z1 = records["z1pt0 (m)"].values.astype(float)
         ctx.z1pt0 = np.where(np.isnan(z1), np.nan, z1)
-
         z2 = records["z2pt5 (km)"].values.astype(float)
         ctx.z2pt5 = np.where(np.isnan(z2), np.nan, z2)
-
-        backarc = records["st_backarc"].values
-        ctx.backarc = np.array(
-            [
-                b in (1, True) or (isinstance(b, str) and
-                                   b.lower() == "true")
-                for b in backarc
-            ],
-            dtype=bool,
-        )
+        ctx.vs30measured = (
+            records["vs30_meas_type"].str.strip().str.lower().eq(
+                "measured").values)
+        ctx.backarc = records["st_backarc"].astype(bool).values
 
     def _set_distance_params(self, ctx, records, n_sites):
         """
@@ -772,9 +747,8 @@ class HamletContextDB(ContextDB):
         """
         dist_attrs = ["rrup", "rjb", "rx", "ry0", "repi", "rhypo"]
         has_missing = any(
-            np.any(np.isnan(getattr(ctx, attr, np.array([]))))
+            np.any(np.isnan(getattr(ctx, attr)))
             for attr in dist_attrs
-            if hasattr(ctx, attr)
         )
         if not has_missing:
             return
@@ -798,7 +772,7 @@ class HamletContextDB(ContextDB):
             gmpe.REQUIRES_DISTANCES = frozenset(orig_r)
 
             mag_str = [f"{ctx.mag:.2f}"]
-            oqp = {"imtls": {"PGA": []}, "mags": mag_str}
+            oqp = {"imtls": {"PGA": []}, "mags": mag_str} # Dummy imtls here
             ctxm = ContextMaker(
                 self.trt, [gmpe], oqp
             )
@@ -807,7 +781,6 @@ class HamletContextDB(ContextDB):
                 needs_fill = any(
                     np.isnan(getattr(ctx, attr)[i])
                     for attr in dist_attrs
-                    if hasattr(ctx, attr)
                 )
                 if not needs_fill:
                     continue
@@ -828,23 +801,16 @@ class HamletContextDB(ContextDB):
                 )
 
                 site_ctxs = ctxm.get_ctxs([rup], site)
-                if len(site_ctxs) == 0:
-                    continue
                 site_ctx = site_ctxs[0]
 
                 for attr in dist_attrs:
-                    if hasattr(ctx, attr) and np.isnan(
-                        getattr(ctx, attr)[i]
-                    ):
-                        val = getattr(site_ctx, attr, None)
-                        if val is not None:
-                            getattr(ctx, attr)[i] = float(val[0])
+                    if np.isnan(getattr(ctx, attr)[i]):
+                        getattr(ctx, attr)[i] = float(getattr(site_ctx, attr)[0])
 
         except Exception as e:
             logging.warning(f"Could not fill missing distances: {e}")
 
-    @staticmethod
-    def _imt_to_rotd50_col(imtx):
+    def _imt_to_rotd50_col(self, imtx):
         """
         Map IMT string to the GEM flatfile rotD50 column name.
         """
@@ -959,7 +925,7 @@ def evaluate_gmc(test_config, input_data):
         ctx_db = HamletContextDB(eq_subset, input_data["gm_df"], trt)
 
         residuals = Residuals(gmpe_list, imts)
-        residuals.compute_residuals(ctx_db, component="Geometric")
+        residuals.compute_residuals(ctx_db, component="rotD50")
 
         trt_dir = os.path.join(output_dir, trt.replace(" ", "_"))
         _generate_residual_plots(residuals, imts, trt_dir)
