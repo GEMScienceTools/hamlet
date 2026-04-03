@@ -296,7 +296,7 @@ def generate_residual_plots(residuals, imts, output_dir):
     )
 
 
-def _assign_trt_to_earthquakes(test_config, input_data):
+def rup_match_and_assign_trts(test_config, input_data):
     """
     Run rupture matching and assign a TRT to each earthquake.
     """
@@ -343,10 +343,13 @@ def evaluate_gmc(test_config, input_data):
     IMTs of general interest
     """
     # Hardcode the GMMs to the GRM IMTs for now
-    imts = ["PGA", "SA(0.3)", "SA(0.6)", "SA(1.0)"]
+    candidate_imts = ["PGA", "SA(0.3)", "SA(0.6)", "SA(1.0)"]
+
+    # Filter to IMTs that have data in the flatfile
+    gm_df = input_data["gm_df"]
 
     logging.info("Matching ruptures to GM Earthquakes")
-    eq_trt_map = _assign_trt_to_earthquakes(test_config, input_data)
+    eq_trt_map = rup_match_and_assign_trts(test_config, input_data)
 
     # Make out dir
     output_dir = test_config.get("output_dir", "gm_residual_plots")
@@ -362,11 +365,32 @@ def evaluate_gmc(test_config, input_data):
         if len(eq_subset) == 0:
             continue
 
+        # Filter to records for this TRT's earthquakes
+        trt_records = gm_df[gm_df["event_id"].isin(eq_subset["event_id"])]
+
+        # Check which IMTs have data in these records
+        imts = []
+        for imtx in candidate_imts:
+            col = HamletContextDB._imt_to_rotd50_col(None, imtx)
+            if trt_records[col].notna().any():
+                imts.append(imtx)
+            else:
+                logging.info(
+                    f"Skipping IMT {imtx}: no data for TRT {trt}"
+                )
+
+        if not imts:
+            logging.warning(
+                f"No IMTs with data for TRT {trt}, skipping"
+            )
+            continue
+
         gmpe_list = list(input_data["gsim_lt"].values.get(trt, []))
 
         logging.info(
             f"Computing residuals for TRT: {trt} "
-            f"({len(eq_subset)} events, {len(gmpe_list)} GMMs)"
+            f"({len(eq_subset)} events, {len(gmpe_list)} GMMs, "
+            f"{len(imts)} IMTs)"
         )
 
         ctx_db = HamletContextDB(eq_subset, input_data["gm_df"], trt)
