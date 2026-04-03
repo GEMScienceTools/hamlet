@@ -12,12 +12,10 @@ import pandas as pd
 from geopandas import GeoDataFrame
 from tqdm.autonotebook import tqdm
 
-from openquake.hazardlib.imt import PGA, PGV
 from openquake.hazardlib import imt as imt_module
 from openquake.hazardlib import scalerel
 from openquake.hazardlib.geo.geodetic import distance
 from openquake.hazardlib.contexts import RuptureContext
-import openquake.hazardlib as hz
 
 from openquake.smt.residuals.gmpe_residuals import Residuals
 from openquake.smt.residuals.context_db import ContextDB
@@ -596,75 +594,6 @@ def rupture_matching_eval_fn(
     return {"matched_rups": matched_rups, "unmatched_eqs": unmatched_eqs}
 
 
-from openquake.hme.utils.gmm_utils import (
-    make_sitecol,
-    build_oq_rupture,
-    gmf_from_rupture,
-    get_imls_from_flatfile_row,
-    make_rup_from_flatfile,
-)
-
-
-def get_flatfile_records_for_eq(event_id, gm_df: pd.DataFrame) -> pd.DataFrame:
-    return gm_df.loc[gm_df.event_id == event_id]
-
-
-def predict_gms_for_eq(eq, gm_df, gsim_lt, test_config, imts=(PGA(),)):
-    site_records = get_flatfile_records_for_eq(eq.event_id, gm_df)
-    sitecol = make_sitecol(
-        site_records["st_longitude"].values,
-        site_records["st_latitude"].values,
-        vs30s=site_records["vs30_m_sec"].values,
-        vs30s_meas_type=site_records["vs30_meas_type"].values,
-    )
-
-    if not isinstance(eq, hz.source.rupture.BaseRupture):
-        rupture = build_oq_rupture(eq)
-    else:
-        rupture = eq
-
-    results = {}
-
-    gsims = gsim_lt.values[eq.tectonic_region_type]
-
-    if test_config["gmf_method"] == "ground_motion_fields":
-        for gsim in gsims:
-            results[gsim.__repr__().strip("[]")] = gmf_from_rupture(
-                rupture, sites=sitecol, gsim=gsim, imts=imts
-            )
-
-    elif test_config["gmf_method"] == "calc_gmf_simplified":
-        # ebr = hz.source.rupture.EBRupture()
-        raise NotImplementedError("don't know how to make EBR, context")
-
-    results["obs"] = {imt.__repr__(): {} for imt in imts}
-    for i, row in site_records.iterrows():
-        row_obs = get_imls_from_flatfile_row(row, imts)
-        for imt, v in row_obs.items():
-            results["obs"][imt][i] = v
-
-    results_df = pd.concat(
-        [
-            pd.Series(res, name=f"{imt}_obs")
-            for imt, res in results["obs"].items()
-        ],
-        axis=1,
-    )
-
-    for gsim, gms in results.items():
-        if gsim != "obs":
-            for imt, vals in gms.items():
-                results_df[f"{imt}_{gsim}"] = vals
-
-    rrup_calc = rupture.surface.get_min_distance(sitecol.mesh)
-    results_df["rup_dist_calc"] = rrup_calc
-    results_df["rup_dist_ff"] = site_records["rup_dist"]
-
-    # breakpoint()
-
-    return results_df
-
-
 def get_closest_rupture(eq, rupture_df):
     dists = get_distances(eq, rupture_df)
     return rupture_df.iloc[dists.argmin()]
@@ -684,25 +613,12 @@ class HamletContextDB(ContextDB):
             longitude, latitude, depth, magnitude, strike, dip, rake,
             es_z_top, es_width, etc.
         :param gm_df:
-            Full flatfile DataFrame with original (un-renamed) columns,
-            containing all ground-motion records.
+            Full flatfile DataFrame in GEM flatfile format with original
+            (un-renamed) columns, containing all ground-motion records.
         """
         self.eq_df = eq_df
         self.gm_df = gm_df
         self._col_cache = {c.lower(): c for c in self.gm_df.columns}
-        self._detect_event_id_col()
-
-    def _detect_event_id_col(self):
-        lower_cols = set(self._col_cache.keys())
-        if "event_id" in lower_cols:
-            self.event_id_col = self._col_cache["event_id"]
-        elif "esm_event_id" in lower_cols:
-            self.event_id_col = self._col_cache["esm_event_id"]
-        else:
-            raise ValueError(
-                "Cannot determine event ID column in flatfile: "
-                "expected 'event_id' or 'esm_event_id'"
-            )
 
     def _get_col(self, df, candidates):
         """Return array of values from the first matching column (case-insensitive)."""
@@ -730,7 +646,7 @@ class HamletContextDB(ContextDB):
 
         for idx, eq in self.eq_df.iterrows():
             records = self.gm_df[
-                self.gm_df[self.event_id_col] == eq.event_id
+                self.gm_df["event_id"] == eq.event_id
             ]
             if len(records) == 0:
                 continue
@@ -784,7 +700,7 @@ class HamletContextDB(ContextDB):
                 ctx.depths = np.zeros(n_sites)
 
             vs30 = self._get_col(
-                records, ["vs30_m_sec", "vs30_m_s", "vs30"]
+                records, ["vs30_m_sec"]
             )
             ctx.vs30 = (
                 vs30.astype(float)
@@ -793,7 +709,7 @@ class HamletContextDB(ContextDB):
             )
 
             vs30_type = self._get_col(
-                records, ["vs30_meas_type", "vs30_calc_method"]
+                records, ["vs30_meas_type"]
             )
             if vs30_type is not None:
                 ctx.vs30measured = np.array(
@@ -808,21 +724,21 @@ class HamletContextDB(ContextDB):
             else:
                 ctx.vs30measured = np.zeros(n_sites, dtype=bool)
 
-            z1 = self._get_col(records, ["z1pt0", "z1pt0 (m)"])
+            z1 = self._get_col(records, ["z1pt0 (m)"])
             ctx.z1pt0 = (
                 np.where(np.isnan(z1.astype(float)), np.nan, z1.astype(float))
                 if z1 is not None
                 else np.full(n_sites, np.nan)
             )
 
-            z2 = self._get_col(records, ["z2pt5", "z2pt5 (km)"])
+            z2 = self._get_col(records, ["z2pt5 (km)"])
             ctx.z2pt5 = (
                 np.where(np.isnan(z2.astype(float)), np.nan, z2.astype(float))
                 if z2 is not None
                 else np.full(n_sites, np.nan)
             )
 
-            backarc = self._get_col(records, ["backarc", "st_backarc"])
+            backarc = self._get_col(records, ["st_backarc"])
             if backarc is not None:
                 ctx.backarc = np.array(
                     [
@@ -844,7 +760,7 @@ class HamletContextDB(ContextDB):
 
             ctx.rhypo = np.sqrt(ctx.repi ** 2 + ctx.hypo_depth ** 2)
 
-            rjb = self._get_col(records, ["jb_dist", "JB_dist"])
+            rjb = self._get_col(records, ["JB_dist"])
             ctx.rjb = (
                 rjb.astype(float) if rjb is not None
                 else np.full(n_sites, np.nan)
@@ -856,13 +772,13 @@ class HamletContextDB(ContextDB):
                 else np.full(n_sites, np.nan)
             )
 
-            rx = self._get_col(records, ["rx_dist", "Rx_dist"])
+            rx = self._get_col(records, ["Rx_dist"])
             ctx.rx = (
                 rx.astype(float) if rx is not None
                 else np.full(n_sites, np.nan)
             )
 
-            ry0 = self._get_col(records, ["ry0_dist", "Ry0_dist"])
+            ry0 = self._get_col(records, ["Ry0_dist"])
             ctx.ry0 = (
                 ry0.astype(float) if ry0 is not None
                 else np.full(n_sites, np.nan)
@@ -883,7 +799,7 @@ class HamletContextDB(ContextDB):
                 dic["Retained"] = {}
                 for imtx in imts:
                     values = self._get_imt_observations(
-                        imtx, records, component
+                        imtx, records
                     )
                     check = pd.notnull(values)
                     dic["Observations"][imtx] = np.asarray(
@@ -976,53 +892,25 @@ class HamletContextDB(ContextDB):
         except Exception as e:
             logging.warning(f"Could not fill missing distances: {e}")
 
-    def _get_imt_observations(self, imtx, records, component="Geometric"):
-        """Get observed ground-motion values for an IMT in cm/s^2."""
-        u_col, v_col, rotd50_col = self._imt_to_cols(imtx)
-
-        if component == "Geometric":
-            u_vals = self._get_col(records, [u_col])
-            v_vals = self._get_col(records, [v_col])
-            if u_vals is not None and v_vals is not None:
-                u_f = np.abs(u_vals.astype(float))
-                v_f = np.abs(v_vals.astype(float))
-                values = np.sqrt(u_f * v_f)
-                # Fall back to rotD50 where geometric mean is NaN
-                rotd50 = self._get_col(records, [rotd50_col])
-                if rotd50 is not None:
-                    mask = np.isnan(values)
-                    values[mask] = np.abs(rotd50.astype(float))[mask]
-                return values
-            # No U/V components available, try rotD50
-            rotd50 = self._get_col(records, [rotd50_col])
-            if rotd50 is not None:
-                return np.abs(rotd50.astype(float))
-            return np.full(len(records), np.nan)
-
-        elif component.lower() in ("rotd50", "rotd_50"):
-            rotd50 = self._get_col(records, [rotd50_col])
-            if rotd50 is not None:
-                return np.abs(rotd50.astype(float))
-            return np.full(len(records), np.nan)
-
-        else:
-            raise ValueError(f"Unsupported component: {component}")
+    def _get_imt_observations(self, imtx, records):
+        """Get observed rotD50 ground-motion values for an IMT in cm/s^2."""
+        col_name = self._imt_to_rotd50_col(imtx)
+        values = self._get_col(records, [col_name])
+        if values is not None:
+            return np.abs(values.astype(float))
+        return np.full(len(records), np.nan)
 
     @staticmethod
-    def _imt_to_cols(imtx):
-        """Map IMT string to flatfile column names (u, v, rotd50)."""
+    def _imt_to_rotd50_col(imtx):
+        """Map IMT string to the GEM flatfile rotD50 column name."""
         if imtx == "PGA":
-            return "u_pga", "v_pga", "rotd50_pga"
+            return "rotD50_pga"
         elif imtx == "PGV":
-            return "u_pgv", "v_pgv", "rotd50_pgv"
+            return "rotD50_pgv"
         elif "SA(" in imtx:
             period = imt_module.from_string(imtx).period
-            period_str = f"{period:.3f}".replace(".", "_")
-            return (
-                f"u_t{period_str}",
-                f"v_t{period_str}",
-                f"rotd50_t{period_str}",
-            )
+            period_str = str(period).replace(".", "_")
+            return f"rotD50_T{period_str}"
         else:
             raise ValueError(f"Unsupported IMT: {imtx}")
 
