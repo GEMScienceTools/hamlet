@@ -561,8 +561,6 @@ class test_evaluate_gmc(unittest.TestCase):
         # Reload ruptures with return_trt=True and all TRTs
         gmc_cfg = deepcopy(cfg)
         gmc_cfg["input"]["return_trt"] = True # Need the TRTs for GMC evaluation
-        gmc_cfg["input"]["simple_ruptures"] = False
-        gmc_cfg["input"]["ssm"]["tectonic_region_types"] = None # 
         rupture_gdf, _ = load_ruptures_from_ssm(gmc_cfg)
 
         self.input_data = input_data.copy()
@@ -582,7 +580,7 @@ class test_evaluate_gmc(unittest.TestCase):
         self.input_data["eq_gm_df"] = eq_gm_df
         self.input_data["gm_df"] = gm_df
 
-        # Load GSIM logic tree from sm1
+        # Load GSIM logic tree
         gsim_lt = GsimLogicTree(os.path.join(TEST_DATA_DIR, "gmmLT.xml"))
         self.input_data["gsim_lt"] = gsim_lt
 
@@ -605,7 +603,7 @@ class test_evaluate_gmc(unittest.TestCase):
         results = evaluate_gmc(self.test_config, self.input_data)
 
         # Each value should be an SMT Residuals object
-        for trt, residuals in results.items():
+        for trt, residuals in results.items(): # Only 1 TRT in sm1 (ASCR)
             self.assertIsInstance(trt, str)
             self.assertIsInstance(residuals, Residuals)
 
@@ -621,7 +619,7 @@ class test_evaluate_gmc(unittest.TestCase):
             self.assertGreater(
                 len(png_files), 0, f"No plot files in {trt_dir}"
             )
-
+            
     def tearDown(self):
         output_dir = os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots")
         if os.path.isdir(output_dir):
