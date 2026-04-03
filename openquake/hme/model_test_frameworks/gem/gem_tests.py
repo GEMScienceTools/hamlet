@@ -21,8 +21,9 @@ from .gem_test_functions import (
     model_mfd_eval_fn,
     moment_over_under_eval_fn,
     rupture_matching_eval_fn,
-    evaluate_gmc,
 )
+
+from openquake.hme.utils.gmm_utils import evaluate_gmc
 
 from ..relm.relm_tests import (
     n_test_function,

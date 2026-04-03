@@ -1,194 +1,370 @@
+"""
+Utility functions for GMM residual analysis.
+"""
+
+import os
 import logging
 
 import numpy as np
+import pandas as pd
 
-from openquake.hazardlib.calc.gmf import ground_motion_fields
+from openquake.hazardlib import imt as imt_module
+from openquake.hazardlib import scalerel, valid
+from openquake.hazardlib.contexts import ContextMaker, RuptureContext
 from openquake.hazardlib.geo.point import Point
-from openquake.hazardlib.geo.geodetic import point_at
+from openquake.hazardlib.geo.surface.planar import PlanarSurface
 from openquake.hazardlib.site import Site, SiteCollection
+from openquake.hazardlib.source.rupture import BaseRupture
 
-from openquake.hazardlib.imt import PGA, PGV
-
-from openquake.hazardlib.source.rupture import (
-    BaseRupture,
-    EBRupture,
+from openquake.smt.residuals.gmpe_residuals import Residuals
+from openquake.smt.residuals.context_db import ContextDB
+from openquake.smt.residuals.residual_plotter import (
+    ResidualPlot,
+    ResidualWithMagnitude,
+    ResidualWithDistance,
+    ResidualWithVs30,
 )
 
-from openquake.hazardlib.geo.surface import PlanarSurface
-
-from openquake.hme.utils.stats import geom_mean
-
-from openquake.hme.utils.utils import breakpoint
-
-
-def build_oq_rupture(rupture):
-    if hasattr(rupture, "surface"):
-        surface = rupture.surface
-    else:
-        # maybe w/ hz.source.rupture.build_planar
-        raise NotImplementedError
-    oqrup = BaseRupture(
-        mag=rupture.magnitude,
-        rake=rupture.rake,
-        surface=surface,
-        hypocenter=surface.get_middle_point(),
-        tectonic_region_type=rupture.tectonic_region_type,
-    )
-    oqrup.ztor = surface.get_top_edge_depth()
-    return oqrup
+from openquake.hme.model_test_frameworks.gem.gem_test_functions import (
+    rupture_matching_eval_fn,
+    get_closest_rupture,
+)
 
 
-def make_sitecol(
-    lons,
-    lats,
-    vs30s=650.0,
-    vs30s_meas_type=None,
-) -> SiteCollection:
-    sites = []
+class HamletContextDB(ContextDB):
+    """
+    Custom ContextDB that builds contexts from hamlet's earthquake
+    DataFrame and GEM Global Flatfile records, suitable for SMT
+    residual analysis.
+    """
+    def __init__(self, eq_df, gm_df, trt):
+        """
+        :param eq_df:
+            DataFrame of unique earthquakes.
+        :param gm_df:
+            DataFrame of the GEM Global Flatfile.
+        :param trt:
+            Tectonic region type string (e.g. "Active Shallow Crust") of the
+            given event.
+        """
+        self.eq_df = eq_df
+        self.gm_df = gm_df
+        self.trt = trt
+        self.msr, self.aratio = self._get_rup_props_for_trt(trt)
 
-    def get_param(p, i):
-        if p is not None:
-            if np.isscalar(p):
-                return p
-            else:
-                return p[i]
+    def _get_rup_props_for_trt(self, trt):
+        """
+        Return an appropriate MSR and aspect ratio for the TRT.
+        """
+        trt_lower = trt.lower()
+        if "slab" in trt_lower or "intraslab" in trt_lower:
+            return scalerel.strasser2010.StrasserIntraslab(), 5.0
+        elif "interface" in trt_lower:
+            return scalerel.strasser2010.StrasserInterface(), 5.0
+        return scalerel.WC1994(), 2.0
+
+    def get_contexts(self, imts):
+        """
+        Build contexts directly from hamlet DataFrames.
+        """
+        ctxs = []
+        for idx, eq in self.eq_df.iterrows():
+
+            # Get records
+            records = self.gm_df[self.gm_df["event_id"] == eq.event_id]
+
+            if len(records) == 0:
+                continue
+
+            ctx = RuptureContext()
+            n_sites = len(records)
+
+            # Get rup, site and distance params
+            self._set_rupture_params(ctx, eq)
+            self._set_site_params(ctx, records, n_sites)
+            self._set_distance_params(ctx, records, n_sites)
+
+            ctx.sids = np.arange(n_sites, dtype=np.uint32)
+
+            # Build an SMT-style ctx
+            dic = {"EventID": eq.event_id, "Ctx": ctx}
+            dic["Observations"] = {}
+            dic["Retained"] = {}
+            for imtx in imts:
+                col_name = self._imt_to_rotd50_col(imtx)
+                values = records[col_name].values.astype(float)
+                check = pd.notnull(values)
+                dic["Observations"][imtx] = np.asarray(
+                    values, dtype=float
+                )
+                dic["Retained"][imtx] = np.argwhere(check).flatten()
+            dic["Num. Sites"] = n_sites
+
+            ctxs.append(dic)
+
+        return ctxs
+
+    def _set_rupture_params(self, ctx, eq):
+        """
+        Set rupture parameters on the context from the earthquake row.
+        """
+        # Mag and hypocenter
+        ctx.mag = float(eq.magnitude)
+        ctx.hypo_lon = float(eq.longitude)
+        ctx.hypo_lat = float(eq.latitude)
+        ctx.hypo_depth = float(eq.depth)
+
+        # Nodal plane
+        ctx.strike = (float(eq.strike) if pd.notnull(eq.get("strike")) else 0.0)
+        ctx.dip = (float(eq.dip) if pd.notnull(eq.get("dip")) else 90.0)
+        ctx.rake = (float(eq.rake) if pd.notnull(eq.get("rake")) else 0.0)
+
+        # Set a ztor if we have one
+        if pd.notnull(eq.get("es_z_top")):
+            ctx.ztor = float(eq.es_z_top)
         else:
-            return p
+            ctx.ztor = float(eq.depth)
 
-    for i, lon in enumerate(lons):
-        site_args = {"location": Point(lon, lats[i])}
-        site_args["vs30"] = get_param(vs30s, i)
-        if get_param(vs30s_meas_type, i) == "measured":
-            site_args["vs30measured"] = 1
-        if get_param(vs30s_meas_type, i) == "inferred":
-            site_args["vs30measured"] = 0
-        site_args["z1pt0"] = -999
-        site_args["z2pt5"] = -999
-
-        sites.append(Site(**site_args))
-
-    return SiteCollection(sites)
-
-
-def gmf_from_rupture(
-    rupture,
-    sites=None,
-    imts=[
-        PGA(),
-    ],
-    gsim=None,
-    truncation_level=3,
-    realizations=1,
-    correlation_model=None,
-    seed=420,
-    return_dists=True,
-):
-
-    # should probably do something here
-
-    return ground_motion_fields(
-        rupture,
-        sites=sites,
-        imts=imts,
-        gsim=gsim,
-        truncation_level=truncation_level,
-        realizations=realizations,
-        correlation_model=correlation_model,
-        seed=seed,
-    )
-
-
-def get_imls_from_flatfile_row(row, imts):
-    imts_ = []
-    for imt in imts:
-        try:
-            imts_.append(imt.__name__)
-        except AttributeError:
-            imts_.append(imt.__repr__())
-
-    imt_funcs = {"PGA": get_pga_from_flatfile_row}
-
-    imt_results = {imt: imt_funcs[imt](row) for imt in imts_}
-
-    return imt_results
-
-
-def get_pga_from_flatfile_row(row):
-    # from chris:
-    # first try to get geom mean of 2-component horizontal pga
-    # if not this, then try to get rotd50 and convert?
-    # pga and SA are converted to cm/s^2
-    if (not np.isnan(row.U_pga)) and (not np.isnan(row.V_pga)):
-        pga_cm_s2 = geom_mean(abs(row.U_pga), abs(row.V_pga))
-    else:
-        if not np.isnan(row.rotD50_pga):
-            pga_cm_s2 = row.rotD50_pga
+        # Try set the rupture width or compute a proxy if not available
+        if pd.notnull(eq.get("es_width")):
+            ctx.width = float(eq.es_width)
         else:
-            logging.warning(
-                f"can't find horizontal PGA values for eq {row.name}"
+            ctx.width = np.sqrt(
+                self.msr.get_median_area(ctx.mag, ctx.rake))
+
+        # Arbitrary hypocentral location (it's the relative distance
+        # to the sites that matters)
+        ctx.hypo_loc = (0.5, 0.5)
+
+    def _set_site_params(self, ctx, records, n_sites):
+        """
+        Set site parameters on the context from flatfile records.
+        """
+        # Basic site params
+        ctx.lons = records["st_longitude"].values.astype(float)
+        ctx.lats = records["st_latitude"].values.astype(float)
+        depths = records["st_elevation"].values.astype(float) * -1.0e-3
+        depths[np.isnan(depths)] = 0.0
+        ctx.depths = depths
+        ctx.vs30 = records["vs30_m_sec"].values.astype(float)
+        z1 = records["z1pt0 (m)"].values.astype(float)
+        ctx.z1pt0 = np.where(np.isnan(z1), np.nan, z1)
+        z2 = records["z2pt5 (km)"].values.astype(float)
+        ctx.z2pt5 = np.where(np.isnan(z2), np.nan, z2)
+        ctx.vs30measured = (
+            records["vs30_meas_type"].str.strip().str.lower().eq(
+                "measured").values)
+        ctx.backarc = records["st_backarc"].astype(bool).values
+
+    def _set_distance_params(self, ctx, records, n_sites):
+        """
+        Set distance parameters on the context from flatfile records.
+        """
+        # Point-source based
+        ctx.repi = records["epi_dist"].values.astype(float)
+        ctx.rhypo = np.sqrt(ctx.repi ** 2 + ctx.hypo_depth ** 2)
+
+        # Finite rupture based
+        ctx.rjb = records["JB_dist"].values.astype(float)
+        ctx.rrup = records["rup_dist"].values.astype(float)
+        ctx.rx = records["Rx_dist"].values.astype(float)
+        ctx.ry0 = records["Ry0_dist"].values.astype(float)
+
+        # Not used currently in SMT but needed so set as zeroed out
+        ctx.rvolc = np.zeros(n_sites)
+        ctx.rcdpp = np.zeros(n_sites)
+
+        self._fill_missing_distances(ctx)
+
+    def _fill_missing_distances(self, ctx):
+        """
+        Fill NaN distances by reconstructing a finite rupture.
+        """
+        dist_attrs = ["rrup", "rjb", "rx", "ry0", "repi", "rhypo"]
+        has_missing = any(
+            np.any(np.isnan(getattr(ctx, attr)))
+            for attr in dist_attrs
+        )
+        if not has_missing:
+            return
+
+        try: # I use a "try-except" because we might get a rupture that is too
+             # large for given Mw and MSR without setting a ztor depth constraint
+             # which is a bit tricky in a coarse-level residual analysis like this
+            hypoc = Point(ctx.hypo_lon, ctx.hypo_lat, ctx.hypo_depth)
+            srf = PlanarSurface.from_hypocenter(
+                hypoc, self.msr, ctx.mag, self.aratio,
+                ctx.strike, ctx.dip, ctx.rake, ctx.ztor
             )
-            pga_cm_s2 = np.nan
+            rup = BaseRupture(ctx.mag, ctx.rake, None, hypoc, srf)
 
-    pga_g = pga_cm_s2 * 0.01 / 9.81
-    return pga_g
+            # Build a dummy GMM that requires all distance types
+            gmpe = valid.gsim("DummyGMPE")
+            orig_r = list(gmpe.REQUIRES_DISTANCES)
+            for d in ["repi", "rrup", "rjb", "rhypo", "rx", "ry0", "rvolc"]:
+                if d not in orig_r:
+                    orig_r.append(d)
+            gmpe.REQUIRES_DISTANCES = frozenset(orig_r)
+
+            mag_str = [f"{ctx.mag:.2f}"]
+            oqp = {"imtls": {"PGA": []}, "mags": mag_str} # Dummy imtls here
+            ctxm = ContextMaker(
+                self.trt, [gmpe], oqp
+            )
+
+            for i in range(len(ctx.lons)):
+                needs_fill = any(
+                    np.isnan(getattr(ctx, attr)[i])
+                    for attr in dist_attrs
+                )
+                if not needs_fill:
+                    continue
+
+                site = SiteCollection(
+                    [
+                        Site(
+                            Point(ctx.lons[i], ctx.lats[i], ctx.depths[i]),
+                            ctx.vs30[i],
+                            ctx.z1pt0[i]
+                            if not np.isnan(ctx.z1pt0[i])
+                            else None,
+                            ctx.z2pt5[i]
+                            if not np.isnan(ctx.z2pt5[i])
+                            else None,
+                        )
+                    ]
+                )
+
+                site_ctxs = ctxm.get_ctxs([rup], site)
+                site_ctx = site_ctxs[0]
+
+                for attr in dist_attrs:
+                    if np.isnan(getattr(ctx, attr)[i]):
+                        getattr(ctx, attr)[i] = float(getattr(site_ctx, attr)[0])
+
+        except Exception as e:
+            logging.warning(f"Could not fill missing distances: {e}")
+
+    def _imt_to_rotd50_col(self, imtx):
+        """
+        Map IMT string to the GEM flatfile rotD50 column name.
+        """
+        if imtx == "PGA":
+            return "rotD50_pga"
+        elif "SA(" in imtx:
+            period = imt_module.from_string(imtx).period
+            period_str = str(period).replace(".", "_")
+            return f"rotD50_T{period_str}"
+        else:
+            raise ValueError(f"Unsupported IMT: {imtx}")
 
 
-def get_proper_distance(rupture: BaseRupture, sites, distance_key):
-    if distance_key == "rjb":
-        pass
-    elif distance_key == "rrup":
-        pass
-    elif distance_key == "rx":
-        pass
+def generate_residual_plots(residuals, imts, output_dir):
+    """
+    Generate residual plots for all GMMs and IMTs.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    for gmpe in residuals.gmpe_list:
+        gmpe_str = str(gmpe).replace(" ", "_")
+        for imtx in imts:
+            prefix = os.path.join(output_dir, f"{gmpe_str}_{imtx}")
+            ResidualPlot(
+                residuals, gmpe, imtx, f"{prefix}_hist.png"
+            )
+            ResidualWithMagnitude(
+                residuals, gmpe, imtx, f"{prefix}_vs_mag.png"
+            )
+            ResidualWithDistance(
+                residuals, gmpe, imtx, f"{prefix}_vs_dist.png",
+                distance_type="rrup",
+            )
+            ResidualWithVs30(
+                residuals, gmpe, imtx, f"{prefix}_vs_vs30.png"
+            )
 
 
-def make_rup_from_flatfile(eq, trt=None, default_trt="Active Shallow Crust"):
+def _assign_trt_to_earthquakes(test_config, input_data):
+    """
+    Run rupture matching and assign a TRT to each earthquake.
+    """
+    match_results = rupture_matching_eval_fn(
+        input_data["rupture_gdf"],
+        input_data["eq_gm_df"],
+        distance_lambda=test_config["distance_lambda"],
+        mag_window=test_config["mag_window"],
+        group_return_threshold=test_config["group_return_threshold"],
+        no_attitude_default_like=test_config["no_attitude_default_like"],
+        no_rake_default_like=test_config["no_rake_default_like"],
+        use_occurrence_rate=test_config["use_occurrence_rate"],
+        return_one=test_config["return_one"],
+        parallel=test_config["parallel"],
+    )
 
-    # todo: get standard msr from trt, make rup from_hypocenter if needed
+    eq_trt_map = {}
+    match_rups = test_config.get("match_rups", False)
 
-    strike = eq.strike
-    dip = eq.dip
-    ztor = eq.es_z_top
-    rake = eq.rake
-    width = eq.es_width
-    length = eq.es_length
-    lon = eq.longitude
-    lat = eq.latitude
-    mag = eq.magnitude
+    if match_rups and len(match_results["matched_rups"]) > 0:
+        match_results["matched_rups"]["event_id"] = (
+            input_data["eq_gm_df"]
+            .loc[match_results["matched_rups"].index]
+            .event_id
+        )
+        for idx, matched_rup in match_results["matched_rups"].iterrows():
+            eq_trt_map[idx] = matched_rup.tectonic_region_type
 
-    if trt is None:
-        trt = eq.event_trt_from_classifier  # may be null
-        if trt is None:
-            trt = default_trt
+    if not match_rups:
+        match_results["unmatched_eqs"] = input_data["eq_gm_df"]
 
-    height = width * np.sin(np.radians(dip))
-    hdist = width * np.cos(np.radians(dip))
+    for idx, eq in match_results["unmatched_eqs"].iterrows():
+        if idx not in eq_trt_map:
+            closest = get_closest_rupture(eq, input_data["rupture_gdf"])
+            eq_trt_map[idx] = closest.tectonic_region_type
 
-    if ztor is not None:
-        depth = ztor + height / 2
+    return eq_trt_map
 
-    # Move hor. 1/2 hdist in direction -90
-    mid_top = point_at(lon, lat, strike - 90, hdist / 2)
-    # Move hor. 1/2 hdist in direction +90
-    mid_bot = point_at(lon, lat, strike + 90, hdist / 2)
 
-    # compute corner points at the surface
-    top_right = point_at(mid_top[0], mid_top[1], strike, length / 2)
-    top_left = point_at(mid_top[0], mid_top[1], strike + 180, length / 2)
-    bot_right = point_at(mid_bot[0], mid_bot[1], strike, length / 2)
-    bot_left = point_at(mid_bot[0], mid_bot[1], strike + 180, length / 2)
+def evaluate_gmc(test_config, input_data):
+    """
+    Evaluate the GMMs for each TRT in the SSC. Return some plots
+    summarising the performance of each GMM in each TRT for some
+    IMTs of general interest
+    """
+    # Hardcode the GMMs to the GRM IMTs for now
+    imts = ["PGA", "SA(0.3)", "SA(0.6)", "SA(1.0)"]
 
-    # compute corner points in 3D; rounded to 5 digits to avoid having
-    # slightly different surfaces between macos and linux
-    pbl = Point(bot_left[0], bot_left[1], depth + height / 2).round()
-    pbr = Point(bot_right[0], bot_right[1], depth + height / 2).round()
-    ptl = Point(top_left[0], top_left[1], depth - height / 2).round()
-    ptr = Point(top_right[0], top_right[1], depth - height / 2).round()
+    logging.info("Matching ruptures to GM Earthquakes")
+    eq_trt_map = _assign_trt_to_earthquakes(test_config, input_data)
 
-    surface = PlanarSurface.from_corner_points(ptl, ptr, pbr, pbl)
+    # Make out dir
+    output_dir = test_config.get("output_dir", "gm_residual_plots")
+    os.makedirs(output_dir, exist_ok=True)
 
-    rup = BaseRupture(mag, rake, trt, Point(lon, lat, depth), surface)
+    # Group events by TRT and compute residuals using the SMT
+    results = {}
 
-    rup.event_id = eq.event_id
+    for trt in set(eq_trt_map.values()):
+        eq_indices = [idx for idx, t in eq_trt_map.items() if t == trt]
+        eq_subset = input_data["eq_gm_df"].loc[eq_indices]
 
-    return rup
+        if len(eq_subset) == 0:
+            continue
+
+        gmpe_list = list(input_data["gsim_lt"].values.get(trt, []))
+
+        logging.info(
+            f"Computing residuals for TRT: {trt} "
+            f"({len(eq_subset)} events, {len(gmpe_list)} GMMs)"
+        )
+
+        ctx_db = HamletContextDB(eq_subset, input_data["gm_df"], trt)
+
+        residuals = Residuals(gmpe_list, imts)
+        residuals.compute_residuals(ctx_db, component="rotD50")
+
+        trt_dir = os.path.join(output_dir, trt.replace(" ", "_"))
+        generate_residual_plots(residuals, imts, trt_dir)
+
+        results[trt] = residuals
+
+    return results
