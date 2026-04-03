@@ -14,7 +14,6 @@ from openquake.hme.utils import (
     sample_rups,
     get_model_mfd,
     get_obs_mfd,
-    strike_dip_to_norm_vec,
     angles_between_plane_and_planes,
     angles_between_rake_and_rakes,
 )
@@ -23,7 +22,8 @@ from openquake.hme.utils.stats import weighted_geom_mean
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
-    """Computes the expected seismic moment per spatial cell and total, given
+    """
+    omputes the expected seismic moment per spatial cell and total, given
     rupture occurrence rates scaled by duration.
     
     :param rupture_gdf: GeoDataFrame of ruptures with ``magnitude``,
@@ -52,7 +52,8 @@ def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
 
 
 def get_catalog_moment(eq_df, eq_groups=None):
-    """Computes the total seismic moment per spatial cell and overall from an
+    """
+    Computes the total seismic moment per spatial cell and overall from an
     earthquake catalog.
     
     :param eq_df: GeoDataFrame of earthquakes with ``magnitude`` and
@@ -75,7 +76,8 @@ def get_catalog_moment(eq_df, eq_groups=None):
 def moment_over_under_eval_fn(
     rup_df, eq_gdf, cell_groups, t_yrs, min_mag=1.0, max_mag=10.0, n_iters=1000
 ):
-    """Compares observed seismic moment release to stochastic moment release
+    """
+    Compares observed seismic moment release to stochastic moment release
     from the model, per cell and in total.
     
     Generates ``n_iters`` stochastic catalogs by sampling ruptures, computes
@@ -169,7 +171,8 @@ def model_mfd_eval_fn(
     stop_date=None,
 ):
 
-    """Computes and compares model and observed magnitude-frequency
+    """
+    Computes and compares model and observed magnitude-frequency
     distributions.
     
     :param rup_gdf: GeoDataFrame of ruptures.
@@ -224,7 +227,8 @@ def model_mfd_eval_fn(
 
 
 def get_moment_from_mfd(mfd: dict) -> float:
-    """Calculates total seismic moment from an MFD dictionary.
+    """
+    Calculates total seismic moment from an MFD dictionary.
     
     :param mfd: Dict mapping magnitude bin centers to rates.
     :returns: Total seismic moment (N*m).
@@ -244,7 +248,8 @@ def _get_moment_from_mfd_dict(mfd: dict) -> float:
 
 
 def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
-    """Calculates a linear likelihood based on the magnitude difference
+    """
+    Calculates a linear likelihood based on the magnitude difference
     between an earthquake and candidate ruptures.
     
     :param eq_mag: Observed earthquake magnitude.
@@ -263,9 +268,8 @@ def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
 
 
 def get_distances(eq, rup_gdf):
-    # this assumes we want 3d distance instead of separate treatment
-    # of h, v dists
-    """Calculates 3D distances between an earthquake and a set of ruptures.
+    """
+    Calculates 3D distances between an earthquake and a set of ruptures.
     
     :param eq: Earthquake row with ``longitude``, ``latitude``, ``depth``.
     :param rup_gdf: GeoDataFrame of ruptures with the same columns.
@@ -283,7 +287,8 @@ def get_distances(eq, rup_gdf):
 
 
 def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
-    """Filters ruptures to those within a magnitude window of the earthquake.
+    """
+    Filters ruptures to those within a magnitude window of the earthquake.
     
     :param eq: Earthquake row with ``magnitude``.
     :param rup_df: DataFrame of ruptures with ``magnitude`` column.
@@ -301,8 +306,8 @@ def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
 
 
 def get_nearby_rups(eq, rup_df):
-    # first find adjacent cells to pare down search space
-    """Finds ruptures in the earthquake's H3 cell and its immediate neighbors.
+    """
+    Finds ruptures in the earthquake's H3 cell and its immediate neighbors.
     
     :param eq: Earthquake row with ``cell_id``.
     :param rup_df: DataFrame of ruptures with ``cell_id`` column.
@@ -331,8 +336,8 @@ def get_matching_rups(
     rake_rel_weight=0.25,
     mag_rel_weight=1.0,
 ):
-    # selection phase
-    """Finds and ranks modeled ruptures that match an observed earthquake.
+    """
+    Finds and ranks modeled ruptures that match an observed earthquake.
     
     Matching is done in two phases: selection (nearby ruptures within a
     magnitude window) and ranking (weighted geometric mean of distance,
