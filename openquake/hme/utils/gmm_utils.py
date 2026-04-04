@@ -38,24 +38,22 @@ class HamletContextDB(ContextDB):
     DataFrame and GEM Global Flatfile records, suitable for SMT
     residual analysis.
     """
-    def __init__(self, eq_df, gm_df, trt, oq_rup):
+    def __init__(self, eq_df, gm_df, oq_rup):
         """
         :param eq_df:
             DataFrame of unique earthquakes.
         :param gm_df:
             DataFrame of the GEM Global Flatfile.
-        :param trt:
-            Tectonic region type string (e.g. "Active Shallow Crust") of the
-            given event.
         :param oq_rup:
             Dict mapping eq index to matched model ruptures. The rupture
             parameters in the ctxs are taken from the matched ruptures.
         """
         self.eq_df = eq_df
         self.gm_df = gm_df
-        self.trt = trt
         self.oq_rup = oq_rup
-        self.msr, self.aratio = self._get_rup_props_for_trt(trt)
+        first_rup = next(iter(oq_rup.values())) # TRT is in the rup attributes
+        self.trt = first_rup["tectonic_region_type"]
+        self.msr, self.aratio = self._get_rup_props_for_trt(self.trt)
 
     def _get_rup_props_for_trt(self, trt):
         """
@@ -71,7 +69,7 @@ class HamletContextDB(ContextDB):
 
     def get_contexts(self, nodal_plane_index, imts, component):
         """
-        Build contexts directly from hamlet DataFrames.
+        Build contexts directly from hamlet DataFrame.
         """
         ctxs = []
         for idx, eq in self.eq_df.iterrows():
@@ -182,7 +180,7 @@ class HamletContextDB(ContextDB):
 
     def _fill_missing_distances(self, ctx):
         """
-        Fill NaN distances by reconstructing a finite rupture.
+        Fill empty distances by reconstructing a finite rupture.
         """
         dist_attrs = ["rrup", "rjb", "rx", "ry0", "repi", "rhypo"]
         has_missing = any(
@@ -192,9 +190,10 @@ class HamletContextDB(ContextDB):
         if not has_missing:
             return
 
-        try: # I use a "try-except" because we might get a rupture that is too
-             # large for given Mw and MSR without setting a ztor depth constraint
-             # which is a bit tricky in a coarse-level residual analysis like this
+        try: # Use a "try-except" because we might get a rupture that is too
+             # large for given Mw, MSR and aratio combo without setting a ztor 
+             # depth constraint which is a bit tricky in a coarse-level residual
+             # analysis like this to always handle automatically
             hypoc = Point(ctx.hypo_lon, ctx.hypo_lat, ctx.hypo_depth)
             srf = PlanarSurface.from_hypocenter(
                 hypoc, self.msr, ctx.mag, self.aratio,
@@ -231,10 +230,10 @@ class HamletContextDB(ContextDB):
                             ctx.vs30[i],
                             ctx.z1pt0[i]
                             if not np.isnan(ctx.z1pt0[i])
-                            else None,
+                            else None, # Will be set to -999 in the sm_database to turn off basin adjustment
                             ctx.z2pt5[i]
                             if not np.isnan(ctx.z2pt5[i])
-                            else None,
+                            else None, # Same again here
                         )
                     ]
                 )
@@ -393,7 +392,7 @@ def evaluate_gmc(test_config, input_data):
             )
             continue
 
-        gmpe_list = list(input_data["gsim_lt"].values.get(trt, []))
+        gmpe_list = list(input_data["gsim_lt"].values.get(trt))
 
         logging.info(
             f"Computing residuals for TRT: {trt} "
@@ -403,7 +402,7 @@ def evaluate_gmc(test_config, input_data):
 
         trt_oq_rup = {i: eq_rup_map[i] for i in eq_indices}
         ctx_db = HamletContextDB(
-            eq_subset, input_data["gm_df"], trt, oq_rup=trt_oq_rup
+            eq_subset, input_data["gm_df"], oq_rup=trt_oq_rup
         )
 
         residuals = Residuals(gmpe_list, imts)
