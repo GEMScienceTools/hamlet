@@ -301,3 +301,9 @@ Parameters:
     gets a subdirectory with per-GMM subfolders. Default:
     ``"gm_residual_plots"``.
 
+``min_recordings_per_event``
+    Optional. Minimum number of ground-motion recordings an earthquake must
+    have to be included in the residual analysis. Events with fewer recordings
+    than this threshold are discarded before residuals are computed. Default:
+    ``3``.
+
