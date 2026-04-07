@@ -375,6 +375,19 @@ def evaluate_gmc(test_config, input_data):
         # Filter to records for this TRT's earthquakes
         trt_records = gm_df[gm_df["event_id"].isin(eq_subset["event_id"])]
 
+        # Keep only earthquakes with more than 2 recordings
+        rec_counts = trt_records.groupby("event_id").size()
+        val_ids = rec_counts[rec_counts > 2].index
+        trt_records = trt_records[trt_records["event_id"].isin(val_ids)]
+        eq_subset = eq_subset[eq_subset["event_id"].isin(val_ids)]
+
+        # Only proceed if enough data (above the min of 3 records)
+        if len(eq_subset) == 0:
+            logging.info(
+                f"No events with 3 or more recordings for TRT {trt}, skipping"
+            )
+            continue
+
         # Check which IMTs have data in these records
         imts = []
         for imtx in candidate_imts:
