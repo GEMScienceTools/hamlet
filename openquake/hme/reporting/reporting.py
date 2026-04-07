@@ -6,6 +6,7 @@ testing.
 import os
 import json
 import logging
+import base64
 from typing import Optional
 from xml.parsers.expat import model
 
@@ -30,8 +31,6 @@ from openquake.hme.utils.plots import (
     plot_eqs_by_mag_time,
     prepare_eqs_by_mag_time_for_d3,
     prepare_rup_match_data_for_d3,
-    plot_PGA_distance,
-    plot_PGA_scatter,
 )
 
 from openquake.hme.utils.utils import breakpoint
@@ -245,8 +244,8 @@ def render_result_text(
                 env=env, cfg=cfg, results=results
             )
 
-        if "catalog_ground_motion_eval" in results["gem"].keys():
-            render_catalog_ground_motion_eval(
+        if "gmc_eval" in results["gem"].keys():
+            render_gmc_eval(
                 env=env, cfg=cfg, results=results
             )
 
@@ -610,30 +609,36 @@ def render_cumulative_occurrence_eval(
     )
 
 
-def render_catalog_ground_motion_eval(
+def render_gmc_eval(
     env: Environment, cfg: dict, results: dict
 ):
-    eval_results = results["gem"]["catalog_ground_motion_eval"]["val"]
+    eval_results = results["gem"]["gmc_eval"]["val"]
 
-    # Get save_plot parameter from config
     test_config = cfg["config"]["model_framework"]["gem"][
-        "catalog_ground_motion_eval"
+        "gmc_eval"
     ]
-    save_plot = test_config.get("save_plot", False)
+    output_dir = test_config.get("output_dir", "gm_residual_plots")
 
     res_plots = {}
 
-    for trt, gmm_comp in eval_results["gmm_comparisons"].items():
-        res_plots[trt] = []
-        plot = plot_PGA_distance(gmm_comp, trt, save_fig=save_plot)
-        if plot:
-            res_plots[trt].append(plot)
-        plot = plot_PGA_scatter(gmm_comp, trt, save_fig=save_plot)
-        if plot:
-            res_plots[trt].append(plot)
+    for trt in eval_results:
+        trt_dir = os.path.join(output_dir, trt.replace(" ", "_"))
+        trt_plots = []
+        if os.path.isdir(trt_dir):
+            for root, dirs, files in os.walk(trt_dir):
+                for fname in sorted(files):
+                    if fname.endswith(".png"):
+                        fpath = os.path.join(root, fname)
+                        with open(fpath, "rb") as f:
+                            b64 = base64.b64encode(f.read()).decode("utf-8")
+                        trt_plots.append({
+                            "name": fname,
+                            "data": b64,
+                        })
+        res_plots[trt] = trt_plots
 
-    cat_gm_template = env.get_template("catalog_ground_motion_eval.html")
+    cat_gm_template = env.get_template("gmc_eval.html")
 
-    results["gem"]["catalog_ground_motion_eval"]["rendered_text"] = (
+    results["gem"]["gmc_eval"]["rendered_text"] = (
         cat_gm_template.render(res_plots=res_plots)
     )

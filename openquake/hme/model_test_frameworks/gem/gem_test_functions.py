@@ -1,38 +1,31 @@
 """
 Utility functions for running tests in the GEM model test framework.
 """
-
-import logging
-from multiprocessing import Pool
-
 import h3
 import numpy as np
 import pandas as pd
-from geopandas import GeoDataFrame
 from tqdm.autonotebook import tqdm
+from multiprocessing import Pool
 
-from openquake.hazardlib.imt import PGA, PGV
 from openquake.hazardlib.geo.geodetic import distance
-import openquake.hazardlib as hz
 
 from openquake.hme.utils import (
-    parallelize,
     mag_to_mo,
     sample_rups,
     get_model_mfd,
     get_obs_mfd,
-    strike_dip_to_norm_vec,
     angles_between_plane_and_planes,
     angles_between_rake_and_rakes,
 )
-from openquake.hme.utils.utils import _n_procs, breakpoint
-from openquake.hme.utils.stats import geom_mean, weighted_geom_mean
+from openquake.hme.utils.utils import _n_procs
+from openquake.hme.utils.stats import weighted_geom_mean
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
-    """Computes the expected seismic moment per spatial cell and total, given
+    """
+    omputes the expected seismic moment per spatial cell and total, given
     rupture occurrence rates scaled by duration.
-
+    
     :param rupture_gdf: GeoDataFrame of ruptures with ``magnitude``,
         ``occurrence_rate``, and ``cell_id`` columns.
     :param t_yrs: Duration in years to scale occurrence rates.
@@ -59,9 +52,10 @@ def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
 
 
 def get_catalog_moment(eq_df, eq_groups=None):
-    """Computes the total seismic moment per spatial cell and overall from an
+    """
+    Computes the total seismic moment per spatial cell and overall from an
     earthquake catalog.
-
+    
     :param eq_df: GeoDataFrame of earthquakes with ``magnitude`` and
         ``cell_id`` columns.
     :param eq_groups: Optional pre-computed groupby on ``cell_id``.
@@ -82,13 +76,14 @@ def get_catalog_moment(eq_df, eq_groups=None):
 def moment_over_under_eval_fn(
     rup_df, eq_gdf, cell_groups, t_yrs, min_mag=1.0, max_mag=10.0, n_iters=1000
 ):
-    """Compares observed seismic moment release to stochastic moment release
+    """
+    Compares observed seismic moment release to stochastic moment release
     from the model, per cell and in total.
-
+    
     Generates ``n_iters`` stochastic catalogs by sampling ruptures, computes
     moment release for each, and calculates the fractile of the observed
     moment within the stochastic distribution.
-
+    
     :param rup_df: GeoDataFrame of ruptures.
     :param eq_gdf: GeoDataFrame of observed earthquakes.
     :param cell_groups: Pre-computed groupby of ruptures on ``cell_id``.
@@ -175,9 +170,11 @@ def model_mfd_eval_fn(
     annualize=False,
     stop_date=None,
 ):
-    """Computes and compares model and observed magnitude-frequency
-    distributions.
 
+    """
+    Computes and compares model and observed magnitude-frequency
+    distributions.
+    
     :param rup_gdf: GeoDataFrame of ruptures.
     :param eq_gdf: GeoDataFrame of observed earthquakes.
     :param mag_bins: Dict of magnitude bin centers to (min, max) tuples.
@@ -226,15 +223,13 @@ def model_mfd_eval_fn(
 
     mfd_df.index.name = "bin"
 
-    # print(mfd_df["obs_mfd_cum"])
-    # print(mfd_df["mod_mfd_cum"])
-
     return {"test_data": {"mfd_df": mfd_df, "annualize": annualize}}
 
 
 def get_moment_from_mfd(mfd: dict) -> float:
-    """Calculates total seismic moment from an MFD dictionary.
-
+    """
+    Calculates total seismic moment from an MFD dictionary.
+    
     :param mfd: Dict mapping magnitude bin centers to rates.
     :returns: Total seismic moment (N*m).
     """
@@ -253,9 +248,10 @@ def _get_moment_from_mfd_dict(mfd: dict) -> float:
 
 
 def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
-    """Calculates a linear likelihood based on the magnitude difference
+    """
+    Calculates a linear likelihood based on the magnitude difference
     between an earthquake and candidate ruptures.
-
+    
     :param eq_mag: Observed earthquake magnitude.
     :param rup_mags: Array of rupture magnitudes.
     :param mag_window: Total width of the magnitude window for matching.
@@ -272,14 +268,13 @@ def mag_diff_likelihood(eq_mag, rup_mags, mag_window=1.0):
 
 
 def get_distances(eq, rup_gdf):
-    """Calculates 3D distances between an earthquake and a set of ruptures.
-
+    """
+    Calculates 3D distances between an earthquake and a set of ruptures.
+    
     :param eq: Earthquake row with ``longitude``, ``latitude``, ``depth``.
     :param rup_gdf: GeoDataFrame of ruptures with the same columns.
     :returns: Array of distances in km.
     """
-    # this assumes we want 3d distance instead of separate treatment
-    # of h, v dists
     dists = distance(
         eq.longitude,
         eq.latitude,
@@ -292,8 +287,9 @@ def get_distances(eq, rup_gdf):
 
 
 def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
-    """Filters ruptures to those within a magnitude window of the earthquake.
-
+    """
+    Filters ruptures to those within a magnitude window of the earthquake.
+    
     :param eq: Earthquake row with ``magnitude``.
     :param rup_df: DataFrame of ruptures with ``magnitude`` column.
     :param mag_window: Total width of the magnitude window.
@@ -310,13 +306,13 @@ def get_rups_in_mag_range(eq, rup_df, mag_window=1.0):
 
 
 def get_nearby_rups(eq, rup_df):
-    """Finds ruptures in the earthquake's H3 cell and its immediate neighbors.
-
+    """
+    Finds ruptures in the earthquake's H3 cell and its immediate neighbors.
+    
     :param eq: Earthquake row with ``cell_id``.
     :param rup_df: DataFrame of ruptures with ``cell_id`` column.
     :returns: Filtered DataFrame of nearby ruptures.
     """
-    # first find adjacent cells to pare down search space
     closest_cells = h3.grid_disk(eq.cell_id, 1)
 
     rups_nearby = rup_df.loc[rup_df.cell_id.isin(closest_cells)]
@@ -340,14 +336,15 @@ def get_matching_rups(
     rake_rel_weight=0.25,
     mag_rel_weight=1.0,
 ):
-    """Finds and ranks modeled ruptures that match an observed earthquake.
-
+    """
+    Finds and ranks modeled ruptures that match an observed earthquake.
+    
     Matching is done in two phases: selection (nearby ruptures within a
     magnitude window) and ranking (weighted geometric mean of distance,
     magnitude, attitude, and rake likelihoods). If focal mechanism data is
     available (single or double-couple), attitude and rake similarity are
     included; otherwise, default likelihoods are used.
-
+    
     :param eq: Earthquake row with location, magnitude, and optional focal
         mechanism columns (``strike``, ``dip``, ``rake`` or
         ``strike1``/``strike2`` etc.).
@@ -372,7 +369,6 @@ def get_matching_rups(
     :returns: DataFrame of matching ruptures (or Series if ``return_one``),
         or ``None`` if no matches found.
     """
-    # selection phase
     rups = get_nearby_rups(eq, rup_df=rup_gdf)
     rups = get_rups_in_mag_range(eq, rup_df=rups, mag_window=mag_window)
 
@@ -420,7 +416,6 @@ def get_matching_rups(
         )
         rake_diffs = pd.Series(rake_diffs, index=rups.index)
         # angles > pi/2 should all have zero likelihood
-        # rake_diffs[rake_diffs >= np.pi / 2] = np.pi / 2
         rake_likes = np.cos(rake_diffs)
         rake_likes[rake_likes < 1e-20] = 1e-20
         rups["rake_diff"] = rake_diffs
@@ -491,7 +486,6 @@ def get_matching_rups(
         )
 
     else:
-        # breakpoint()
         attitude_likes = np.ones(len(rups)) * no_attitude_default_like
         rups["attitude_diff"] = np.empty(len(rups))
         rups["attitude_diff"].values[:] = np.nan
@@ -598,7 +592,7 @@ def match_eqs_to_rups(
 ):
     """Matches all earthquakes in a catalog to their best-matching modeled
     ruptures using :func:`get_matching_rups`.
-
+    
     :param eq_gdf: GeoDataFrame of observed earthquakes.
     :param rup_gdf: GeoDataFrame of modeled ruptures.
     :param distance_lambda: Distance decay parameter.
@@ -660,7 +654,7 @@ def rupture_matching_eval_fn(
 ):
     """Runs the rupture matching evaluation, matching all observed earthquakes
     to modeled ruptures and collecting matched/unmatched results.
-
+    
     :param rup_gdf: GeoDataFrame of modeled ruptures.
     :param eq_gdf: GeoDataFrame of observed earthquakes.
     :returns: Dict with ``matched_rups`` DataFrame and ``unmatched_eqs``
@@ -718,173 +712,7 @@ def rupture_matching_eval_fn(
     return {"matched_rups": matched_rups, "unmatched_eqs": unmatched_eqs}
 
 
-from openquake.hme.utils.gmm_utils import (
-    make_sitecol,
-    build_oq_rupture,
-    gmf_from_rupture,
-    get_imls_from_flatfile_row,
-    make_rup_from_flatfile,
-)
-
-
-def get_flatfile_records_for_eq(event_id, gm_df: pd.DataFrame) -> pd.DataFrame:
-    """Returns all flatfile records for a given earthquake event ID."""
-    return gm_df.loc[gm_df.event_id == event_id]
-
-
-def predict_gms_for_eq(eq, gm_df, gsim_lt, test_config, imts=(PGA(),)):
-    """Predicts ground motions at recording sites for a given earthquake using
-    the ground motion models from the logic tree, and compares with observed
-    values from the flatfile.
-
-    :param eq: Earthquake (or rupture object).
-    :param gm_df: Ground motion flatfile DataFrame.
-    :param gsim_lt: Ground motion model logic tree.
-    :param test_config: Test configuration dict with ``gmf_method``.
-    :param imts: Tuple of intensity measure types (default: PGA).
-    :returns: DataFrame with observed and predicted ground motions per site.
-    """
-    site_records = get_flatfile_records_for_eq(eq.event_id, gm_df)
-    sitecol = make_sitecol(
-        site_records["st_longitude"].values,
-        site_records["st_latitude"].values,
-        vs30s=site_records["vs30_m_sec"].values,
-        vs30s_meas_type=site_records["vs30_meas_type"].values,
-    )
-
-    if not isinstance(eq, hz.source.rupture.BaseRupture):
-        rupture = build_oq_rupture(eq)
-    else:
-        rupture = eq
-
-    results = {}
-
-    gsims = gsim_lt.values[eq.tectonic_region_type]
-
-    if test_config["gmf_method"] == "ground_motion_fields":
-        for gsim in gsims:
-            results[gsim.__repr__().strip("[]")] = gmf_from_rupture(
-                rupture, sites=sitecol, gsim=gsim, imts=imts
-            )
-
-    elif test_config["gmf_method"] == "calc_gmf_simplified":
-        # ebr = hz.source.rupture.EBRupture()
-        raise NotImplementedError("don't know how to make EBR, context")
-
-    results["obs"] = {imt.__repr__(): {} for imt in imts}
-    for i, row in site_records.iterrows():
-        row_obs = get_imls_from_flatfile_row(row, imts)
-        for imt, v in row_obs.items():
-            results["obs"][imt][i] = v
-
-    results_df = pd.concat(
-        [
-            pd.Series(res, name=f"{imt}_obs")
-            for imt, res in results["obs"].items()
-        ],
-        axis=1,
-    )
-
-    for gsim, gms in results.items():
-        if gsim != "obs":
-            for imt, vals in gms.items():
-                results_df[f"{imt}_{gsim}"] = vals
-
-    rrup_calc = rupture.surface.get_min_distance(sitecol.mesh)
-    results_df["rup_dist_calc"] = rrup_calc
-    results_df["rup_dist_ff"] = site_records["rup_dist"]
-
-    # breakpoint()
-
-    return results_df
-
-
 def get_closest_rupture(eq, rupture_df):
     """Returns the rupture closest to the given earthquake in 3D distance."""
     dists = get_distances(eq, rupture_df)
     return rupture_df.iloc[dists.argmin()]
-
-
-def catalog_ground_motion_eval_fn(test_config, input_data):
-    """Compares observed ground motions from a flatfile with model predictions.
-
-    For each earthquake, either matches it to a modeled rupture or constructs
-    a rupture from the flatfile data, then computes predicted ground motion
-    fields using the ground motion models from the source model logic tree.
-
-    :param test_config: Test configuration dict with matching parameters and
-        ``gmf_method``.
-    :param input_data: Dict with ``rupture_gdf``, ``eq_gm_df``, ``gm_df``,
-        and ``gsim_lt``.
-    :returns: Dict keyed by tectonic region type, with DataFrames of observed
-        vs. predicted ground motions per earthquake.
-    """
-    # defining this here for now, will go in config later
-    imts = (PGA(),)
-
-    logging.info("Matching ruptures to GM Earthquakes")
-    match_results = rupture_matching_eval_fn(
-        input_data["rupture_gdf"],
-        input_data["eq_gm_df"],
-        distance_lambda=test_config["distance_lambda"],
-        mag_window=test_config["mag_window"],
-        group_return_threshold=test_config["group_return_threshold"],
-        no_attitude_default_like=test_config["no_attitude_default_like"],
-        no_rake_default_like=test_config["no_rake_default_like"],
-        use_occurrence_rate=test_config["use_occurrence_rate"],
-        return_one=test_config["return_one"],
-        # parallel is often slower
-        parallel=test_config["parallel"],  # cfg["config"]["parallel"],
-    )
-
-    gmm_results = {}
-
-    match_rups = test_config.get("match_rups", False)
-
-    if match_rups:
-        match_results["matched_rups"]["event_id"] = (
-            input_data["eq_gm_df"]
-            .loc[match_results["matched_rups"].index]
-            .event_id
-        )
-        for idx, matched_rupture in match_results["matched_rups"].iterrows():
-            rupture = matched_rupture
-            trt = rupture.tectonic_region_type
-
-            if trt not in gmm_results:
-                gmm_results[trt] = {}
-
-            logging.info(f"Calculating GMFs for rupture {idx}")
-            gmm_results[trt][idx] = predict_gms_for_eq(
-                matched_rupture,
-                input_data["gm_df"],
-                input_data["gsim_lt"],
-                test_config,
-                imts=imts,
-            )
-    else:
-        match_results["unmatched_eqs"] = input_data["eq_gm_df"]
-
-    for idx, eq in match_results["unmatched_eqs"].iterrows():
-        trt = get_closest_rupture(
-            eq, input_data["rupture_gdf"]
-        ).tectonic_region_type
-
-        if trt not in gmm_results:
-            gmm_results[trt] = {}
-
-        try:
-            rupture = make_rup_from_flatfile(eq, trt=trt)
-
-            logging.info(f"Calculating GMFs for rupture {idx}")
-            gmm_results[trt][idx] = predict_gms_for_eq(
-                rupture,
-                input_data["gm_df"],
-                input_data["gsim_lt"],
-                test_config,
-                imts=imts,
-            )
-        except:
-            logging.warning(f"can't do eq {eq.name}")
-
-    return gmm_results

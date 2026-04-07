@@ -1,8 +1,11 @@
 import os
+import shutil
 import unittest
-
 import numpy as np
 import pandas as pd
+from copy import deepcopy
+
+from openquake.smt.residuals.gmpe_residuals import Residuals
 
 from openquake.hme.model_test_frameworks.gem.gem_tests import (
     M_test,
@@ -12,9 +15,10 @@ from openquake.hme.model_test_frameworks.gem.gem_tests import (
     max_mag_check,
     model_mfd_eval,
     rupture_matching_eval,
+    gmc_eval,
 )
-
-
+from openquake.hme.core.core import load_inputs
+from openquake.hme.reporting.reporting import _init_env, render_gmc_eval
 from openquake.hme.utils.tests.load_sm1 import cfg, input_data
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data")
@@ -549,3 +553,72 @@ class test_gem_tests(unittest.TestCase):
             rupture_matching_eval_res["matched_rups"][test_cols],
             rupture_matching_eval_match_results[test_cols],
         )
+
+
+class test_evaluate_gmc(unittest.TestCase):
+    """
+    Test the GMC evaluation capabilities.
+    
+    NOTE: This is only testing the execution because we are using FAKE values
+    in the test flatfile (there are no readily available recordings for the ASCR
+    events considered in sm1 test ssc).
+    """
+    def setUp(self):
+        """
+        Setup the test by adding the flatfile key and configuring the gmc evaluation
+        parameters.
+        """
+        self.cfg = deepcopy(cfg)
+
+        # Add the required keys for telling hamlet to perform gmc evaluation
+        self.cfg["input"]["flatfile"] = os.path.join(
+            TEST_DATA_DIR, "gem_global_flatfile_fake_test_data.csv"
+        )
+        self.cfg["config"]["model_framework"]["gem"]["gmc_eval"] = {
+            "rups_from_flatfile": True,
+            "output_dir": os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots"),
+            "min_recordings_per_event": 3,
+        }
+
+        # Load the config
+        self.input_data = load_inputs(self.cfg)
+
+    def test_evaluate_gmc_runs(self):
+        """
+        Run the GMC evaluation with the updated config.
+        """
+        # Get residuals per TRT we have data for
+        results = gmc_eval(self.cfg, self.input_data)
+
+        # Each value should be an SMT Residuals object
+        for trt, residuals in results.items(): # Only 1 TRT in sm1 (ASCR)
+            self.assertIsInstance(trt, str)
+            self.assertIsInstance(residuals, Residuals)
+
+        # Check some plots exist for each TRT (also checked below in render test)
+        output_dir = self.cfg[
+            "config"]["model_framework"]["gem"]["gmc_eval"]["output_dir"]
+        self.assertTrue(os.path.isdir(output_dir))
+        for trt in results:
+            trt_dir = os.path.join(output_dir, trt.replace(" ", "_"))
+            self.assertTrue(os.path.isdir(trt_dir), f"Missing TRT directory: {trt_dir}")
+            png_files = [f for f in os.listdir(trt_dir) if f.endswith(".png")]
+            self.assertGreater(len(png_files), 0, f"No plot files in {trt_dir}")
+
+    def test_render_gmc_eval(self):
+        """
+        Check that the results can be rendered correctly as a html.
+        """
+        results = {"gem": {"gmc_eval": {"val": gmc_eval(self.cfg, self.input_data)}}}
+        render_gmc_eval(_init_env(), self.cfg, results)
+
+        # Export it to a local HTML for checks
+        html_path = os.path.join(TEST_DATA_DIR, "_test_gmc_report.html")
+        with open(html_path, "w") as f:
+            f.write(f"<html><body>{results['gem']['gmc_eval']['' \
+            'rendered_text']}</body></html>")
+
+    def tearDown(self):
+        output_dir = os.path.join(TEST_DATA_DIR, "_test_gm_residual_plots")
+        if os.path.isdir(output_dir):
+            shutil.rmtree(output_dir)

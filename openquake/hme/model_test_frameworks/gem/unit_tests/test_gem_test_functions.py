@@ -17,7 +17,6 @@ from openquake.hme.model_test_frameworks.gem.gem_test_functions import (
     get_rups_in_mag_range,
     get_nearby_rups,
     get_matching_rups,
-    _get_matching_rups,
     match_eqs_to_rups,
     rupture_matching_eval_fn,
 )

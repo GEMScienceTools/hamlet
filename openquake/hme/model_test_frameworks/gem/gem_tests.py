@@ -1,9 +1,6 @@
 import logging
-from typing import Optional
-
 import numpy as np
-import pandas as pd
-from geopandas import GeoDataFrame
+
 
 from openquake.hme.utils import (
     get_mag_bins_from_cfg,
@@ -11,17 +8,14 @@ from openquake.hme.utils import (
     get_mag_year_from_comp_table,
     get_model_mfd,
 )
+from openquake.hme.utils.gmm_utils import evaluate_gmc
+
 
 from ..sanity.sanity_checks import max_check
 from .gem_test_functions import (
-    # get_stochastic_mfd,
-    # get_stochastic_mfds_parallel,
-    # eval_obs_moment,
-    # eval_obs_moment_model,
     model_mfd_eval_fn,
     moment_over_under_eval_fn,
     rupture_matching_eval_fn,
-    catalog_ground_motion_eval_fn,
 )
 
 from ..relm.relm_tests import (
@@ -30,8 +24,6 @@ from ..relm.relm_tests import (
     m_test_function,
     l_test_function,
 )
-
-from .gem_stats import calc_mfd_log_likelihood_independent
 
 
 def M_test(
@@ -113,7 +105,8 @@ def S_test(
     cfg: dict,
     input_data: dict,
 ) -> dict:
-    """GEM S-Test: evaluates the spatial consistency of the model by comparing
+    """
+    GEM S-Test: evaluates the spatial consistency of the model by comparing
     per-cell likelihoods of the observed catalog against stochastic catalogs.
     Highlights cells where the model over- or under-predicts seismicity.
     """
@@ -167,7 +160,8 @@ def L_test(
     cfg: dict,
     input_data: dict,
 ) -> dict:
-    """GEM L-Test: joint likelihood test combining spatial and magnitude
+    """
+    GEM L-Test: joint likelihood test combining spatial and magnitude
     information to evaluate overall model consistency.
     """
     logging.info("Running GEM L-Test")
@@ -212,7 +206,8 @@ def L_test(
 
 
 def N_test(cfg: dict, input_data: dict) -> dict:
-    """GEM N-Test: compares the total observed earthquake count to the number
+    """
+    GEM N-Test: compares the total observed earthquake count to the number
     predicted by the model using a Poisson confidence interval.
     """
     logging.info("Running N-Test")
@@ -264,7 +259,8 @@ def N_test(cfg: dict, input_data: dict) -> dict:
 
 
 def max_mag_check(cfg: dict, input_data: dict):
-    """Checks whether the model can produce earthquakes as large as the largest
+    """
+    Checks whether the model can produce earthquakes as large as the largest
     observed earthquake in each spatial cell.
     """
     logging.info("Checking Maximum Magnitudes")
@@ -292,7 +288,8 @@ def max_mag_check(cfg: dict, input_data: dict):
 
 
 def model_mfd_eval(cfg, input_data):
-    """Compares the total model MFD to the observed MFD from the earthquake
+    """
+    Compares the total model MFD to the observed MFD from the earthquake
     catalog, producing incremental and cumulative MFD data for reporting.
     """
     logging.info("Running GEM Model MFD Eval")
@@ -329,7 +326,8 @@ def model_mfd_eval(cfg, input_data):
 
 
 def moment_over_under_eval(cfg, input_data):
-    """Compares observed vs. stochastic seismic moment release per cell and
+    """
+    Compares observed vs. stochastic seismic moment release per cell and
     in total, to highlight areas of over- or under-prediction.
     """
     logging.info("Running GEM Moment Over-Under Eval")
@@ -390,7 +388,8 @@ rup_match_default_params = {
 
 
 def rupture_matching_eval(cfg, input_data):
-    """Matches observed earthquakes to modeled ruptures based on proximity,
+    """
+    Matches observed earthquakes to modeled ruptures based on proximity,
     magnitude, and (optionally) focal mechanism similarity.
     """
     logging.info("Running GEM Rupture Matching Eval")
@@ -450,13 +449,16 @@ def rupture_matching_eval(cfg, input_data):
 
 
 def mfd_likelihood_test(cfg, input_data):
-    """.. deprecated:: Use ``M_test``, ``S_test``, and ``L_test`` instead."""
+    """
+    Deprecated:: Use ``M_test``, ``S_test``, and ``L_test`` instead.
+    """
     logging.warning("GEM Likelihood test deprecated")
     return
 
 
 def cumulative_occurrence_eval(cfg, input_data):
-    """Evaluates cumulative earthquake occurrence over time for each magnitude
+    """
+    Evaluates cumulative earthquake occurrence over time for each magnitude
     bin, comparing the observed temporal pattern to the model rate.
     """
     logging.info("Running GEM Cumultive Earthquake Occurrence Eval")
@@ -503,26 +505,19 @@ def cumulative_occurrence_eval(cfg, input_data):
     }
 
 
-def catalog_ground_motion_eval(cfg, input_data):
-    """Compares observed ground motions from a flatfile with model-predicted
-    ground motions. Requires ``input.flatfile`` in the configuration.
+def gmc_eval(cfg, input_data):
     """
-    logging.info("Running GEM catalog ground motion evaluation")
+    Compares observed ground motions from a flatfile with model-predicted
+    ground motions.
+    
+    Requires ``input.flatfile`` in the configuration.
+    """
+    logging.info("Evaluate model GMCs against provided flatfile")
 
-    test_config = cfg["config"]["model_framework"]["gem"][
-        "catalog_ground_motion_eval"
-    ]
-
-    match_rups = test_config.get("match_rups", False)
-    test_config["gmf_method"] = test_config.get(
-        "gmf_method", "ground_motion_fields"
-    )
-
+    test_config = cfg["config"]["model_framework"]["gem"]["gmc_eval"]
     test_config = deep_update(rup_match_default_params, test_config)
 
-    gmm_comparisons = catalog_ground_motion_eval_fn(test_config, input_data)
-
-    return {"gmm_comparisons": gmm_comparisons}
+    return evaluate_gmc(test_config, input_data)
 
 
 gem_test_dict = {
@@ -536,5 +531,5 @@ gem_test_dict = {
     "L_test": L_test,
     "rupture_matching_eval": rupture_matching_eval,
     "cumulative_occurrence_eval": cumulative_occurrence_eval,
-    "catalog_ground_motion_eval": catalog_ground_motion_eval,
+    "gmc_eval": gmc_eval,
 }
