@@ -75,6 +75,17 @@ def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
     return stoch_mfd_vals
 
 
+def _mfd_ratio(model_vals, obs_vals):
+    model_vals = np.asarray(model_vals, dtype=float)
+    obs_vals = np.asarray(obs_vals, dtype=float)
+    return np.divide(
+        model_vals,
+        obs_vals,
+        out=np.full_like(model_vals, np.nan, dtype=float),
+        where=obs_vals > 0,
+    )
+
+
 def plot_N_test_results(
     N_test_results: dict,
     return_fig: bool = False,
@@ -304,6 +315,7 @@ def plot_mfd(
     return_string: bool = False,
     save_fig: Union[bool, str] = False,
     annualize: bool = True,
+    show_ratio: bool = True,
     **kwargs,
 ):
     """
@@ -312,11 +324,27 @@ def plot_mfd(
     :param t_yrs: Investigation time in years. Can be a single float for uniform duration,
                   or a dict mapping magnitude bins to their individual durations (for
                   completeness tables).
+    :param show_ratio: If True and both model and observed are provided, adds a subplot
+                       below showing the ratio of model (and its stochastic iterations)
+                       to observed.
 
     """
-    fig = plt.figure(figsize=(5, 4))
-    ax = fig.add_subplot(111, yscale="log")
-    plt.title("Magnitude-Frequency Distribution")
+    show_ratio_panel = show_ratio and model is not None and observed is not None
+
+    if show_ratio_panel:
+        fig, (ax, ax_ratio) = plt.subplots(
+            2, 1, sharex=True, figsize=(5, 6),
+            gridspec_kw={"height_ratios": [2, 1], "hspace": 0.05},
+        )
+        ax.set_yscale("log")
+    else:
+        fig, ax = plt.subplots(1, 1, figsize=(5, 4))
+        ax.set_yscale("log")
+        ax_ratio = None
+
+    ax.set_title("Magnitude-Frequency Distribution")
+
+    stoch_mfd_vals = []
 
     if model is not None:
         if model_iters > 0:
@@ -351,7 +379,30 @@ def plot_mfd(
         else "Frequency of exceedance"
     )
     ax.set_ylabel(ylabel)
-    ax.set_xlabel("Magnitude")
+
+    if ax_ratio is not None:
+        obs_vals = np.array(list(observed.values()))
+        model_mags = list(model.keys())
+
+        for smfd in stoch_mfd_vals:
+            ax_ratio.plot(
+                model_mags,
+                _mfd_ratio(smfd, obs_vals),
+                model_format,
+                lw=10 / model_iters,
+            )
+
+        ax_ratio.plot(
+            model_mags,
+            _mfd_ratio(list(model.values()), obs_vals),
+            model_format,
+        )
+
+        ax_ratio.axhline(1.0, color="0.3", lw=1, ls="--")
+        ax_ratio.set_ylabel("model / obs")
+        ax_ratio.set_xlabel("Magnitude")
+    else:
+        ax.set_xlabel("Magnitude")
 
     if save_fig is not False:
         fig.savefig(save_fig)
