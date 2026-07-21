@@ -280,13 +280,21 @@ def get_distances(eq, rup_gdf):
     """
     # this assumes we want 3d distance instead of separate treatment
     # of h, v dists
+    # `openquake.hazardlib.geo.geodetic.distance` expects NumPy numeric
+    # arrays.  Pandas Series can arrive as object-typed inputs on newer
+    # openquake/numba combinations, which then fail inside the JIT dispatcher.
+    # Converting explicitly keeps the call stable across engine versions.
+    rup_lons = np.asarray(rup_gdf["longitude"], dtype=np.float64)
+    rup_lats = np.asarray(rup_gdf["latitude"], dtype=np.float64)
+    rup_depths = np.asarray(rup_gdf["depth"], dtype=np.float64)
+
     dists = distance(
         eq.longitude,
         eq.latitude,
         eq.depth,
-        rup_gdf["longitude"],
-        rup_gdf["latitude"],
-        rup_gdf["depth"],
+        rup_lons,
+        rup_lats,
+        rup_depths,
     )
     return dists
 

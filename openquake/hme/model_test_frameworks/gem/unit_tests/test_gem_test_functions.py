@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -335,6 +336,36 @@ class test_gem_test_functions(unittest.TestCase):
         )
 
         np.testing.assert_allclose(distances, distances_expected)
+
+    def test_get_distances_coerces_rupture_coordinates(self):
+        eq = self.eq_gdf.iloc[0]
+
+        rups = self.rupture_gdf.iloc[:3].copy()
+        for col in ["longitude", "latitude", "depth"]:
+            rups[col] = rups[col].astype(object)
+
+        def fake_distance(lon1, lat1, depth1, lons2, lats2, depths2):
+            assert np.isscalar(lon1)
+            assert np.isscalar(lat1)
+            assert np.isscalar(depth1)
+            assert isinstance(lons2, np.ndarray)
+            assert isinstance(lats2, np.ndarray)
+            assert isinstance(depths2, np.ndarray)
+            assert lons2.dtype == np.float64
+            assert lats2.dtype == np.float64
+            assert depths2.dtype == np.float64
+            return np.array([50.22082, 48.373561, 46.53774], dtype=np.float64)
+
+        with patch(
+            "openquake.hme.model_test_frameworks.gem.gem_test_functions.distance",
+            side_effect=fake_distance,
+        ):
+            distances = get_distances(eq, rups)
+
+        np.testing.assert_allclose(
+            distances,
+            np.array([50.22082, 48.373561, 46.53774], dtype=np.float64),
+        )
 
     def test_get_rups_in_mag_range(self):
         eq = self.eq_gdf.loc[8]
