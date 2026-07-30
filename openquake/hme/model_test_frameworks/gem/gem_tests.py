@@ -22,6 +22,7 @@ from .gem_test_functions import (
     moment_over_under_eval_fn,
     rupture_matching_eval_fn,
     catalog_ground_motion_eval_fn,
+    N_test_annual,
 )
 
 from ..relm.relm_tests import (
@@ -223,10 +224,45 @@ def N_test(cfg: dict, input_data: dict) -> dict:
     test_config["mag_bins"] = get_mag_bins_from_cfg(cfg)
 
     prospective = test_config.get("prospective", False)
+    prob_model = test_config["prob_model"]
 
-    if (
-        test_config["prob_model"] in ["poisson", "poisson_cum"]
-    ) and not prospective:
+    # Handle annual prob_model separately (GEM-specific implementation)
+    if prob_model == "annual":
+        if prospective:
+            eq_gdf = input_data["pro_gdf"]
+        else:
+            eq_gdf = input_data["eq_gdf"]
+
+        if completeness_table is not None:
+            logging.warning(
+                "N-Test with prob_model='annual' does not support completeness tables. "
+                "Results may not be accurate."
+            )
+
+        # Get mean annual rate from model
+        mag_bins = get_mag_bins_from_cfg(cfg)
+        model_mfd = get_model_mfd(input_data["rupture_gdf"], mag_bins, t_yrs=1.0)
+        mean_annual_rate = sum(model_mfd.values())
+
+        conf_interval = test_config.get("conf_interval", 0.95)
+        test_method = test_config.get("test_method", "ecdf")
+        test_results = N_test_annual(eq_gdf, mean_annual_rate, conf_interval, test_method)
+
+        # Add metadata for plotting/reporting
+        test_results["M_min"] = min(mag_bins.keys())
+        test_results["prob_model"] = "annual"
+
+        logging.info(
+            "N-Test number obs eqs: {}".format(test_results["n_obs_earthquakes"])
+        )
+        logging.info(
+            "N-Test number pred eqs: {}".format(test_results["n_pred_earthquakes"])
+        )
+        logging.info("N-Test {}".format(test_results["test_pass"]))
+        return test_results
+
+    # For other prob_models, use RELM implementation
+    if prob_model in ["poisson", "poisson_cum"] and not prospective:
         if completeness_table is not None:
             test_config["completeness_table"] = completeness_table
             test_config["stop_date"] = stop_date

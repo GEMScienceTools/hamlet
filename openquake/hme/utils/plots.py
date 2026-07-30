@@ -75,6 +75,120 @@ def _make_stoch_mfds(mfd, iters: int, t_yrs: float = 1.0):
     return stoch_mfd_vals
 
 
+def plot_N_test_annual(N_test_results: dict):
+    """
+    Plot histogram of annual earthquake counts with model distribution.
+
+    Shows either Poisson (if no overdispersion) or Negative Binomial
+    (if overdispersion detected) distribution for comparison.
+
+    Parameters
+    ----------
+    N_test_results : dict
+        N-test results with prob_model='annual' containing annual_counts and
+        mean_annual_model_rate
+
+    Returns
+    -------
+    fig
+        Matplotlib figure
+    """
+    annual_counts = np.array(N_test_results["annual_counts"])
+    mean_annual_model_rate = N_test_results["mean_annual_model_rate"]
+    is_overdispersed = N_test_results.get("is_overdispersed", False)
+    r_dispersion = N_test_results.get("r_dispersion")
+    conf_interval = N_test_results.get("conf_interval", (None, None))
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Create histogram of observed annual counts
+    max_count = int(np.ceil(max(annual_counts.max(), mean_annual_model_rate * 2)))
+    bins = np.arange(-0.5, max_count + 1.5, 1)
+
+    ax.hist(
+        annual_counts,
+        bins=bins,
+        density=True,
+        histtype="stepfilled",
+        alpha=0.6,
+        color="C0",
+        label=f"Observed annual counts (n={len(annual_counts)} years)",
+        edgecolor="black",
+        linewidth=0.5,
+    )
+
+    # Plot model distribution - use negative binomial if overdispersed, otherwise Poisson
+    x_vals = np.arange(0, max_count + 1)
+
+    if is_overdispersed and r_dispersion is not None:
+        # Negative binomial distribution
+        # Convert (mu, r) to scipy's (n, p) parameterization
+        # n = r, p = r / (r + mu)
+        from scipy.stats import nbinom
+        n_param = r_dispersion
+        p_param = r_dispersion / (r_dispersion + mean_annual_model_rate)
+        model_probs = nbinom.pmf(x_vals, n_param, p_param)
+
+        ax.plot(
+            x_vals,
+            model_probs,
+            "o-",
+            color="C1",
+            label=f"Negative Binomial (μ={mean_annual_model_rate:.2f}, r={r_dispersion:.2f})",
+            linewidth=2,
+            markersize=6,
+        )
+    else:
+        # Poisson distribution
+        model_probs = poisson.pmf(x_vals, mean_annual_model_rate)
+
+        ax.plot(
+            x_vals,
+            model_probs,
+            "o-",
+            color="C1",
+            label=f"Poisson (λ={mean_annual_model_rate:.2f})",
+            linewidth=2,
+            markersize=6,
+        )
+
+    # Add mean lines
+    ax.axvline(
+        annual_counts.mean(),
+        color="C0",
+        linestyle="--",
+        linewidth=2,
+        label=f"Mean observed ({annual_counts.mean():.2f})",
+    )
+    ax.axvline(
+        mean_annual_model_rate,
+        color="C1",
+        linestyle="--",
+        linewidth=2,
+        label=f"Mean model ({mean_annual_model_rate:.2f})",
+    )
+
+    # Add confidence interval shading if available
+    if conf_interval[0] is not None and conf_interval[1] is not None:
+        ax.axvspan(
+            conf_interval[0],
+            conf_interval[1],
+            alpha=0.2,
+            color="C0",
+            label=f"Obs. CI ({N_test_results.get('conf_interval_frac', 0.95)*100:.0f}%)",
+        )
+
+    ax.set_xlabel("Number of Earthquakes per Year", fontsize=12)
+    ax.set_ylabel("Probability Density", fontsize=12)
+    ax.set_title("Annual Earthquake Count Distribution", fontsize=14)
+    ax.legend(loc="best")
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    return fig
+
+
 def plot_N_test_results(
     N_test_results: dict,
     return_fig: bool = False,
@@ -88,6 +202,9 @@ def plot_N_test_results(
             N_o=N_test_results["n_obs_earthquakes"],
             conf_interval=N_test_results["conf_interval"],
         )
+    elif N_test_results["prob_model"] == "annual":
+        # Use the annual plotting function
+        fig = plot_N_test_annual(N_test_results)
     elif N_test_results.get("pred_samples"):
         fig = plot_N_test_empirical(
             N_test_results["pred_samples"],
