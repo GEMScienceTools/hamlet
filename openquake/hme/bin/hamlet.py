@@ -68,6 +68,9 @@ def main(arg=None):
 
         if args.pdb:
             debugger.post_mortem()
+        else:
+            # Exit with non-zero error code so that tests fail
+            sys.exit(1)
 
 
 if __name__ == "__main__":
