@@ -583,9 +583,18 @@ the format stabilizes, there will almost certainly be problems.</p>
 <p>This optional section configures report generation. Currently there is one
 option, the <code class="docutils literal notranslate"><span class="pre">basic</span></code> HTML report, which aggregates all test and evaluation
 results into maps, plots, and tables.</p>
+<p>Report-producing tests and evaluations may include <code class="docutils literal notranslate"><span class="pre">save_plot</span></code> in their own
+configuration. Set it to a filename to save the generated plot; it defaults
+to <code class="docutils literal notranslate"><span class="pre">false</span></code>.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">report</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">basic</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">outfile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs/report.html</span>
+
+<span class="nt">config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">model_framework</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gem</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">N_test</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">save_plot</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs/n_test.png</span>
 </pre></div>
 </div>
 </section>
@@ -704,6 +713,7 @@ at <code class="docutils literal notranslate"><span class="pre">doc_src/source/e
 <span class="w">        </span><span class="nt">investigation_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">40.</span><span class="w">    </span><span class="c1"># [optional] Duration in years; defaults</span>
 <span class="w">                                   </span><span class="c1"># to seis_catalog duration</span>
 <span class="w">        </span><span class="nt">annualize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span><span class="w">            </span><span class="c1"># [optional] Annualize rates; default True</span>
+<span class="w">        </span><span class="c1"># save_plot: outputs/model_mfd.png  # [optional] Save the plot to this file</span>
 
 <span class="w">      </span><span class="c1"># Maximum Magnitude Check (sanity check)</span>
 <span class="w">      </span><span class="c1"># Checks whether the model can produce earthquakes as large as the</span>

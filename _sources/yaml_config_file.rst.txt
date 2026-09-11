@@ -358,11 +358,21 @@ This optional section configures report generation. Currently there is one
 option, the ``basic`` HTML report, which aggregates all test and evaluation
 results into maps, plots, and tables.
 
+Report-producing tests and evaluations may include ``save_plot`` in their own
+configuration. Set it to a filename to save the generated plot; it defaults
+to ``false``.
+
 .. code-block:: yaml
 
     report:
       basic:
         outfile: outputs/report.html
+
+    config:
+      model_framework:
+        gem:
+          N_test:
+            save_plot: outputs/n_test.png
 
 
 .. _output:
