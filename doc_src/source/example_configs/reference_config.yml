@@ -44,6 +44,7 @@ config:
         investigation_time: 40.    # [optional] Duration in years; defaults
                                    # to seis_catalog duration
         annualize: True            # [optional] Annualize rates; default True
+        # save_plot: outputs/model_mfd.png  # [optional] Save the plot to this file
 
       # Maximum Magnitude Check (sanity check)
       # Checks whether the model can produce earthquakes as large as the

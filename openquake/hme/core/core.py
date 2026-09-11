@@ -111,7 +111,9 @@ def read_yaml_config(
     yaml_config: Openable, fill_fields: bool = True, validate: bool = True
 ) -> dict:
     """
-    Reads a model test configuration file (YAML).
+    Reads a model test configuration file (YAML). Report-producing tests and
+    evaluations may set ``save_plot`` to a plot filename to save their plots;
+    it defaults to ``False``.
 
     :param yaml_config:
         path or file-like object in the YAML format.
