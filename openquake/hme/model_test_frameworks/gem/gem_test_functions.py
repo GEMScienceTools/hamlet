@@ -27,6 +27,7 @@ from openquake.hme.utils import (
 )
 from openquake.hme.utils.utils import _n_procs, breakpoint
 from openquake.hme.utils.stats import geom_mean, weighted_geom_mean
+from scipy.stats import poisson, nbinom, t as t_dist
 
 
 def get_rupture_gdf_cell_moment(rupture_gdf, t_yrs, rup_groups=None):
@@ -896,3 +897,148 @@ def catalog_ground_motion_eval_fn(test_config, input_data):
             logging.warning(f"can't do eq {eq.name}")
 
     return gmm_results
+
+
+def N_test_annual(
+    eq_gdf: GeoDataFrame,
+    mean_annual_model_rate: float,
+    conf_interval: float,
+    test_method: str = "ecdf"
+) -> dict:
+    """
+    N-test using annual earthquake count distribution.
+
+    Tests if the model's mean annual rate is consistent with the observed
+    annual earthquake counts, accounting for temporal variability without
+    assuming a Poisson process.
+
+    If the data shows overdispersion (variance > mean), estimates a negative
+    binomial dispersion parameter for visualization and reporting.
+
+    Parameters
+    ----------
+    eq_gdf : GeoDataFrame
+        Earthquake geodataframe with observed earthquakes
+    mean_annual_model_rate : float
+        Mean annual rate from the model
+    conf_interval : float
+        Confidence interval for the test (e.g., 0.95 for 95%)
+    test_method : str, optional
+        Method for calculating confidence intervals:
+        - "ecdf": Use empirical percentiles from observed distribution (default)
+        - "t_distribution": Use t-distribution confidence interval
+
+    Returns
+    -------
+    dict
+        Test results including annual counts, dispersion statistics, and
+        confidence intervals
+    """
+    # Extract years from earthquake times
+    eq_years = pd.DatetimeIndex(eq_gdf['time']).year
+    unique_years = sorted(eq_years.unique())
+    n_years = len(unique_years)
+
+    # Count earthquakes per year
+    annual_counts = np.array([
+        (eq_years == year).sum() for year in unique_years
+    ])
+
+    # Mean and standard deviation of annual counts
+    mean_annual_obs = annual_counts.mean()
+    std_annual_obs = annual_counts.std(ddof=1)
+
+    # Calculate variance for dispersion estimation
+    var_annual_obs = annual_counts.var(ddof=1)
+
+    # Estimate dispersion parameter r for negative binomial
+    # r = mu^2 / (var - mu)
+    # If var <= mu, data is not overdispersed (Poisson-like or underdispersed)
+    if var_annual_obs > mean_annual_obs:
+        r_dispersion = mean_annual_obs**2 / (var_annual_obs - mean_annual_obs)
+        is_overdispersed = True
+        logging.info(
+            f"N-Test (annual, {test_method}): Observed overdispersion - "
+            f"mean={mean_annual_obs:.2f}, var={var_annual_obs:.2f}, r={r_dispersion:.2f}"
+        )
+    else:
+        r_dispersion = None
+        is_overdispersed = False
+        logging.info(
+            f"N-Test (annual, {test_method}): No overdispersion detected - "
+            f"mean={mean_annual_obs:.2f}, var={var_annual_obs:.2f}"
+        )
+
+    # Calculate confidence interval based on test_method
+    if test_method == "ecdf":
+        # Use empirical percentiles from observed distribution
+        alpha = 1 - conf_interval
+        lower_percentile = (alpha / 2) * 100
+        upper_percentile = (1 - alpha / 2) * 100
+
+        conf_min = np.percentile(annual_counts, lower_percentile)
+        conf_max = np.percentile(annual_counts, upper_percentile)
+
+        # Calculate what percentile the model rate corresponds to
+        model_percentile = (annual_counts < mean_annual_model_rate).sum() / n_years * 100
+
+        logging.info(
+            f"N-Test (annual, ECDF): Model rate {mean_annual_model_rate:.2f}, "
+            f"Observed {conf_interval*100:.0f}% CI: [{conf_min:.2f}, {conf_max:.2f}] "
+            f"(from {lower_percentile:.1f}th to {upper_percentile:.1f}th percentile)"
+        )
+        logging.info(
+            f"N-Test (annual, ECDF): Model rate at {model_percentile:.1f}th percentile "
+            f"of observed distribution"
+        )
+    else:
+        # Use t-distribution confidence interval (doesn't assume Poisson)
+        t_crit = t_dist.ppf((1 + conf_interval) / 2, n_years - 1)
+        margin_error = t_crit * (std_annual_obs / np.sqrt(n_years))
+
+        conf_min = mean_annual_obs - margin_error
+        conf_max = mean_annual_obs + margin_error
+
+        logging.info(
+            f"N-Test (annual, t-distribution): Model rate {mean_annual_model_rate:.2f}, "
+            f"Observed mean {mean_annual_obs:.2f} ± {margin_error:.2f} "
+            f"({conf_interval*100:.0f}% CI: [{conf_min:.2f}, {conf_max:.2f}])"
+        )
+
+    # Test passes if model mean is within CI
+    test_pass = conf_min <= mean_annual_model_rate <= conf_max
+
+    test_res = "Pass" if test_pass else "Fail"
+    logging.info(f"N-Test (annual, {test_method}): {test_res}")
+
+    test_result = {
+        "conf_interval_frac": conf_interval,
+        "conf_interval": (conf_min, conf_max),
+        "n_pred_earthquakes": mean_annual_model_rate,  # annual rate
+        "n_obs_earthquakes": mean_annual_obs,  # mean annual count
+        "test_res": test_res,
+        "test_pass": bool(test_pass),
+        # Test method
+        "test_method": test_method,
+        # Temporal variability statistics
+        "is_overdispersed": is_overdispersed,
+        "r_dispersion": float(r_dispersion) if r_dispersion is not None else None,
+        "variance_annual_obs": float(var_annual_obs),
+        # Additional data for annual distribution plotting
+        "annual_counts": annual_counts.tolist(),
+        "years": unique_years,
+        "n_years": n_years,
+        "mean_annual_obs_count": float(mean_annual_obs),
+        "std_annual_obs_count": float(std_annual_obs),
+        "mean_annual_model_rate": mean_annual_model_rate,
+    }
+
+    # Add ECDF-specific fields if using ECDF method
+    if test_method == "ecdf":
+        test_result.update({
+            "model_percentile": float(model_percentile),
+            "lower_percentile": float(lower_percentile),
+            "upper_percentile": float(upper_percentile),
+        })
+
+    return test_result
