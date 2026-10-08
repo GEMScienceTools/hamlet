@@ -7,6 +7,13 @@ on:
     branches: [ master ]
   schedule:
     - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Run the build with tmate debugging enabled"
+        required: false
+        default: false
 
 jobs:
   test:
@@ -18,14 +25,21 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
-        python-version: 3.11
-    - name: Install OQ and dependencies
+        python-version: 3.12
+    - name: Install OQ
       run: |
         sudo apt-get install libspatialindex-dev
-        git clone --depth=1 https://github.com/gem/oq-engine.git
+        git clone -b master https://github.com/gem/oq-engine.git
         cd oq-engine
         python ./install.py devel
         cd ..
+    - name: Setup debugging session
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 45
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+    - name: Install hamlet on OQ venv
+      run: |
+        pwd
         source $HOME/openquake/bin/activate
         pip install -r requirements.txt
         pip install -e .
