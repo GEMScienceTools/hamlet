@@ -33,9 +33,6 @@ jobs:
         cd oq-engine
         python ./install.py devel
         cd ..
-    - name: Setup debugging session
-      uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 45
     - name: Setup upterm session
       uses: owenthereal/action-upterm@v2
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
