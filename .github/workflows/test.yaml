@@ -33,12 +33,6 @@ jobs:
         cd oq-engine
         python ./install.py devel
         cd ..
-    - name: Setup upterm session
-      uses: owenthereal/action-upterm@v2
-      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-      with:
-        ## Shut down the server if unconnected after 45 minutes.
-        wait-timeout-minutes: 45
     - name: Install hamlet on OQ venv
       run: |
         pwd
@@ -46,6 +40,12 @@ jobs:
         pip install -r requirements.txt
         pip install -e .
         deactivate
+    - name: Setup upterm session
+      uses: owenthereal/action-upterm@v2
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      with:
+        ## Shut down the server if unconnected after 45 minutes.
+        wait-timeout-minutes: 45
     - name: Run test with pytest
       run: |
         source $HOME/openquake/bin/activate
